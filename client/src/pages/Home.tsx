@@ -51,7 +51,9 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
   const [swiped, setSwiped] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragX = useMotionValue(0);
-  const deleteOpacity = useTransform(dragX, [-80, -40], [1, 0]);
+  // deleteOpacity: fully visible at -80px, invisible at -20px
+  const deleteOpacity = useTransform(dragX, [-80, -20], [1, 0]);
+  // Clamp tile movement to left only
   const tileX = useTransform(dragX, (v) => Math.min(0, v));
 
   const utils = trpc.useUtils();
@@ -77,7 +79,14 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
   });
 
   const handleSave = () => {
-    updateMealMut.mutate({ id: meal.id, mealType, foods, notes });
+    // Ensure every food item has hiddenIngredients (required by server schema)
+    const sanitizedFoods = foods.map((f) => ({
+      name: f.name,
+      category: (f.category ?? "other") as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
+      fodmap: f.fodmap as "low" | "moderate" | "high",
+      hiddenIngredients: f.hiddenIngredients ?? [],
+    }));
+    updateMealMut.mutate({ id: meal.id, mealType, foods: sanitizedFoods, notes });
   };
 
   const handleCancel = () => {
@@ -155,22 +164,23 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
         <Trash2 className="w-5 h-5 text-white" />
       </motion.div>
 
-      {/* Tile content — draggable */}
+      {/* Tile content — draggable. Bind dragX directly so the MotionValue tracks correctly */}
       <motion.div
-        style={{ x: tileX }}
+        style={{ x: dragX }}
         drag={editing ? false : "x"}
         dragConstraints={{ left: -80, right: 0 }}
-        dragElastic={0.1}
+        dragElastic={0.05}
+        dragMomentum={false}
         onDragEnd={(_, info) => {
-          if (info.offset.x < -60) {
+          if (info.offset.x < -50) {
             setSwiped(true);
-            animate(dragX, -80, { type: "spring", stiffness: 300, damping: 30 });
+            animate(dragX, -80, { type: "spring", stiffness: 400, damping: 35 });
           } else {
             setSwiped(false);
-            animate(dragX, 0, { type: "spring", stiffness: 300, damping: 30 });
+            animate(dragX, 0, { type: "spring", stiffness: 400, damping: 35 });
           }
         }}
-        className="bg-card border border-border/50 shadow-sm rounded-xl cursor-grab active:cursor-grabbing"
+        className="bg-card border border-border/50 shadow-sm rounded-xl touch-pan-y"
       >
         {/* View mode */}
         {!editing && (
@@ -208,21 +218,21 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
             </div>
             <div className="flex flex-col gap-1 shrink-0">
               <button
-                onClick={() => { setSwiped(false); animate(dragX, 0); setEditing(true); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setSwiped(false); animate(dragX, 0, { type: "spring" }); setEditing(true); }}
                 className="p-2 rounded-lg hover:bg-muted transition-colors"
                 aria-label="Edit meal"
               >
                 <Pencil className="w-4 h-4 text-muted-foreground" />
               </button>
-              {swiped && (
-                <button
-                  onClick={handleDelete}
-                  className="p-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors"
-                  aria-label="Delete meal"
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </button>
-              )}
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                aria-label="Delete meal"
+              >
+                <Trash2 className="w-4 h-4 text-red-400" />
+              </button>
             </div>
           </div>
         )}

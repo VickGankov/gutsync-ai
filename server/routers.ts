@@ -195,8 +195,13 @@ Return a JSON array of discovered correlations. Be conservative — only report 
 
   const content = result.choices[0]?.message?.content;
   if (!content || typeof content !== "string") return [];
-  const parsed = JSON.parse(content);
-  return parsed.correlations || [];
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.correlations || [];
+  } catch {
+    console.error("[analyzeCorrelations] Failed to parse LLM response:", content.slice(0, 200));
+    return [];
+  }
 }
 
 // ─── Router ───

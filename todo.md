@@ -39,3 +39,6 @@
 - [x] Fix Google OAuth disallowed_useragent error (open login in system browser)
 - [x] Add swipe-to-delete on meal tiles with undo toast
 - [x] Add one-tap symptom quick-log row on home screen
+- [x] Fix meal edit functionality (not saving changes)
+- [x] Fix meal delete functionality (swipe-to-delete not working)
+- [x] Fix insights analyze functionality (not triggering correlation analysis)
