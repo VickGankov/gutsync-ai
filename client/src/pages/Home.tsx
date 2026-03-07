@@ -1,10 +1,11 @@
 // GutSync AI — Home Dashboard
-// Leaf icon opens profile sheet; editable + swipe-to-delete meal tiles; quick symptom log row
+// Minimalistic design: tap meal tile to expand, clean edit/delete
 
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Sparkles, ChevronRight, Leaf, Clock, LogIn,
-  X, Pencil, Check, Trash2, User, LogOut, Crown, Settings, Zap,
+  X, Check, Trash2, User, LogOut, Crown, Settings, Zap,
+  MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { formatTimeAgo, getSymptomEmoji, getSymptomLabel } from "@/lib/store";
 import type { FoodItem } from "@/lib/store";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { isInAppBrowser, getInAppBrowserName } from "@/lib/browser";
+import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 
 const HERO_IMG =
@@ -30,8 +31,8 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-// ─── Swipeable + Editable Meal Tile ──────────────────────────────────────────
-function EditableMealTile({ meal, onSaved, onDeleted }: {
+// ─── Minimalistic Meal Tile ─────────────────────────────────────────────────
+function MealTile({ meal, onSaved, onDeleted }: {
   meal: {
     id: number;
     mealType: "breakfast" | "lunch" | "dinner" | "snack";
@@ -43,18 +44,14 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
   onSaved: () => void;
   onDeleted: (id: number) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [mealType, setMealType] = useState(meal.mealType);
   const [foods, setFoods] = useState<FoodItem[]>(meal.foods);
   const [newFood, setNewFood] = useState("");
   const [notes, setNotes] = useState(meal.notes ?? "");
-  const [swiped, setSwiped] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dragX = useMotionValue(0);
-  // deleteOpacity: fully visible at -80px, invisible at -20px
-  const deleteOpacity = useTransform(dragX, [-80, -20], [1, 0]);
-  // Clamp tile movement to left only
-  const tileX = useTransform(dragX, (v) => Math.min(0, v));
 
   const utils = trpc.useUtils();
 
@@ -63,6 +60,7 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
       utils.insights.dashboard.invalidate();
       utils.meals.list.invalidate();
       setEditing(false);
+      setExpanded(false);
       toast.success("Meal updated");
       onSaved();
     },
@@ -78,65 +76,50 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
     onError: () => toast.error("Failed to delete meal"),
   });
 
-  const handleSave = () => {
-    // Ensure every food item has hiddenIngredients (required by server schema)
+  const handleSave = useCallback(() => {
     const sanitizedFoods = foods.map((f) => ({
       name: f.name,
-      category: (f.category ?? "other") as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
-      fodmap: f.fodmap as "low" | "moderate" | "high",
+      category: (f.category ?? "other") as FoodItem["category"],
+      fodmap: f.fodmap as FoodItem["fodmap"],
       hiddenIngredients: f.hiddenIngredients ?? [],
     }));
     updateMealMut.mutate({ id: meal.id, mealType, foods: sanitizedFoods, notes });
-  };
+  }, [foods, meal.id, mealType, notes, updateMealMut]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setMealType(meal.mealType);
     setFoods(meal.foods);
     setNotes(meal.notes ?? "");
     setNewFood("");
     setEditing(false);
-  };
+  }, [meal]);
 
-  const handleDelete = () => {
-    // Optimistic: hide tile immediately, show undo toast
+  const handleDelete = useCallback(() => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
     onDeleted(meal.id);
-    const toastId = toast("Meal deleted", {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          // Re-add to local list by invalidating (the server hasn't deleted yet)
-          utils.insights.dashboard.invalidate();
-          utils.meals.list.invalidate();
-          toast.dismiss(toastId);
-        },
-      },
-      duration: 4000,
-      onAutoClose: () => {
-        // Actually delete after undo window closes
-        deleteMealMut.mutate({ id: meal.id });
-      },
-      onDismiss: () => {
-        deleteMealMut.mutate({ id: meal.id });
-      },
-    });
-  };
+    deleteMealMut.mutate({ id: meal.id });
+    toast.success("Meal deleted");
+  }, [confirmDelete, deleteMealMut, meal.id, onDeleted]);
 
-  const addFood = () => {
+  const addFood = useCallback(() => {
     const name = newFood.trim();
     if (!name) return;
     setFoods((prev) => [
       ...prev,
-      { name, category: "other", fodmap: "moderate", hiddenIngredients: [] },
+      { name, category: "other" as const, fodmap: "moderate" as const, hiddenIngredients: [] },
     ]);
     setNewFood("");
     inputRef.current?.focus();
-  };
+  }, [newFood]);
 
-  const removeFood = (idx: number) => {
+  const removeFood = useCallback((idx: number) => {
     setFoods((prev) => prev.filter((_, i) => i !== idx));
-  };
+  }, []);
 
-  const cycleFodmap = (idx: number) => {
+  const cycleFodmap = useCallback((idx: number) => {
     const cycle: FoodItem["fodmap"][] = ["low", "moderate", "high"];
     setFoods((prev) =>
       prev.map((f, i) =>
@@ -145,197 +128,265 @@ function EditableMealTile({ meal, onSaved, onDeleted }: {
           : f
       )
     );
-  };
+  }, []);
 
   const fodmapColor = (level: string) => {
     if (level === "high") return "bg-coral-light/60 text-coral";
     if (level === "moderate") return "bg-amber-100 text-amber-700";
-    if (level === "low") return "bg-sage-light/60 text-sage-dark";
-    return "bg-muted text-muted-foreground";
+    return "bg-sage-light/60 text-sage-dark";
   };
 
-  return (
-    <motion.div layout variants={item} className="relative overflow-hidden rounded-xl">
-      {/* Delete background revealed by swipe */}
-      <motion.div
-        style={{ opacity: deleteOpacity }}
-        className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-xl"
-      >
-        <Trash2 className="w-5 h-5 text-white" />
-      </motion.div>
+  const highFodmap = foods.some((f) => f.fodmap === "high");
+  const allLow = foods.length > 0 && foods.every((f) => f.fodmap === "low");
 
-      {/* Tile content — draggable. Bind dragX directly so the MotionValue tracks correctly */}
-      <motion.div
-        style={{ x: dragX }}
-        drag={editing ? false : "x"}
-        dragConstraints={{ left: -80, right: 0 }}
-        dragElastic={0.05}
-        dragMomentum={false}
-        onDragEnd={(_, info) => {
-          if (info.offset.x < -50) {
-            setSwiped(true);
-            animate(dragX, -80, { type: "spring", stiffness: 400, damping: 35 });
-          } else {
-            setSwiped(false);
-            animate(dragX, 0, { type: "spring", stiffness: 400, damping: 35 });
-          }
+  // Reset confirm delete when tile collapses
+  useEffect(() => {
+    if (!expanded) setConfirmDelete(false);
+  }, [expanded]);
+
+  return (
+    <motion.div
+      layout
+      variants={item}
+      className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden"
+    >
+      {/* Collapsed view — tap to expand */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!editing) setExpanded((prev) => !prev);
         }}
-        className="bg-card border border-border/50 shadow-sm rounded-xl touch-pan-y"
+        className="w-full text-left p-3 flex items-center gap-3"
       >
-        {/* View mode */}
-        {!editing && (
-          <div className="flex items-center gap-3 p-3">
-            {meal.photoUrl ? (
-              <img src={meal.photoUrl} alt={mealType} className="w-14 h-14 rounded-lg object-cover shrink-0" />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-sage-light/40 flex items-center justify-center shrink-0">
-                <Leaf className="w-6 h-6 text-sage-dark" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium capitalize">{mealType}</span>
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTimeAgo(meal.loggedAt)}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                {foods.map((f) => f.name).join(", ")}
-              </p>
-              <div className="flex gap-1 mt-1 flex-wrap">
-                {foods.some((f) => f.fodmap === "high") && (
-                  <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-coral-light/50 text-coral">
-                    High FODMAP
-                  </span>
-                )}
-                {foods.length > 0 && foods.every((f) => f.fodmap === "low") && (
-                  <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
-                    Low FODMAP
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col gap-1 shrink-0">
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); setSwiped(false); animate(dragX, 0, { type: "spring" }); setEditing(true); }}
-                className="p-2 rounded-lg hover:bg-muted transition-colors"
-                aria-label="Edit meal"
-              >
-                <Pencil className="w-4 h-4 text-muted-foreground" />
-              </button>
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                aria-label="Delete meal"
-              >
-                <Trash2 className="w-4 h-4 text-red-400" />
-              </button>
-            </div>
+        {meal.photoUrl ? (
+          <img
+            src={meal.photoUrl}
+            alt={mealType}
+            className="w-12 h-12 rounded-xl object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-xl bg-sage-light/40 flex items-center justify-center shrink-0">
+            <Leaf className="w-5 h-5 text-sage-dark" />
           </div>
         )}
-
-        {/* Edit mode */}
-        {editing && (
-          <div className="p-3 space-y-3">
-            {/* Meal type selector */}
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Meal type</p>
-              <div className="flex gap-1.5 flex-wrap">
-                {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setMealType(type as "breakfast" | "lunch" | "dinner" | "snack")}
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize transition-colors ${
-                      mealType === type
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium capitalize">{mealType}</span>
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatTimeAgo(meal.loggedAt)}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {foods.map((f) => f.name).join(", ")}
+          </p>
+          {(highFodmap || allLow) && (
+            <div className="flex gap-1 mt-1">
+              {highFodmap && (
+                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-coral-light/50 text-coral">
+                  High FODMAP
+                </span>
+              )}
+              {allLow && (
+                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
+                  Low FODMAP
+                </span>
+              )}
             </div>
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${
+            expanded ? "rotate-180" : ""
+          }`}
+        />
+      </button>
 
-            {/* Food items */}
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Foods</p>
-              <div className="space-y-1.5">
+      {/* Expanded panel */}
+      <AnimatePresence>
+        {expanded && !editing && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 pt-0">
+              {/* Food details */}
+              <div className="space-y-1.5 mb-3">
                 {foods.map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className="flex-1 text-sm truncate">{f.name}</span>
-                    <button
-                      onClick={() => cycleFodmap(idx)}
-                      className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}
-                      title="Tap to cycle FODMAP level"
-                    >
+                  <div key={idx} className="flex items-center justify-between">
+                    <span className="text-sm text-foreground">{f.name}</span>
+                    <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}>
                       {f.fodmap}
-                    </button>
-                    <button
-                      onClick={() => removeFood(idx)}
-                      className="p-1 rounded hover:bg-coral-light/40 transition-colors"
-                      aria-label="Remove food"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-coral" />
-                    </button>
+                    </span>
                   </div>
                 ))}
               </div>
-              <div className="flex gap-2 mt-2">
-                <input
-                  ref={inputRef}
-                  value={newFood}
-                  onChange={(e) => setNewFood(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addFood()}
-                  placeholder="Add missing food…"
-                  className="flex-1 text-sm bg-muted rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60"
-                />
+
+              {/* Hidden ingredients */}
+              {foods.some((f) => f.hiddenIngredients?.length > 0) && (
+                <div className="mb-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Hidden ingredients</p>
+                  <p className="text-xs text-muted-foreground">
+                    {foods.flatMap((f) => f.hiddenIngredients || []).join(", ")}
+                  </p>
+                </div>
+              )}
+
+              {meal.notes && (
+                <p className="text-xs text-muted-foreground italic mb-3">{meal.notes}</p>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
                 <button
-                  onClick={addFood}
-                  disabled={!newFood.trim()}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditing(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-xl border border-border hover:bg-muted transition-colors"
                 >
-                  Add
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                  className={`flex items-center justify-center gap-1.5 text-xs font-medium py-2 px-4 rounded-xl transition-colors ${
+                    confirmDelete
+                      ? "bg-red-500 text-white"
+                      : "border border-red-200 text-red-400 hover:bg-red-50"
+                  }`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {confirmDelete ? "Confirm" : "Delete"}
                 </button>
               </div>
             </div>
-
-            {/* Notes */}
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Notes</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any notes about this meal…"
-                rows={2}
-                className="w-full text-sm bg-muted rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60 resize-none"
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleCancel}
-                className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2 rounded-xl border border-border hover:bg-muted transition-colors"
-              >
-                <X className="w-4 h-4" />
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={updateMealMut.isPending}
-                className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-60 transition-opacity"
-              >
-                <Check className="w-4 h-4" />
-                {updateMealMut.isPending ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
+          </motion.div>
         )}
-      </motion.div>
+      </AnimatePresence>
+
+      {/* Edit mode */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 pt-0 space-y-3">
+              {/* Meal type selector */}
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Meal type</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {(["breakfast", "lunch", "dinner", "snack"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setMealType(type)}
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize transition-colors ${
+                        mealType === type
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Food items */}
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Foods</p>
+                <div className="space-y-1.5">
+                  {foods.map((f, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="flex-1 text-sm truncate">{f.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => cycleFodmap(idx)}
+                        className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}
+                        title="Tap to cycle FODMAP level"
+                      >
+                        {f.fodmap}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeFood(idx)}
+                        className="p-1 rounded hover:bg-coral-light/40 transition-colors"
+                        aria-label="Remove food"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-coral" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    ref={inputRef}
+                    value={newFood}
+                    onChange={(e) => setNewFood(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addFood()}
+                    placeholder="Add food…"
+                    className="flex-1 text-sm bg-muted rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={addFood}
+                    disabled={!newFood.trim()}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Notes</p>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any notes…"
+                  rows={2}
+                  className="w-full text-sm bg-muted rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60 resize-none"
+                />
+              </div>
+
+              {/* Save / Cancel */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2 rounded-xl border border-border hover:bg-muted transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={updateMealMut.isPending}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium py-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-60 transition-opacity"
+                >
+                  <Check className="w-4 h-4" />
+                  {updateMealMut.isPending ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -471,7 +522,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 </div>
                 {!subStatus.data?.isPremium && (
                   <Link href="/profile">
-                    <button onClick={onClose} className="ml-auto text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                    <button type="button" onClick={onClose} className="ml-auto text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                       Upgrade
                     </button>
                   </Link>
@@ -480,6 +531,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
               <div className="space-y-1 mb-6">
                 <Link href="/profile">
                   <button
+                    type="button"
                     onClick={onClose}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-left"
                   >
@@ -490,6 +542,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 </Link>
               </div>
               <button
+                type="button"
                 onClick={() => { logout(); onClose(); }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
               >
@@ -509,7 +562,6 @@ export default function Home() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [showInAppWarning, setShowInAppWarning] = useState(false);
-  // Local state for optimistic meal deletion
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
 
   const dashboard = trpc.insights.dashboard.useQuery(undefined, {
@@ -527,9 +579,9 @@ export default function Home() {
     }
   };
 
-  const handleMealDeleted = (id: number) => {
+  const handleMealDeleted = useCallback((id: number) => {
     setDeletedIds((prev) => new Set(Array.from(prev).concat(id)));
-  };
+  }, []);
 
   // Show login prompt if not authenticated
   if (!authLoading && !isAuthenticated) {
@@ -560,7 +612,6 @@ export default function Home() {
           </motion.div>
         </motion.div>
 
-        {/* In-app browser warning */}
         {showInAppWarning && (
           <InAppBrowserWarning
             loginUrl={getLoginUrl()}
@@ -582,7 +633,6 @@ export default function Home() {
     foods: FoodItem[];
     notes?: string | null;
   }>;
-  // Filter out optimistically deleted meals
   const recentMeals = allRecentMeals.filter((m) => !deletedIds.has(m.id));
   const recentSymptoms = data?.recentSymptoms ?? [];
   const topCorrelation = data?.topCorrelation;
@@ -599,6 +649,7 @@ export default function Home() {
             <h1 className="text-2xl tracking-tight mt-0.5">Your Gut Today</h1>
           </div>
           <button
+            type="button"
             onClick={() => setProfileOpen(true)}
             className="w-10 h-10 rounded-full bg-sage-light/60 flex items-center justify-center hover:bg-sage-light transition-colors active:scale-95"
             aria-label="Open profile"
@@ -607,7 +658,7 @@ export default function Home() {
           </button>
         </motion.div>
 
-        {/* Hero Illustration */}
+        {/* Hero */}
         <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
           <img src={HERO_IMG} alt="GutSync AI" className="w-full h-40 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -640,8 +691,7 @@ export default function Home() {
               transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
               className="h-full rounded-full"
               style={{
-                background:
-                  "linear-gradient(90deg, oklch(0.7 0.12 25), oklch(0.65 0.08 80), oklch(0.55 0.1 155))",
+                background: "linear-gradient(90deg, oklch(0.7 0.12 25), oklch(0.65 0.08 80), oklch(0.55 0.1 155))",
               }}
             />
           </div>
@@ -704,7 +754,7 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Recent Meals — swipeable + editable */}
+        {/* Recent Meals — tap to expand */}
         {recentMeals.length > 0 && (
           <motion.div variants={item} className="mb-4">
             <div className="flex items-center justify-between mb-3">
@@ -713,13 +763,10 @@ export default function Home() {
                 <span className="text-xs text-primary font-medium">View all</span>
               </Link>
             </div>
-            <p className="text-[10px] text-muted-foreground mb-2.5 px-0.5">
-              Swipe left to delete · Tap pencil to edit
-            </p>
             <div className="space-y-2.5">
               <AnimatePresence>
                 {recentMeals.map((meal) => (
-                  <EditableMealTile
+                  <MealTile
                     key={meal.id}
                     meal={meal}
                     onSaved={() => dashboard.refetch()}

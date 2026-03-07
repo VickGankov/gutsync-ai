@@ -42,3 +42,6 @@
 - [x] Fix meal edit functionality (not saving changes)
 - [x] Fix meal delete functionality (swipe-to-delete not working)
 - [x] Fix insights analyze functionality (not triggering correlation analysis)
+- [x] Fix edit button not responding on meal tiles
+- [x] Fix delete button not responding on meal tiles
+- [x] Redesign meal tiles to be more minimalistic while keeping edit/delete functionality
