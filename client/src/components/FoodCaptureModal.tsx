@@ -1,11 +1,12 @@
 // GutSync AI — Food Capture Modal
-// Design: Organic Minimalism — calming photo upload with AI analysis simulation
+// Wired to real AI analysis via tRPC
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Upload, Sparkles, Check, AlertTriangle } from "lucide-react";
+import { X, Camera, Sparkles, Check, AlertTriangle, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 interface FoodCaptureModalProps {
   open: boolean;
@@ -13,78 +14,112 @@ interface FoodCaptureModalProps {
 }
 
 const ANALYSIS_STEPS = [
+  "Uploading photo...",
   "Identifying food items...",
   "Detecting hidden ingredients...",
   "Analyzing FODMAP levels...",
-  "Checking for known triggers...",
   "Generating breakdown...",
 ];
 
 interface AnalyzedFood {
   name: string;
-  fodmap: 'low' | 'moderate' | 'high';
-  hidden: string[];
+  category: string;
+  fodmap: "low" | "moderate" | "high";
+  hiddenIngredients: string[];
 }
 
-const MOCK_RESULTS: AnalyzedFood[] = [
-  { name: "Grilled Chicken Breast", fodmap: 'low', hidden: ['olive oil', 'lemon juice', 'herbs'] },
-  { name: "Brown Rice", fodmap: 'low', hidden: ['salt'] },
-  { name: "Roasted Broccoli", fodmap: 'high', hidden: ['garlic oil', 'red pepper flakes'] },
-  { name: "Tahini Dressing", fodmap: 'moderate', hidden: ['sesame', 'lemon', 'garlic'] },
-];
-
 export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProps) {
-  const [step, setStep] = useState<'upload' | 'analyzing' | 'results'>('upload');
+  const [step, setStep] = useState<"upload" | "analyzing" | "results">("upload");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analysisStep, setAnalysisStep] = useState(0);
+  const [analyzedFoods, setAnalyzedFoods] = useState<AnalyzedFood[]>([]);
+  const [mealSummary, setMealSummary] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const utils = trpc.useUtils();
+  const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:image/...;base64, prefix
+        const base64 = result.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      startAnalysis();
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setStep("analyzing");
+    setAnalysisStep(0);
+    setError(null);
+
+    // Animate the steps while waiting for AI
+    const stepInterval = setInterval(() => {
+      setAnalysisStep((prev) => {
+        if (prev < ANALYSIS_STEPS.length - 1) return prev + 1;
+        return prev;
+      });
+    }, 800);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const result = await analyzePhoto.mutateAsync({
+        imageBase64: base64,
+        mimeType: file.type || "image/jpeg",
+      });
+
+      clearInterval(stepInterval);
+      setAnalysisStep(ANALYSIS_STEPS.length);
+      setAnalyzedFoods(result.foods);
+      setMealSummary(result.summary);
+
+      // Small delay to show completion before showing results
+      setTimeout(() => setStep("results"), 400);
+    } catch (err) {
+      clearInterval(stepInterval);
+      setError(err instanceof Error ? err.message : "Analysis failed. Please try again.");
+      setStep("upload");
+      setPreviewUrl(null);
+      toast.error("Analysis failed", { description: "Please try again with a clearer photo." });
     }
   };
 
-  const handleDemoAnalysis = () => {
-    setPreviewUrl('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop');
-    startAnalysis();
-  };
-
-  const startAnalysis = () => {
-    setStep('analyzing');
-    setAnalysisStep(0);
-
-    ANALYSIS_STEPS.forEach((_, i) => {
-      setTimeout(() => setAnalysisStep(i), (i + 1) * 700);
-    });
-
-    setTimeout(() => {
-      setStep('results');
-    }, ANALYSIS_STEPS.length * 700 + 500);
-  };
-
   const handleSave = () => {
+    // Meal is already saved by analyzePhoto mutation
     toast.success("Meal logged successfully", {
-      description: "AI detected 4 items with FODMAP analysis",
+      description: `AI detected ${analyzedFoods.length} items with FODMAP analysis`,
     });
+    utils.meals.list.invalidate();
+    utils.insights.dashboard.invalidate();
     handleClose();
   };
 
   const handleClose = () => {
-    setStep('upload');
+    setStep("upload");
     setPreviewUrl(null);
     setAnalysisStep(0);
+    setAnalyzedFoods([]);
+    setMealSummary("");
+    setError(null);
     onClose();
   };
 
-  const fodmapBadge = (level: 'low' | 'moderate' | 'high') => {
+  const fodmapBadge = (level: "low" | "moderate" | "high") => {
     const styles = {
-      low: 'bg-sage-light/60 text-sage-dark',
-      moderate: 'bg-sand text-sand-dark',
-      high: 'bg-coral-light/60 text-coral',
+      low: "bg-sage-light/60 text-sage-dark",
+      moderate: "bg-sand text-sand-dark",
+      high: "bg-coral-light/60 text-coral",
     };
     return (
       <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${styles[level]}`}>
@@ -92,6 +127,9 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
       </span>
     );
   };
+
+  const hasHighFodmap = analyzedFoods.some((f) => f.fodmap === "high");
+  const highFodmapFoods = analyzedFoods.filter((f) => f.fodmap === "high");
 
   return (
     <AnimatePresence>
@@ -114,9 +152,9 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-display">
-                {step === 'upload' && 'Log a Meal'}
-                {step === 'analyzing' && 'Analyzing...'}
-                {step === 'results' && 'AI Analysis'}
+                {step === "upload" && "Log a Meal"}
+                {step === "analyzing" && "Analyzing..."}
+                {step === "results" && "AI Analysis"}
               </h2>
               <button onClick={handleClose} className="p-2 rounded-full hover:bg-muted transition-colors">
                 <X className="w-5 h-5 text-muted-foreground" />
@@ -124,7 +162,7 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
             </div>
 
             {/* Upload Step */}
-            {step === 'upload' && (
+            {step === "upload" && (
               <div className="space-y-4">
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -135,7 +173,9 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                   </div>
                   <div className="text-center">
                     <p className="font-medium text-foreground">Take or upload a photo</p>
-                    <p className="text-sm text-muted-foreground mt-1">Our AI will identify foods and hidden ingredients</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Our AI will identify foods and hidden ingredients
+                    </p>
                   </div>
                 </div>
                 <input
@@ -146,24 +186,16 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <div className="relative flex items-center gap-3">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground">or try a demo</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl h-12 gap-2"
-                  onClick={handleDemoAnalysis}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Analyze Demo Meal
-                </Button>
+                {error && (
+                  <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-3 text-sm text-coral">
+                    {error}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Analyzing Step */}
-            {step === 'analyzing' && (
+            {step === "analyzing" && (
               <div className="space-y-6">
                 {previewUrl && (
                   <div className="rounded-2xl overflow-hidden">
@@ -179,9 +211,15 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                       transition={{ delay: 0.1 }}
                       className="flex items-center gap-3"
                     >
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                        analysisStep > i ? 'bg-primary' : analysisStep === i ? 'bg-primary/20' : 'bg-muted'
-                      }`}>
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                          analysisStep > i
+                            ? "bg-primary"
+                            : analysisStep === i
+                              ? "bg-primary/20"
+                              : "bg-muted"
+                        }`}
+                      >
                         {analysisStep > i ? (
                           <Check className="w-3 h-3 text-primary-foreground" />
                         ) : analysisStep === i ? (
@@ -194,17 +232,20 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                           <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
                         )}
                       </div>
-                      <span className={`text-sm ${analysisStep >= i ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <span className={`text-sm ${analysisStep >= i ? "text-foreground" : "text-muted-foreground"}`}>
                         {text}
                       </span>
                     </motion.div>
                   ))}
                 </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  AI is analyzing your meal — this may take a few seconds
+                </p>
               </div>
             )}
 
             {/* Results Step */}
-            {step === 'results' && (
+            {step === "results" && (
               <div className="space-y-5">
                 {previewUrl && (
                   <div className="rounded-2xl overflow-hidden">
@@ -212,8 +253,12 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                   </div>
                 )}
 
+                {mealSummary && (
+                  <p className="text-sm text-muted-foreground italic">{mealSummary}</p>
+                )}
+
                 <div className="space-y-3">
-                  {MOCK_RESULTS.map((food, i) => (
+                  {analyzedFoods.map((food, i) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, y: 10 }}
@@ -225,17 +270,18 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-sm">{food.name}</span>
-                            {food.fodmap === 'high' && (
-                              <AlertTriangle className="w-3.5 h-3.5 text-coral" />
-                            )}
+                            {food.fodmap === "high" && <AlertTriangle className="w-3.5 h-3.5 text-coral" />}
                           </div>
                           {fodmapBadge(food.fodmap)}
                         </div>
                       </div>
-                      {food.hidden.length > 0 && (
+                      {food.hiddenIngredients.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {food.hidden.map((h, j) => (
-                            <span key={j} className="text-[11px] px-2 py-0.5 rounded-full bg-background border border-border text-muted-foreground">
+                          {food.hiddenIngredients.map((h, j) => (
+                            <span
+                              key={j}
+                              className="text-[11px] px-2 py-0.5 rounded-full bg-background border border-border text-muted-foreground"
+                            >
                               {h}
                             </span>
                           ))}
@@ -246,15 +292,19 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                 </div>
 
                 {/* Warning for high FODMAP */}
-                <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-4 flex gap-3">
-                  <AlertTriangle className="w-5 h-5 text-coral shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">High FODMAP Alert</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Broccoli and garlic oil are known triggers. I'll monitor for symptoms in the next 4-6 hours.
-                    </p>
+                {hasHighFodmap && (
+                  <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-4 flex gap-3">
+                    <AlertTriangle className="w-5 h-5 text-coral shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">High FODMAP Alert</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {highFodmapFoods.map((f) => f.name).join(", ")}{" "}
+                        {highFodmapFoods.length === 1 ? "is a" : "are"} known trigger
+                        {highFodmapFoods.length === 1 ? "" : "s"}. I'll monitor for symptoms in the next 4-6 hours.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={handleClose}>

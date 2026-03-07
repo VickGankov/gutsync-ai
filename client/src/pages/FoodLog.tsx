@@ -1,20 +1,14 @@
 // GutSync AI — Food Log Page
-// Design: Organic Minimalism — journal-like meal entries with FODMAP badges
+// Wired to real tRPC backend
 
 import { motion } from "framer-motion";
-import { Calendar, Clock, AlertTriangle, ChevronDown, Eye } from "lucide-react";
+import { Calendar, Clock, AlertTriangle, ChevronDown, Eye, Leaf, Loader2 } from "lucide-react";
 import { useState } from "react";
-import {
-  generateMockMeals,
-  formatTimeAgo,
-  formatMealTime,
-  type MealEntry,
-  type FoodItem,
-} from "@/lib/store";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { formatTimeAgo, formatMealTime, type FoodItem } from "@/lib/store";
 
 const FOOD_SCAN_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-food-scan-Q6qZWp7uKQBXi3HwwykjjB.webp";
-
-const meals = generateMockMeals();
 
 const container = {
   hidden: { opacity: 0 },
@@ -38,26 +32,42 @@ function FodmapBadge({ level }: { level: FoodItem['fodmap'] }) {
   );
 }
 
-function MealCard({ meal }: { meal: MealEntry }) {
+interface MealCardProps {
+  meal: {
+    id: number;
+    photoUrl: string | null;
+    mealType: string;
+    foods: FoodItem[];
+    loggedAt: number;
+    notes: string | null;
+  };
+}
+
+function MealCard({ meal }: MealCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const highFodmapCount = meal.foods.filter(f => f.fodmap === 'high').length;
-  const allHidden = meal.foods.flatMap(f => f.hiddenIngredients);
+  const foods = (meal.foods ?? []) as FoodItem[];
+  const highFodmapCount = foods.filter(f => f.fodmap === 'high').length;
+  const allHidden = foods.flatMap(f => f.hiddenIngredients);
 
   return (
     <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
       {/* Meal photo + header */}
       <div className="relative">
-        <img src={meal.photoUrl} alt={meal.mealType} className="w-full h-36 object-cover" />
+        {meal.photoUrl ? (
+          <img src={meal.photoUrl} alt={meal.mealType} className="w-full h-36 object-cover" />
+        ) : (
+          <div className="w-full h-36 bg-sage-light/30 flex items-center justify-center">
+            <Leaf className="w-10 h-10 text-sage-dark/30" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-          <div>
-            <span className="text-white text-xs font-medium capitalize bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
-              {meal.mealType}
-            </span>
-          </div>
+          <span className="text-white text-xs font-medium capitalize bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+            {meal.mealType}
+          </span>
           <div className="flex items-center gap-1 text-white/80">
             <Clock className="w-3 h-3" />
-            <span className="text-xs">{formatMealTime(meal.timestamp)}</span>
+            <span className="text-xs">{formatMealTime(meal.loggedAt)}</span>
           </div>
         </div>
       </div>
@@ -66,14 +76,13 @@ function MealCard({ meal }: { meal: MealEntry }) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-medium text-foreground">
-            {meal.foods.length} items detected
+            {foods.length} items detected
           </p>
-          <span className="text-[11px] text-muted-foreground">{formatTimeAgo(meal.timestamp)}</span>
+          <span className="text-[11px] text-muted-foreground">{formatTimeAgo(meal.loggedAt)}</span>
         </div>
 
-        {/* Quick food list */}
         <div className="space-y-2">
-          {meal.foods.map((food, i) => (
+          {foods.map((food, i) => (
             <div key={i} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {food.fodmap === 'high' && <AlertTriangle className="w-3 h-3 text-coral" />}
@@ -84,7 +93,6 @@ function MealCard({ meal }: { meal: MealEntry }) {
           ))}
         </div>
 
-        {/* High FODMAP warning */}
         {highFodmapCount > 0 && (
           <div className="mt-3 bg-coral-light/20 border border-coral/15 rounded-xl px-3 py-2 flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 text-coral shrink-0" />
@@ -94,7 +102,6 @@ function MealCard({ meal }: { meal: MealEntry }) {
           </div>
         )}
 
-        {/* Expandable hidden ingredients */}
         {allHidden.length > 0 && (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -125,18 +132,31 @@ function MealCard({ meal }: { meal: MealEntry }) {
 }
 
 export default function FoodLog() {
+  const { isAuthenticated } = useAuth();
+  const mealsQuery = trpc.meals.list.useQuery({ limit: 30 }, { enabled: isAuthenticated });
+
+  const meals = (mealsQuery.data ?? []) as Array<{
+    id: number;
+    photoUrl: string | null;
+    mealType: string;
+    foods: FoodItem[];
+    loggedAt: number;
+    notes: string | null;
+  }>;
+
   // Group meals by day
   const today = new Date();
   const todayStr = today.toDateString();
   const yesterdayStr = new Date(today.getTime() - 86400000).toDateString();
 
-  const grouped: Record<string, MealEntry[]> = {};
+  const grouped: Record<string, typeof meals> = {};
   meals.forEach(meal => {
-    const dayStr = meal.timestamp.toDateString();
+    const mealDate = new Date(meal.loggedAt);
+    const dayStr = mealDate.toDateString();
     let label = dayStr;
     if (dayStr === todayStr) label = 'Today';
     else if (dayStr === yesterdayStr) label = 'Yesterday';
-    else label = meal.timestamp.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    else label = mealDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
     if (!grouped[label]) grouped[label] = [];
     grouped[label].push(meal);
@@ -160,6 +180,24 @@ export default function FoodLog() {
           </div>
         </div>
       </motion.div>
+
+      {/* Loading */}
+      {mealsQuery.isLoading && (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!mealsQuery.isLoading && meals.length === 0 && (
+        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
+          <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
+          <h3 className="font-display text-lg mb-1">No meals yet</h3>
+          <p className="text-sm text-muted-foreground">
+            Tap the camera button to log your first meal and see AI-powered FODMAP analysis.
+          </p>
+        </motion.div>
+      )}
 
       {/* Meal groups */}
       {Object.entries(grouped).map(([day, dayMeals]) => (

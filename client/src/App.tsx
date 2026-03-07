@@ -12,8 +12,8 @@ import Profile from "./pages/Profile";
 import Onboarding from "./pages/Onboarding";
 import BottomNav from "./components/BottomNav";
 import { useState, useEffect } from "react";
-
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />

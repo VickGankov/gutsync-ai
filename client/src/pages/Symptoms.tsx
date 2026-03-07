@@ -1,24 +1,18 @@
 // GutSync AI — Symptoms Page
-// Design: Organic Minimalism — calming symptom tracker with wearable integration
+// Wired to real tRPC backend
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Watch, Plus, Heart, Moon, Brain, Activity } from "lucide-react";
+import { Watch, Plus, Heart, Moon, Brain, Activity, Loader2, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import {
-  generateMockSymptoms,
-  generateMockWearableData,
-  getSymptomEmoji,
-  getSymptomLabel,
-  formatTimeAgo,
-  type SymptomEntry,
-} from "@/lib/store";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
-const symptoms = generateMockSymptoms();
-const wearableData = generateMockWearableData();
+type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation";
 
-const SYMPTOM_OPTIONS: { type: SymptomEntry['type']; emoji: string; label: string }[] = [
+const SYMPTOM_OPTIONS: { type: SymptomType; emoji: string; label: string }[] = [
   { type: 'bloating', emoji: '🫧', label: 'Bloating' },
   { type: 'abdominal_pain', emoji: '⚡', label: 'Pain' },
   { type: 'gas', emoji: '💨', label: 'Gas' },
@@ -39,20 +33,41 @@ const item = {
 };
 
 export default function Symptoms() {
+  const { isAuthenticated } = useAuth();
   const [showLogger, setShowLogger] = useState(false);
-  const [selectedType, setSelectedType] = useState<SymptomEntry['type'] | null>(null);
+  const [selectedType, setSelectedType] = useState<SymptomType | null>(null);
   const [severity, setSeverity] = useState(3);
 
+  const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 20 }, { enabled: isAuthenticated });
+  const wearableQuery = trpc.wearable.recent.useQuery(undefined, { enabled: isAuthenticated });
+  const logSymptom = trpc.symptoms.log.useMutation({
+    onSuccess: () => {
+      symptomsQuery.refetch();
+    },
+  });
+
+  const symptoms = symptomsQuery.data ?? [];
+  const wearableData = wearableQuery.data ?? [];
   const latestWearable = wearableData[0];
 
   const handleLogSymptom = () => {
     if (!selectedType) return;
-    toast.success(`${getSymptomLabel(selectedType)} logged`, {
-      description: `Severity ${severity}/5 — AI will check meals from the last 48 hours`,
-    });
-    setShowLogger(false);
-    setSelectedType(null);
-    setSeverity(3);
+    logSymptom.mutate(
+      { type: selectedType, severity, source: "manual" },
+      {
+        onSuccess: () => {
+          toast.success(`${getSymptomLabel(selectedType)} logged`, {
+            description: `Severity ${severity}/5 — AI will check meals from the last 48 hours`,
+          });
+          setShowLogger(false);
+          setSelectedType(null);
+          setSeverity(3);
+        },
+        onError: () => {
+          toast.error("Failed to log symptom");
+        },
+      }
+    );
   };
 
   return (
@@ -110,7 +125,7 @@ export default function Symptoms() {
                       {[1, 2, 3, 4, 5].map((level) => (
                         <button
                           key={level}
-                          onClick={() => setSeverity(level as 1 | 2 | 3 | 4 | 5)}
+                          onClick={() => setSeverity(level)}
                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all ${
                             severity === level
                               ? level <= 2
@@ -127,7 +142,14 @@ export default function Symptoms() {
                     </div>
                     <span className="text-xs text-muted-foreground">Severe</span>
                   </div>
-                  <Button className="w-full rounded-xl h-11 bg-primary hover:bg-primary/90" onClick={handleLogSymptom}>
+                  <Button
+                    className="w-full rounded-xl h-11 bg-primary hover:bg-primary/90"
+                    onClick={handleLogSymptom}
+                    disabled={logSymptom.isPending}
+                  >
+                    {logSymptom.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
                     Log {getSymptomLabel(selectedType)}
                   </Button>
                 </motion.div>
@@ -142,97 +164,127 @@ export default function Symptoms() {
         <div className="flex items-center gap-2 mb-4">
           <Watch className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold">Wearable Insights</p>
-          <span className="text-[10px] text-sage-dark bg-sage-light/50 px-2 py-0.5 rounded-full font-medium ml-auto">Connected</span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ml-auto ${
+            latestWearable ? 'text-sage-dark bg-sage-light/50' : 'text-muted-foreground bg-muted'
+          }`}>
+            {latestWearable ? 'Connected' : 'No data yet'}
+          </span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-muted/50 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Heart className="w-3.5 h-3.5 text-coral" />
-              <span className="text-[11px] text-muted-foreground">HRV</span>
+        {latestWearable ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Heart className="w-3.5 h-3.5 text-coral" />
+                <span className="text-[11px] text-muted-foreground">HRV</span>
+              </div>
+              <p className="text-xl font-mono font-medium">{latestWearable.hrv}<span className="text-xs text-muted-foreground ml-1">ms</span></p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {latestWearable.hrv > 50 ? 'Good recovery' : latestWearable.hrv > 35 ? 'Moderate stress' : 'Elevated stress'}
+              </p>
             </div>
-            <p className="text-xl font-mono font-medium">{latestWearable.hrv}<span className="text-xs text-muted-foreground ml-1">ms</span></p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {latestWearable.hrv > 50 ? 'Good recovery' : latestWearable.hrv > 35 ? 'Moderate stress' : 'Elevated stress'}
-            </p>
-          </div>
-          <div className="bg-muted/50 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Activity className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[11px] text-muted-foreground">Heart Rate</span>
+            <div className="bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Activity className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[11px] text-muted-foreground">Heart Rate</span>
+              </div>
+              <p className="text-xl font-mono font-medium">{latestWearable.heartRate}<span className="text-xs text-muted-foreground ml-1">bpm</span></p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Resting</p>
             </div>
-            <p className="text-xl font-mono font-medium">{latestWearable.heartRate}<span className="text-xs text-muted-foreground ml-1">bpm</span></p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Resting</p>
-          </div>
-          <div className="bg-muted/50 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Moon className="w-3.5 h-3.5 text-sage" />
-              <span className="text-[11px] text-muted-foreground">Sleep Quality</span>
+            <div className="bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Moon className="w-3.5 h-3.5 text-sage" />
+                <span className="text-[11px] text-muted-foreground">Sleep Quality</span>
+              </div>
+              <p className="text-xl font-mono font-medium">{latestWearable.sleepQuality}<span className="text-xs text-muted-foreground ml-1">%</span></p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Last night</p>
             </div>
-            <p className="text-xl font-mono font-medium">{latestWearable.sleepQuality}<span className="text-xs text-muted-foreground ml-1">%</span></p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Last night</p>
-          </div>
-          <div className="bg-muted/50 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Brain className="w-3.5 h-3.5 text-sand-dark" />
-              <span className="text-[11px] text-muted-foreground">Stress Level</span>
+            <div className="bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Brain className="w-3.5 h-3.5 text-sand-dark" />
+                <span className="text-[11px] text-muted-foreground">Stress Level</span>
+              </div>
+              <p className="text-xl font-mono font-medium">{latestWearable.stressLevel}<span className="text-xs text-muted-foreground ml-1">%</span></p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {latestWearable.stressLevel < 30 ? 'Low' : latestWearable.stressLevel < 50 ? 'Moderate' : 'High'}
+              </p>
             </div>
-            <p className="text-xl font-mono font-medium">{latestWearable.stressLevel}<span className="text-xs text-muted-foreground ml-1">%</span></p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {latestWearable.stressLevel < 30 ? 'Low' : latestWearable.stressLevel < 50 ? 'Moderate' : 'High'}
-            </p>
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">Connect your Apple Watch or Garmin to see real-time health data</p>
+          </div>
+        )}
       </motion.div>
 
+      {/* Loading */}
+      {symptomsQuery.isLoading && (
+        <div className="flex justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!symptomsQuery.isLoading && symptoms.length === 0 && (
+        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
+          <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
+          <h3 className="font-display text-lg mb-1">No symptoms logged</h3>
+          <p className="text-sm text-muted-foreground">
+            Tap "Log" above to record a symptom. The AI will correlate it with your recent meals.
+          </p>
+        </motion.div>
+      )}
+
       {/* Symptom History */}
-      <motion.div variants={item}>
-        <h2 className="text-lg mb-3">Symptom History</h2>
-        <div className="space-y-2.5">
-          {symptoms.map((sym) => (
-            <motion.div
-              key={sym.id}
-              variants={item}
-              className="bg-card rounded-xl p-4 border border-border/50 shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{getSymptomEmoji(sym.type)}</span>
-                  <div>
-                    <p className="text-sm font-medium">{getSymptomLabel(sym.type)}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((level) => (
-                          <div
-                            key={level}
-                            className={`w-2 h-2 rounded-full ${
-                              level <= sym.severity
-                                ? sym.severity <= 2 ? 'bg-sage' : sym.severity <= 3 ? 'bg-sand-dark' : 'bg-coral'
-                                : 'bg-muted'
-                            }`}
-                          />
-                        ))}
+      {symptoms.length > 0 && (
+        <motion.div variants={item}>
+          <h2 className="text-lg mb-3">Symptom History</h2>
+          <div className="space-y-2.5">
+            {symptoms.map((sym) => (
+              <motion.div
+                key={sym.id}
+                variants={item}
+                className="bg-card rounded-xl p-4 border border-border/50 shadow-sm"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getSymptomEmoji(sym.type)}</span>
+                    <div>
+                      <p className="text-sm font-medium">{getSymptomLabel(sym.type)}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((level) => (
+                            <div
+                              key={level}
+                              className={`w-2 h-2 rounded-full ${
+                                level <= sym.severity
+                                  ? sym.severity <= 2 ? 'bg-sage' : sym.severity <= 3 ? 'bg-sand-dark' : 'bg-coral'
+                                  : 'bg-muted'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">{sym.severity}/5</span>
                       </div>
-                      <span className="text-[11px] text-muted-foreground">{sym.severity}/5</span>
                     </div>
                   </div>
+                  <div className="text-right">
+                    <span className="text-[11px] text-muted-foreground">{formatTimeAgo(sym.loggedAt)}</span>
+                    {sym.source === 'wearable' && (
+                      <div className="flex items-center gap-1 mt-1 justify-end">
+                        <Watch className="w-3 h-3 text-primary" />
+                        <span className="text-[10px] text-primary font-medium">Auto-detected</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-[11px] text-muted-foreground">{formatTimeAgo(sym.timestamp)}</span>
-                  {sym.source === 'wearable' && (
-                    <div className="flex items-center gap-1 mt-1 justify-end">
-                      <Watch className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] text-primary font-medium">Auto-detected</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {sym.notes && (
-                <p className="text-xs text-muted-foreground mt-2 pl-11">{sym.notes}</p>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
+                {sym.notes && (
+                  <p className="text-xs text-muted-foreground mt-2 pl-11">{sym.notes}</p>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

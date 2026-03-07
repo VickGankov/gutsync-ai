@@ -1,23 +1,18 @@
 // GutSync AI — 48-Hour Timeline
-// Design: Organic Minimalism — visual food-symptom connection timeline
+// Wired to real tRPC backend
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { UtensilsCrossed, AlertCircle, Clock } from "lucide-react";
-import {
-  generateMockMeals,
-  generateMockSymptoms,
-  formatTimeAgo,
-  getSymptomEmoji,
-  getSymptomLabel,
-} from "@/lib/store";
-
-const meals = generateMockMeals();
-const symptoms = generateMockSymptoms();
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { formatTimeAgo, getSymptomEmoji, getSymptomLabel } from "@/lib/store";
+import type { FoodItem } from "@/lib/store";
 
 type TimelineEvent = {
   id: string;
   type: 'meal' | 'symptom';
-  timestamp: Date;
+  timestamp: number;
   label: string;
   detail: string;
   severity?: number;
@@ -25,35 +20,46 @@ type TimelineEvent = {
   hasHighFodmap?: boolean;
 };
 
-// Merge meals and symptoms into a single timeline, last 48h
-const now = new Date();
-const cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-
-const events: TimelineEvent[] = [
-  ...meals
-    .filter(m => m.timestamp >= cutoff)
-    .map(m => ({
-      id: m.id,
-      type: 'meal' as const,
-      timestamp: m.timestamp,
-      label: m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1),
-      detail: m.foods.map(f => f.name).join(', '),
-      hasHighFodmap: m.foods.some(f => f.fodmap === 'high'),
-    })),
-  ...symptoms
-    .filter(s => s.timestamp >= cutoff)
-    .map(s => ({
-      id: s.id,
-      type: 'symptom' as const,
-      timestamp: s.timestamp,
-      label: getSymptomLabel(s.type),
-      detail: s.notes || `Severity ${s.severity}/5`,
-      severity: s.severity,
-      emoji: getSymptomEmoji(s.type),
-    })),
-].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
 export default function Timeline48h() {
+  const { isAuthenticated } = useAuth();
+  const mealsQuery = trpc.meals.list.useQuery({ limit: 20 }, { enabled: isAuthenticated });
+  const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 20 }, { enabled: isAuthenticated });
+
+  const events = useMemo(() => {
+    const now = Date.now();
+    const cutoff = now - 48 * 60 * 60 * 1000;
+    const meals = mealsQuery.data ?? [];
+    const symptoms = symptomsQuery.data ?? [];
+
+    const mealEvents: TimelineEvent[] = meals
+      .filter(m => m.loggedAt >= cutoff)
+      .map(m => {
+        const foods = (m.foods ?? []) as FoodItem[];
+        return {
+          id: `meal-${m.id}`,
+          type: 'meal' as const,
+          timestamp: m.loggedAt,
+          label: m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1),
+          detail: foods.map((f: FoodItem) => f.name).join(', '),
+          hasHighFodmap: foods.some((f: FoodItem) => f.fodmap === 'high'),
+        };
+      });
+
+    const symptomEvents: TimelineEvent[] = symptoms
+      .filter((s: { loggedAt: number }) => s.loggedAt >= cutoff)
+      .map((s: { id: number; type: string; loggedAt: number; severity: number; notes: string | null }) => ({
+        id: `sym-${s.id}`,
+        type: 'symptom' as const,
+        timestamp: s.loggedAt,
+        label: getSymptomLabel(s.type),
+        detail: s.notes || `Severity ${s.severity}/5`,
+        severity: s.severity,
+        emoji: getSymptomEmoji(s.type),
+      }));
+
+    return [...mealEvents, ...symptomEvents].sort((a, b) => b.timestamp - a.timestamp);
+  }, [mealsQuery.data, symptomsQuery.data]);
+
   if (events.length === 0) return null;
 
   return (
@@ -63,7 +69,6 @@ export default function Timeline48h() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Last 48 Hours</h3>
       </div>
 
-      {/* Timeline line */}
       <div className="relative pl-6">
         <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
 
@@ -76,7 +81,6 @@ export default function Timeline48h() {
               transition={{ delay: i * 0.05 }}
               className="relative flex items-start gap-3"
             >
-              {/* Dot */}
               <div className={`absolute left-[-16px] top-1.5 w-3 h-3 rounded-full border-2 ${
                 event.type === 'meal'
                   ? event.hasHighFodmap
@@ -87,7 +91,6 @@ export default function Timeline48h() {
                     : 'bg-sand border-sand-dark'
               }`} />
 
-              {/* Content */}
               <div className="flex-1 bg-card rounded-lg px-3 py-2 border border-border/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">

@@ -1,10 +1,13 @@
 // GutSync AI — Profile Page
-// Design: Organic Minimalism — personal settings, wearable connections, dietary profile
+// Wired to real auth
 
 import { motion } from "framer-motion";
-import { User, Watch, Shield, Bell, ChevronRight, Leaf, Apple, Smartphone, Moon, Sun } from "lucide-react";
+import { User, Watch, Shield, Bell, ChevronRight, Leaf, Apple, Smartphone, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 
 const WELLNESS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-wellness-Y3yqX8dgxLnj59BBic4aog.webp";
 
@@ -39,8 +42,15 @@ function SettingsRow({ icon: Icon, label, description, action, iconColor = "text
 }
 
 export default function Profile() {
+  const { user, isAuthenticated, logout } = useAuth();
+
   const handleToggle = (feature: string) => {
     toast.success(`${feature} updated`, { description: "Feature coming soon" });
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = "/";
   };
 
   return (
@@ -53,27 +63,31 @@ export default function Profile() {
 
       {/* User Card */}
       <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <img
-              src={WELLNESS_IMG}
-              alt="Profile"
-              className="w-16 h-16 rounded-full object-cover border-2 border-primary/20"
-            />
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-sage flex items-center justify-center">
-              <Leaf className="w-3 h-3 text-white" />
+        {isAuthenticated && user ? (
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <img
+                src={WELLNESS_IMG}
+                alt="Profile"
+                className="w-16 h-16 rounded-full object-cover border-2 border-primary/20"
+              />
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-sage flex items-center justify-center">
+                <Leaf className="w-3 h-3 text-white" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-display">{user.name || 'GutSync User'}</h2>
+              <p className="text-xs text-muted-foreground">{user.email || 'Tracking your gut health'}</p>
             </div>
           </div>
-          <div>
-            <h2 className="text-lg font-display">Sarah M.</h2>
-            <p className="text-xs text-muted-foreground">Tracking since Feb 2026</p>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                5-day streak
-              </span>
-            </div>
+        ) : (
+          <div className="text-center py-2">
+            <p className="text-sm text-muted-foreground mb-3">Sign in to save your data</p>
+            <a href={getLoginUrl()}>
+              <Button className="rounded-xl bg-primary hover:bg-primary/90">Sign In</Button>
+            </a>
           </div>
-        </div>
+        )}
       </motion.div>
 
       {/* Dietary Profile */}
@@ -109,9 +123,9 @@ export default function Profile() {
             description="HRV, Heart Rate, Sleep"
             iconColor="text-sage-dark"
             action={
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
-                Connected
-              </span>
+              <button onClick={() => toast.success("Feature coming soon")} className="text-xs text-primary font-medium">
+                Connect
+              </button>
             }
           />
           <SettingsRow
@@ -120,9 +134,9 @@ export default function Profile() {
             description="Activity, Steps, Workouts"
             iconColor="text-coral"
             action={
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
-                Connected
-              </span>
+              <button onClick={() => toast.success("Feature coming soon")} className="text-xs text-primary font-medium">
+                Connect
+              </button>
             }
           />
           <SettingsRow
@@ -131,10 +145,7 @@ export default function Profile() {
             description="Not connected"
             iconColor="text-muted-foreground"
             action={
-              <button
-                onClick={() => toast.success("Feature coming soon")}
-                className="text-xs text-primary font-medium"
-              >
+              <button onClick={() => toast.success("Feature coming soon")} className="text-xs text-primary font-medium">
                 Connect
               </button>
             }
@@ -170,13 +181,6 @@ export default function Profile() {
             </div>
             <Switch defaultChecked onCheckedChange={() => handleToggle("Discovery alerts")} />
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-foreground">Weekly Summary</p>
-              <p className="text-xs text-muted-foreground">Sunday gut health report</p>
-            </div>
-            <Switch onCheckedChange={() => handleToggle("Weekly summary")} />
-          </div>
         </div>
       </motion.div>
 
@@ -189,9 +193,22 @@ export default function Profile() {
         <div className="space-y-1 divide-y divide-border/50">
           <SettingsRow icon={Shield} label="Data Encryption" description="End-to-end encrypted" iconColor="text-sage-dark" />
           <SettingsRow icon={User} label="Export My Data" description="Download all your health data" iconColor="text-primary" />
-          <SettingsRow icon={Shield} label="Delete Account" description="Permanently remove all data" iconColor="text-coral" />
         </div>
       </motion.div>
+
+      {/* Logout */}
+      {isAuthenticated && (
+        <motion.div variants={item} className="mb-5">
+          <Button
+            variant="outline"
+            className="w-full rounded-xl h-12 gap-2 text-coral border-coral/20 hover:bg-coral-light/20"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </Button>
+        </motion.div>
+      )}
 
       {/* App Info */}
       <motion.div variants={item} className="text-center py-4">
