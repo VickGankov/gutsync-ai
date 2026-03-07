@@ -5,34 +5,70 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-
+import FoodLog from "./pages/FoodLog";
+import Symptoms from "./pages/Symptoms";
+import Insights from "./pages/Insights";
+import Profile from "./pages/Profile";
+import Onboarding from "./pages/Onboarding";
+import BottomNav from "./components/BottomNav";
+import { useState, useEffect } from "react";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/food"} component={FoodLog} />
+      <Route path={"/symptoms"} component={Symptoms} />
+      <Route path={"/insights"} component={Insights} />
+      <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const hasOnboarded = localStorage.getItem('gutsync_onboarded');
+    if (!hasOnboarded) {
+      setShowOnboarding(true);
+    }
+    setLoaded(true);
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('gutsync_onboarded', 'true');
+    setShowOnboarding(false);
+  };
+
+  if (!loaded) return null;
+
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: 'oklch(0.99 0.003 80)',
+                border: '1px solid oklch(0.9 0.01 80)',
+                color: 'oklch(0.25 0.01 60)',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              },
+            }}
+          />
+          {showOnboarding ? (
+            <Onboarding onComplete={handleOnboardingComplete} />
+          ) : (
+            <div className="min-h-screen bg-background pb-24">
+              <Router />
+              <BottomNav />
+            </div>
+          )}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
