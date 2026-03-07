@@ -13,3 +13,6 @@
 - [x] Wire Insights page to load correlations from tRPC
 - [x] Write vitest tests for key server procedures
 - [x] Final polish and checkpoint
+- [x] Center scan button in bottom nav (middle position)
+- [x] Add long-press on scan button to upload a photo from gallery
+- [x] Add editable food list after AI scan (add/remove items)

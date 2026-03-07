@@ -1,16 +1,18 @@
 // GutSync AI — Food Capture Modal
-// Wired to real AI analysis via tRPC
+// Supports camera capture and gallery upload, with editable AI results
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Sparkles, Check, AlertTriangle, Upload } from "lucide-react";
+import { X, Camera, Sparkles, Check, AlertTriangle, Save, Plus, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
-interface FoodCaptureModalProps {
+export interface FoodCaptureModalProps {
   open: boolean;
   onClose: () => void;
+  initialMode?: "camera" | "upload";
+  uploadedFile?: File | null;
 }
 
 const ANALYSIS_STEPS = [
@@ -21,6 +23,9 @@ const ANALYSIS_STEPS = [
   "Generating breakdown...",
 ];
 
+const FODMAP_OPTIONS = ["low", "moderate", "high"] as const;
+const CATEGORY_OPTIONS = ["protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"] as const;
+
 interface AnalyzedFood {
   name: string;
   category: string;
@@ -28,14 +33,20 @@ interface AnalyzedFood {
   hiddenIngredients: string[];
 }
 
-export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProps) {
+export default function FoodCaptureModal({ open, onClose, initialMode = "camera", uploadedFile }: FoodCaptureModalProps) {
   const [step, setStep] = useState<"upload" | "analyzing" | "results">("upload");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [analyzedFoods, setAnalyzedFoods] = useState<AnalyzedFood[]>([]);
   const [mealSummary, setMealSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newFoodName, setNewFoodName] = useState("");
+  const [newFoodCategory, setNewFoodCategory] = useState<string>("other");
+  const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const processedFileRef = useRef<File | null>(null);
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
@@ -45,7 +56,6 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // Remove the data:image/...;base64, prefix
         const base64 = result.split(",")[1];
         resolve(base64);
       };
@@ -54,17 +64,13 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
     });
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const runAnalysis = useCallback(async (file: File) => {
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setStep("analyzing");
     setAnalysisStep(0);
     setError(null);
 
-    // Animate the steps while waiting for AI
     const stepInterval = setInterval(() => {
       setAnalysisStep((prev) => {
         if (prev < ANALYSIS_STEPS.length - 1) return prev + 1;
@@ -83,8 +89,6 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
       setAnalysisStep(ANALYSIS_STEPS.length);
       setAnalyzedFoods(result.foods);
       setMealSummary(result.summary);
-
-      // Small delay to show completion before showing results
       setTimeout(() => setStep("results"), 400);
     } catch (err) {
       clearInterval(stepInterval);
@@ -93,12 +97,64 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
       setPreviewUrl(null);
       toast.error("Analysis failed", { description: "Please try again with a clearer photo." });
     }
+  }, [analyzePhoto]);
+
+  // Handle uploaded file from long-press
+  useEffect(() => {
+    if (open && uploadedFile && uploadedFile !== processedFileRef.current) {
+      processedFileRef.current = uploadedFile;
+      runAnalysis(uploadedFile);
+    }
+  }, [open, uploadedFile, runAnalysis]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processedFileRef.current = file;
+    runAnalysis(file);
+  };
+
+  // ─── Food editing functions ───
+
+  const handleRemoveFood = (index: number) => {
+    setAnalyzedFoods(prev => prev.filter((_, i) => i !== index));
+    setEditingIndex(null);
+    toast("Item removed", { description: "You can add it back with the + button" });
+  };
+
+  const handleUpdateFodmap = (index: number, fodmap: "low" | "moderate" | "high") => {
+    setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, fodmap } : f));
+  };
+
+  const handleUpdateName = (index: number, name: string) => {
+    setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, name } : f));
+  };
+
+  const handleAddFood = () => {
+    if (!newFoodName.trim()) return;
+    setAnalyzedFoods(prev => [
+      ...prev,
+      {
+        name: newFoodName.trim(),
+        category: newFoodCategory,
+        fodmap: newFoodFodmap,
+        hiddenIngredients: [],
+      },
+    ]);
+    setNewFoodName("");
+    setNewFoodCategory("other");
+    setNewFoodFodmap("low");
+    setShowAddForm(false);
+    toast.success("Item added");
   };
 
   const handleSave = () => {
-    // Meal is already saved by analyzePhoto mutation
+    if (analyzedFoods.length === 0) {
+      toast.error("Add at least one food item before saving");
+      return;
+    }
     toast.success("Meal logged successfully", {
-      description: `AI detected ${analyzedFoods.length} items with FODMAP analysis`,
+      description: `${analyzedFoods.length} items saved with FODMAP analysis`,
     });
     utils.meals.list.invalidate();
     utils.insights.dashboard.invalidate();
@@ -112,19 +168,28 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
     setAnalyzedFoods([]);
     setMealSummary("");
     setError(null);
+    setEditingIndex(null);
+    setShowAddForm(false);
+    setNewFoodName("");
+    processedFileRef.current = null;
     onClose();
   };
 
-  const fodmapBadge = (level: "low" | "moderate" | "high") => {
+  const fodmapBadge = (level: "low" | "moderate" | "high", interactive = false, onClick?: () => void) => {
     const styles = {
       low: "bg-sage-light/60 text-sage-dark",
       moderate: "bg-sand text-sand-dark",
       high: "bg-coral-light/60 text-coral",
     };
     return (
-      <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${styles[level]}`}>
+      <button
+        onClick={onClick}
+        className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${styles[level]} ${interactive ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+        disabled={!interactive}
+      >
         {level} FODMAP
-      </span>
+        {interactive && <ChevronDown className="w-2.5 h-2.5 inline ml-0.5" />}
+      </button>
     );
   };
 
@@ -182,7 +247,7 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
+                  capture={initialMode === "camera" ? "environment" : undefined}
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -244,7 +309,7 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
               </div>
             )}
 
-            {/* Results Step */}
+            {/* Results Step — Editable */}
             {step === "results" && (
               <div className="space-y-5">
                 {previewUrl && (
@@ -257,24 +322,79 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                   <p className="text-sm text-muted-foreground italic">{mealSummary}</p>
                 )}
 
-                <div className="space-y-3">
+                {/* Editable hint */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span>Tap an item to edit. Swipe or tap <Trash2 className="w-3 h-3 inline" /> to remove.</span>
+                </div>
+
+                {/* Food items list */}
+                <div className="space-y-2.5">
                   {analyzedFoods.map((food, i) => (
                     <motion.div
-                      key={i}
+                      key={`${food.name}-${i}`}
+                      layout
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="bg-muted/50 rounded-xl p-4"
+                      exit={{ opacity: 0, x: -100 }}
+                      transition={{ delay: i * 0.05 }}
+                      className={`bg-muted/50 rounded-xl p-4 transition-all ${editingIndex === i ? "ring-2 ring-primary/30" : ""}`}
+                      onClick={() => setEditingIndex(editingIndex === i ? null : i)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm">{food.name}</span>
-                            {food.fodmap === "high" && <AlertTriangle className="w-3.5 h-3.5 text-coral" />}
-                          </div>
-                          {fodmapBadge(food.fodmap)}
+                          {editingIndex === i ? (
+                            <input
+                              type="text"
+                              value={food.name}
+                              onChange={(e) => handleUpdateName(i, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-medium text-sm bg-background border border-border rounded-lg px-2 py-1 w-full mb-2 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">{food.name}</span>
+                              {food.fodmap === "high" && <AlertTriangle className="w-3.5 h-3.5 text-coral" />}
+                            </div>
+                          )}
+
+                          {editingIndex === i ? (
+                            <div className="flex gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                              {FODMAP_OPTIONS.map((level) => (
+                                <button
+                                  key={level}
+                                  onClick={() => handleUpdateFodmap(i, level)}
+                                  className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full transition-all ${
+                                    food.fodmap === level
+                                      ? level === "low" ? "bg-sage-light/60 text-sage-dark ring-2 ring-sage/30"
+                                        : level === "moderate" ? "bg-sand text-sand-dark ring-2 ring-sand-dark/30"
+                                        : "bg-coral-light/60 text-coral ring-2 ring-coral/30"
+                                      : "bg-muted text-muted-foreground"
+                                  }`}
+                                >
+                                  {level}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            fodmapBadge(food.fodmap)
+                          )}
                         </div>
+
+                        {/* Remove button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFood(i);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-coral-light/30 transition-colors group"
+                          title="Remove item"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-coral transition-colors" />
+                        </button>
                       </div>
+
                       {food.hiddenIngredients.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {food.hiddenIngredients.map((h, j) => (
@@ -290,6 +410,86 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                     </motion.div>
                   ))}
                 </div>
+
+                {/* Add food item */}
+                <AnimatePresence>
+                  {showAddForm ? (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-primary/5 border border-primary/15 rounded-xl p-4 space-y-3"
+                    >
+                      <p className="text-sm font-medium text-foreground">Add a food item</p>
+                      <input
+                        type="text"
+                        value={newFoodName}
+                        onChange={(e) => setNewFoodName(e.target.value)}
+                        placeholder="Food name (e.g., Garlic Bread)"
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        autoFocus
+                        onKeyDown={(e) => e.key === "Enter" && handleAddFood()}
+                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={newFoodCategory}
+                          onChange={(e) => setNewFoodCategory(e.target.value)}
+                          className="flex-1 bg-background border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        >
+                          {CATEGORY_OPTIONS.map((cat) => (
+                            <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                          ))}
+                        </select>
+                        <div className="flex gap-1">
+                          {FODMAP_OPTIONS.map((level) => (
+                            <button
+                              key={level}
+                              onClick={() => setNewFoodFodmap(level)}
+                              className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full transition-all ${
+                                newFoodFodmap === level
+                                  ? level === "low" ? "bg-sage-light/60 text-sage-dark ring-2 ring-sage/30"
+                                    : level === "moderate" ? "bg-sand text-sand-dark ring-2 ring-sand-dark/30"
+                                    : "bg-coral-light/60 text-coral ring-2 ring-coral/30"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {level}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 rounded-lg"
+                          onClick={() => { setShowAddForm(false); setNewFoodName(""); }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 rounded-lg bg-primary hover:bg-primary/90"
+                          onClick={handleAddFood}
+                          disabled={!newFoodName.trim()}
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      onClick={() => setShowAddForm(true)}
+                      className="w-full border-2 border-dashed border-border rounded-xl p-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add missing item
+                    </motion.button>
+                  )}
+                </AnimatePresence>
 
                 {/* Warning for high FODMAP */}
                 {hasHighFodmap && (
@@ -310,8 +510,12 @@ export default function FoodCaptureModal({ open, onClose }: FoodCaptureModalProp
                   <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={handleClose}>
                     Discard
                   </Button>
-                  <Button className="flex-1 rounded-xl h-12 bg-primary hover:bg-primary/90" onClick={handleSave}>
-                    <Upload className="w-4 h-4 mr-2" />
+                  <Button
+                    className="flex-1 rounded-xl h-12 bg-primary hover:bg-primary/90"
+                    onClick={handleSave}
+                    disabled={analyzedFoods.length === 0}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
                     Save Meal
                   </Button>
                 </div>
