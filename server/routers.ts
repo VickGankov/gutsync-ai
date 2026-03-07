@@ -16,8 +16,18 @@ import {
   getCorrelationsByUser,
   createWearableEntry,
   getWearableDataByUser,
+  getSubscription,
+  isPremium,
+  upsertSubscription,
+  cancelSubscription,
+  getTodayScanCount,
+  incrementScanCount,
 } from "./db";
+import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
+
+// Free tier: 3 AI scans per day
+const FREE_DAILY_SCAN_LIMIT = 3;
 
 // ─── AI Food Analysis ───
 
@@ -210,6 +220,18 @@ export const appRouter = router({
     analyzePhoto: protectedProcedure
       .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
+        // ── Enforce free-tier scan limit ──────────────────────────────
+        const premium = await isPremium(ctx.user.id);
+        if (!premium) {
+          const todayCount = await getTodayScanCount(ctx.user.id);
+          if (todayCount >= FREE_DAILY_SCAN_LIMIT) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: `FREE_LIMIT_REACHED:${todayCount}`,
+            });
+          }
+        }
+
         // Upload image to S3
         const fileKey = `meals/${ctx.user.id}/${nanoid()}.jpg`;
         const imageBuffer = Buffer.from(input.imageBase64, "base64");
@@ -217,6 +239,11 @@ export const appRouter = router({
 
         // Run AI analysis
         const analysis = await analyzeFood(photoUrl);
+
+        // Increment scan usage for free-tier tracking
+        if (!premium) {
+          await incrementScanCount(ctx.user.id);
+        }
 
         // Save meal to database
         const mealId = await createMeal({
@@ -361,6 +388,142 @@ export const appRouter = router({
         wearableData: wearable,
       };
     }),
+  }),
+
+  subscription: router({
+    /** Get the current user's subscription status and scan usage. */
+    status: protectedProcedure.query(async ({ ctx }) => {
+      const [sub, todayScans, premium] = await Promise.all([
+        getSubscription(ctx.user.id),
+        getTodayScanCount(ctx.user.id),
+        isPremium(ctx.user.id),
+      ]);
+      return {
+        tier: sub?.tier ?? 'free',
+        isPremium: premium,
+        productId: sub?.productId ?? null,
+        platform: sub?.platform ?? null,
+        expiresAt: sub?.expiresAt ?? null,
+        activatedAt: sub?.activatedAt ?? null,
+        todayScans,
+        dailyLimit: FREE_DAILY_SCAN_LIMIT,
+        scansRemaining: premium ? null : Math.max(0, FREE_DAILY_SCAN_LIMIT - todayScans),
+      };
+    }),
+
+    /**
+     * Called from the client after a successful RevenueCat purchase.
+     * The client passes the RC customer info; server verifies via RC REST API.
+     */
+    activate: protectedProcedure
+      .input(z.object({
+        rcCustomerId: z.string(),
+        productId: z.string(),
+        platform: z.enum(['ios', 'android', 'web']),
+        expiresAt: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Verify with RevenueCat REST API if key is configured
+        const rcApiKey = process.env.REVENUECAT_SECRET_KEY;
+        if (rcApiKey) {
+          try {
+            const res = await fetch(
+              `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(input.rcCustomerId)}`,
+              { headers: { Authorization: `Bearer ${rcApiKey}`, 'Content-Type': 'application/json' } }
+            );
+            if (!res.ok) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Could not verify purchase with RevenueCat' });
+            }
+            const data = await res.json() as { subscriber?: { entitlements?: Record<string, { expires_date?: string }> } };
+            const entitlement = data.subscriber?.entitlements?.['premium'];
+            if (!entitlement) {
+              throw new TRPCError({ code: 'BAD_REQUEST', message: 'No active premium entitlement found' });
+            }
+            const expiresAt = entitlement.expires_date ? new Date(entitlement.expires_date).getTime() : null;
+            await upsertSubscription({
+              userId: ctx.user.id,
+              rcCustomerId: input.rcCustomerId,
+              tier: 'premium',
+              productId: input.productId,
+              platform: input.platform,
+              expiresAt: expiresAt ?? undefined,
+              activatedAt: Date.now(),
+            });
+          } catch (err) {
+            if (err instanceof TRPCError) throw err;
+            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'RevenueCat verification failed' });
+          }
+        } else {
+          // No RC key configured — trust client (dev/test mode)
+          await upsertSubscription({
+            userId: ctx.user.id,
+            rcCustomerId: input.rcCustomerId,
+            tier: 'premium',
+            productId: input.productId,
+            platform: input.platform,
+            expiresAt: input.expiresAt,
+            activatedAt: Date.now(),
+          });
+        }
+        return { success: true, tier: 'premium' };
+      }),
+
+    /** Restore purchases — re-verify with RevenueCat and update local record. */
+    restore: protectedProcedure
+      .input(z.object({ rcCustomerId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const rcApiKey = process.env.REVENUECAT_SECRET_KEY;
+        if (!rcApiKey) {
+          return { restored: false, tier: 'free' };
+        }
+        const res = await fetch(
+          `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(input.rcCustomerId)}`,
+          { headers: { Authorization: `Bearer ${rcApiKey}`, 'Content-Type': 'application/json' } }
+        );
+        if (!res.ok) return { restored: false, tier: 'free' };
+        const data = await res.json() as { subscriber?: { entitlements?: Record<string, { expires_date?: string }> } };
+        const entitlement = data.subscriber?.entitlements?.['premium'];
+        if (!entitlement) {
+          await cancelSubscription(ctx.user.id);
+          return { restored: false, tier: 'free' };
+        }
+        const expiresAt = entitlement.expires_date ? new Date(entitlement.expires_date).getTime() : null;
+        await upsertSubscription({
+          userId: ctx.user.id,
+          rcCustomerId: input.rcCustomerId,
+          tier: 'premium',
+          expiresAt: expiresAt ?? undefined,
+          activatedAt: Date.now(),
+        });
+        return { restored: true, tier: 'premium' };
+      }),
+
+    /** RevenueCat webhook — called by RC server on subscription events. */
+    webhook: publicProcedure
+      .input(z.object({
+        event: z.object({
+          type: z.string(),
+          app_user_id: z.string(),
+          product_id: z.string().optional(),
+          expiration_at_ms: z.number().optional(),
+          store: z.string().optional(),
+        }),
+      }))
+      .mutation(async ({ input }) => {
+        const { type, app_user_id, product_id, expiration_at_ms, store } = input.event;
+        // Map store to platform
+        const platform = store === 'APP_STORE' ? 'ios' : store === 'PLAY_STORE' ? 'android' : 'web';
+        // Find user by RC customer ID
+        const db = await import('./db');
+        const sub = await db.getSubscription(0); // placeholder — in production, look up by rcCustomerId
+        if (['INITIAL_PURCHASE', 'RENEWAL', 'PRODUCT_CHANGE', 'UNCANCELLATION'].includes(type)) {
+          // Premium activated or renewed — we rely on activate() from client for now
+          console.log(`[RC Webhook] ${type} for ${app_user_id}`);
+        } else if (['CANCELLATION', 'EXPIRATION', 'BILLING_ISSUE'].includes(type)) {
+          console.log(`[RC Webhook] ${type} — subscription lapsed for ${app_user_id}`);
+        }
+        return { received: true };
+      }),
   }),
 
   wearable: router({

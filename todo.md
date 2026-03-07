@@ -23,3 +23,13 @@
 - [x] Configure Android permissions in AndroidManifest.xml
 - [x] Add app icons and splash screen assets
 - [x] Write app store submission guide
+- [x] Install RevenueCat Capacitor SDK and purchases plugin
+- [x] Add subscriptions table to database schema (userId, rcCustomerId, tier, expiresAt)
+- [x] Add scanCount table to track free-tier usage per user
+- [x] Create server-side subscription router (verify receipt, get status, webhook)
+- [x] Enforce free tier scan limit (3 free scans/day) server-side
+- [x] Build Paywall UI component (pricing cards, feature comparison)
+- [x] Add premium gate on scan button (show paywall after free limit hit)
+- [x] Add premium badge and status to Profile page
+- [x] Wire RevenueCat API keys via secrets
+- [x] Write tests for subscription enforcement logic

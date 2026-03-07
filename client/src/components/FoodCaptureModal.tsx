@@ -3,10 +3,11 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Sparkles, Check, AlertTriangle, Save, Plus, Trash2, ChevronDown } from "lucide-react";
+import { X, Camera, Sparkles, Check, AlertTriangle, Save, Plus, Trash2, ChevronDown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import Paywall from "@/components/Paywall";
 
 export interface FoodCaptureModalProps {
   open: boolean;
@@ -45,11 +46,14 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [newFoodName, setNewFoodName] = useState("");
   const [newFoodCategory, setNewFoodCategory] = useState<string>("other");
   const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallScansUsed, setPaywallScansUsed] = useState(3);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const processedFileRef = useRef<File | null>(null);
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
+  const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -90,9 +94,19 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       setAnalyzedFoods(result.foods);
       setMealSummary(result.summary);
       setTimeout(() => setStep("results"), 400);
-    } catch (err) {
+    } catch (err: unknown) {
       clearInterval(stepInterval);
-      setError(err instanceof Error ? err.message : "Analysis failed. Please try again.");
+      const msg = err instanceof Error ? err.message : String(err);
+      // Check if this is a free-tier limit error
+      if (msg.includes("FREE_LIMIT_REACHED")) {
+        const used = parseInt(msg.split(":")[1] ?? "3", 10);
+        setPaywallScansUsed(used);
+        setStep("upload");
+        setPreviewUrl(null);
+        setShowPaywall(true);
+        return;
+      }
+      setError(msg || "Analysis failed. Please try again.");
       setStep("upload");
       setPreviewUrl(null);
       toast.error("Analysis failed", { description: "Please try again with a clearer photo." });
@@ -521,9 +535,47 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                 </div>
               </div>
             )}
+            {/* Scan counter badge for free tier */}
+            {subStatus && !subStatus.isPremium && step === "upload" && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                  (subStatus.scansRemaining ?? 0) === 0
+                    ? "bg-coral-light/40 text-coral"
+                    : (subStatus.scansRemaining ?? 0) === 1
+                      ? "bg-sand text-sand-dark"
+                      : "bg-muted text-muted-foreground"
+                }`}>
+                  {(subStatus.scansRemaining ?? 0) === 0 ? (
+                    <><Lock className="w-3 h-3" /> No free scans left today</>
+                  ) : (
+                    <><Sparkles className="w-3 h-3" /> {subStatus.scansRemaining} free scan{(subStatus.scansRemaining ?? 0) !== 1 ? "s" : ""} left today</>
+                  )}
+                </div>
+                {(subStatus.scansRemaining ?? 0) === 0 && (
+                  <button
+                    onClick={() => setShowPaywall(true)}
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    Upgrade
+                  </button>
+                )}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
+
+      {/* Paywall overlay */}
+      <Paywall
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onSuccess={() => {
+          setShowPaywall(false);
+          toast.success("Premium activated! You now have unlimited scans.");
+        }}
+        scansUsed={paywallScansUsed}
+        dailyLimit={subStatus?.dailyLimit ?? 3}
+      />
     </AnimatePresence>
   );
 }
