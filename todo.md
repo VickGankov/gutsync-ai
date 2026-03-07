@@ -33,3 +33,6 @@
 - [x] Add premium badge and status to Profile page
 - [x] Wire RevenueCat API keys via secrets
 - [x] Write tests for subscription enforcement logic
+- [x] Restore Symptoms tab in bottom nav (replace Profile tab)
+- [x] Move profile access to leaf icon in Home top-right corner (slide-up sheet or navigate to /profile)
+- [x] Make recent meal tiles editable (edit foods, meal type, notes inline)

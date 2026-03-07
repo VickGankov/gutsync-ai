@@ -8,6 +8,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
   createMeal,
+  updateMeal,
   getMealsByUser,
   getMealsInRange,
   createSymptom,
@@ -283,6 +284,27 @@ export const appRouter = router({
           loggedAt: Date.now(),
         });
         return { id: mealId };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
+        foods: z.array(z.object({
+          name: z.string(),
+          category: z.enum(["protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"]),
+          fodmap: z.enum(["low", "moderate", "high"]),
+          hiddenIngredients: z.array(z.string()),
+        })).optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateMeal(ctx.user.id, input.id, {
+          ...(input.mealType && { mealType: input.mealType }),
+          ...(input.foods && { foods: input.foods }),
+          ...(input.notes !== undefined && { notes: input.notes }),
+        });
+        return { success: true };
       }),
   }),
 

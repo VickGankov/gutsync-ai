@@ -106,6 +106,18 @@ export async function createMeal(meal: InsertMeal) {
   return result[0].insertId;
 }
 
+export async function updateMeal(
+  userId: number,
+  mealId: number,
+  updates: Partial<Pick<InsertMeal, 'mealType' | 'foods' | 'notes'>>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(meals)
+    .set(updates)
+    .where(and(eq(meals.id, mealId), eq(meals.userId, userId)));
+}
+
 export async function getMealsByUser(userId: number, limit = 20) {
   const db = await getDb();
   if (!db) return [];
