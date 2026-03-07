@@ -118,6 +118,12 @@ export async function updateMeal(
     .where(and(eq(meals.id, mealId), eq(meals.userId, userId)));
 }
 
+export async function deleteMeal(userId: number, mealId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(meals).where(and(eq(meals.id, mealId), eq(meals.userId, userId)));
+}
+
 export async function getMealsByUser(userId: number, limit = 20) {
   const db = await getDb();
   if (!db) return [];

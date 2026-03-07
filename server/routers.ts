@@ -9,6 +9,7 @@ import { nanoid } from "nanoid";
 import {
   createMeal,
   updateMeal,
+  deleteMeal,
   getMealsByUser,
   getMealsInRange,
   createSymptom,
@@ -304,6 +305,13 @@ export const appRouter = router({
           ...(input.foods && { foods: input.foods }),
           ...(input.notes !== undefined && { notes: input.notes }),
         });
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteMeal(ctx.user.id, input.id);
         return { success: true };
       }),
   }),

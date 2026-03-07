@@ -36,3 +36,6 @@
 - [x] Restore Symptoms tab in bottom nav (replace Profile tab)
 - [x] Move profile access to leaf icon in Home top-right corner (slide-up sheet or navigate to /profile)
 - [x] Make recent meal tiles editable (edit foods, meal type, notes inline)
+- [x] Fix Google OAuth disallowed_useragent error (open login in system browser)
+- [x] Add swipe-to-delete on meal tiles with undo toast
+- [x] Add one-tap symptom quick-log row on home screen
