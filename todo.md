@@ -16,3 +16,10 @@
 - [x] Center scan button in bottom nav (middle position)
 - [x] Add long-press on scan button to upload a photo from gallery
 - [x] Add editable food list after AI scan (add/remove items)
+- [x] Install Capacitor core, CLI, iOS and Android packages
+- [x] Initialize Capacitor with app ID and name
+- [x] Configure capacitor.config.ts with server URL and plugins
+- [x] Configure iOS permissions in Info.plist (camera, health)
+- [x] Configure Android permissions in AndroidManifest.xml
+- [x] Add app icons and splash screen assets
+- [x] Write app store submission guide
