@@ -45,3 +45,8 @@
 - [x] Fix edit button not responding on meal tiles
 - [x] Fix delete button not responding on meal tiles
 - [x] Redesign meal tiles to be more minimalistic while keeping edit/delete functionality
+- [x] Fix food scan: reject non-food images (empty foods array) in analyzePhoto mutation
+- [x] Improve free tier UX: show warning when 1 scan left, confirmation dialog before last scan
+- [x] Improve error messages: specific feedback for different failure types
+- [x] Write tests for non-food rejection and free tier enforcement
+- [x] Prepare mobile strategy recommendation (web-first, then native apps)

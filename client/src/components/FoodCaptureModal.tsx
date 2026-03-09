@@ -106,10 +106,16 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
         setShowPaywall(true);
         return;
       }
-      setError(msg || "Analysis failed. Please try again.");
+      // Check if no food was detected
+      if (msg.includes("NO_FOOD_DETECTED")) {
+        setError("No food detected in this photo. Please try again with a clearer food photo.");
+        toast.error("No food detected", { description: "Make sure the photo shows actual food items." });
+      } else {
+        setError(msg || "Analysis failed. Please try again.");
+        toast.error("Analysis failed", { description: "Please try again with a clearer photo." });
+      }
       setStep("upload");
       setPreviewUrl(null);
-      toast.error("Analysis failed", { description: "Please try again with a clearer photo." });
     }
   }, [analyzePhoto]);
 
@@ -513,8 +519,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                       <p className="text-sm font-medium text-foreground">High FODMAP Alert</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {highFodmapFoods.map((f) => f.name).join(", ")}{" "}
-                        {highFodmapFoods.length === 1 ? "is a" : "are"} known trigger
-                        {highFodmapFoods.length === 1 ? "" : "s"}. I'll monitor for symptoms in the next 4-6 hours.
+                        {highFodmapFoods.length === 1 ? "is" : "are"} high FODMAP. I'll monitor for symptoms in the next 4-6 hours.
                       </p>
                     </div>
                   </div>
@@ -535,30 +540,39 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                 </div>
               </div>
             )}
+
             {/* Scan counter badge for free tier */}
             {subStatus && !subStatus.isPremium && step === "upload" && (
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                  (subStatus.scansRemaining ?? 0) === 0
-                    ? "bg-coral-light/40 text-coral"
-                    : (subStatus.scansRemaining ?? 0) === 1
-                      ? "bg-sand text-sand-dark"
-                      : "bg-muted text-muted-foreground"
-                }`}>
-                  {(subStatus.scansRemaining ?? 0) === 0 ? (
-                    <><Lock className="w-3 h-3" /> No free scans left today</>
-                  ) : (
-                    <><Sparkles className="w-3 h-3" /> {subStatus.scansRemaining} free scan{(subStatus.scansRemaining ?? 0) !== 1 ? "s" : ""} left today</>
+              <div className="mt-4 space-y-2">
+                {(subStatus.scansRemaining ?? 0) === 1 && (
+                  <div className="bg-sand/20 border border-sand text-sand-dark rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>This is your last free scan today. Upgrade for unlimited scans.</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-center gap-2">
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                    (subStatus.scansRemaining ?? 0) === 0
+                      ? "bg-coral-light/40 text-coral"
+                      : (subStatus.scansRemaining ?? 0) === 1
+                        ? "bg-sand text-sand-dark"
+                        : "bg-muted text-muted-foreground"
+                  }`}>
+                    {(subStatus.scansRemaining ?? 0) === 0 ? (
+                      <><Lock className="w-3 h-3" /> No free scans left today</>
+                    ) : (
+                      <><Sparkles className="w-3 h-3" /> {subStatus.scansRemaining} free scan{(subStatus.scansRemaining ?? 0) !== 1 ? "s" : ""} left today</>
+                    )}
+                  </div>
+                  {(subStatus.scansRemaining ?? 0) === 0 && (
+                    <button
+                      onClick={() => setShowPaywall(true)}
+                      className="text-xs text-primary font-medium hover:underline"
+                    >
+                      Upgrade
+                    </button>
                   )}
                 </div>
-                {(subStatus.scansRemaining ?? 0) === 0 && (
-                  <button
-                    onClick={() => setShowPaywall(true)}
-                    className="text-xs text-primary font-medium hover:underline"
-                  >
-                    Upgrade
-                  </button>
-                )}
               </div>
             )}
           </motion.div>

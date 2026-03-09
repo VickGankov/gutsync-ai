@@ -247,6 +247,14 @@ export const appRouter = router({
         // Run AI analysis
         const analysis = await analyzeFood(photoUrl);
 
+        // ── Reject if no food detected ──────────────────────────────
+        if (!analysis.foods || analysis.foods.length === 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'NO_FOOD_DETECTED',
+          });
+        }
+
         // Increment scan usage for free-tier tracking
         if (!premium) {
           await incrementScanCount(ctx.user.id);
