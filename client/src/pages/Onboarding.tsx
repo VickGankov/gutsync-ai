@@ -20,7 +20,7 @@ const steps = [
     image: HERO_IMG,
     icon: Leaf,
     title: "Welcome to GutSync",
-    subtitle: "Your personal food sensitivity tracker",
+    subtitle: "Your personal FODMAP tracker",
     description: "Discover which foods trigger your bloating, pain, and discomfort — without keeping a tedious food diary.",
   },
   {

@@ -20,7 +20,7 @@ const ANALYSIS_STEPS = [
   "Uploading photo...",
   "Identifying food items...",
   "Detecting hidden ingredients...",
-  "Analyzing sensitivity levels...",
+  "Analyzing FODMAP levels...",
   "Generating breakdown...",
 ];
 
@@ -53,7 +53,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
-  const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -174,33 +173,12 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       toast.error("Add at least one food item before saving");
       return;
     }
-    logManual.mutate(
-      {
-        mealType: "snack",
-        foods: analyzedFoods.map(f => ({
-          name: f.name,
-          category: f.category as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
-          fodmap: f.fodmap,
-          hiddenIngredients: f.hiddenIngredients,
-        })),
-        notes: mealSummary || undefined,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Meal logged successfully", {
-            description: `${analyzedFoods.length} items saved with sensitivity analysis`,
-          });
-          utils.meals.list.invalidate();
-          utils.insights.dashboard.invalidate();
-          handleClose();
-        },
-        onError: (error) => {
-          toast.error("Failed to save meal", {
-            description: error.message || "Please try again",
-          });
-        },
-      }
-    );
+    toast.success("Meal logged successfully", {
+      description: `${analyzedFoods.length} items saved with FODMAP analysis`,
+    });
+    utils.meals.list.invalidate();
+    utils.insights.dashboard.invalidate();
+    handleClose();
   };
 
   const handleClose = () => {
@@ -272,10 +250,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
             {step === "upload" && (
               <div className="space-y-4">
                 <div
-                  onClick={() => {
-                    console.log("Clicked upload area, opening file picker");
-                    fileInputRef.current?.click();
-                  }}
+                  onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-border rounded-2xl p-12 flex flex-col items-center gap-4 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
                 >
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -294,10 +269,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   accept="image/*"
                   capture={initialMode === "camera" ? "environment" : undefined}
                   onChange={handleFileSelect}
-                  onError={(e) => {
-                    console.error("Camera error:", e);
-                    toast.error("Camera access denied. Please check permissions.");
-                  }}
                   className="hidden"
                 />
                 {error && (
@@ -545,10 +516,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-4 flex gap-3">
                     <AlertTriangle className="w-5 h-5 text-coral shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">High Sensitivity Alert</p>
+                      <p className="text-sm font-medium text-foreground">High FODMAP Alert</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {highFodmapFoods.map((f) => f.name).join(", ")}{" "}
-                        {highFodmapFoods.length === 1 ? "is" : "are"} high sensitivity. I'll monitor for symptoms in the next 4-6 hours.
+                        {highFodmapFoods.length === 1 ? "is" : "are"} high FODMAP. I'll monitor for symptoms in the next 4-6 hours.
                       </p>
                     </div>
                   </div>
