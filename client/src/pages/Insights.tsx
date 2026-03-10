@@ -163,9 +163,9 @@ export default function Insights() {
           <p className="text-sm text-muted-foreground mt-1">AI-powered correlations from your data</p>
         </div>
         <Button
-          onClick={(e) => { e.stopPropagation(); runAnalysis.mutate(); }}
-          disabled={runAnalysis.isPending || !isAuthenticated}
-          className="rounded-xl h-10 gap-2 bg-primary hover:bg-primary/90 relative z-10"
+          onClick={() => runAnalysis.mutate()}
+          disabled={runAnalysis.isPending}
+          className="rounded-xl h-10 gap-2 bg-primary hover:bg-primary/90"
           size="sm"
         >
           {runAnalysis.isPending ? (
@@ -173,7 +173,7 @@ export default function Insights() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          {runAnalysis.isPending ? "Analyzing…" : "Analyze"}
+          Analyze
         </Button>
       </motion.div>
 

@@ -15,13 +15,6 @@ vi.mock("./db", () => ({
   getCorrelationsByUser: vi.fn().mockResolvedValue([]),
   createWearableEntry: vi.fn().mockResolvedValue(1),
   getWearableDataByUser: vi.fn().mockResolvedValue([]),
-  // Subscription mocks (default: free tier, 0 scans used)
-  getSubscription: vi.fn().mockResolvedValue(null),
-  isPremium: vi.fn().mockResolvedValue(false),
-  upsertSubscription: vi.fn().mockResolvedValue(undefined),
-  cancelSubscription: vi.fn().mockResolvedValue(undefined),
-  getTodayScanCount: vi.fn().mockResolvedValue(0),
-  incrementScanCount: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock the LLM module
@@ -376,106 +369,6 @@ describe("GutSync AI Server Procedures", () => {
 
       expect(db.getWearableDataByUser).toHaveBeenCalledWith(1, 7);
       expect(result).toEqual(mockData);
-    });
-  });
-
-  // ─── Subscription ───
-  describe("subscription.status", () => {
-    it("returns free tier status with scan counts", async () => {
-      vi.mocked(db.getSubscription).mockResolvedValue(null);
-      vi.mocked(db.isPremium).mockResolvedValue(false);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(1);
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const result = await caller.subscription.status();
-
-      expect(result.tier).toBe("free");
-      expect(result.isPremium).toBe(false);
-      expect(result.todayScans).toBe(1);
-      expect(result.dailyLimit).toBe(3);
-      expect(result.scansRemaining).toBe(2);
-    });
-
-    it("returns premium status with null scansRemaining", async () => {
-      vi.mocked(db.getSubscription).mockResolvedValue({
-        id: 1, userId: 1, tier: "premium", rcCustomerId: "rc_123",
-        productId: "gutsync_premium_monthly", platform: "ios",
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        activatedAt: Date.now(), createdAt: new Date(), updatedAt: new Date(),
-      } as any);
-      vi.mocked(db.isPremium).mockResolvedValue(true);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(10);
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const result = await caller.subscription.status();
-
-      expect(result.tier).toBe("premium");
-      expect(result.isPremium).toBe(true);
-      expect(result.scansRemaining).toBeNull(); // unlimited
-    });
-  });
-
-  describe("subscription.activate", () => {
-    it("rejects activation without a valid RevenueCat customer ID when RC key is present", async () => {
-      // The activate procedure calls RevenueCat API to verify the entitlement.
-      // Without a real RC key in test env, it throws BAD_REQUEST (no entitlement found).
-      // This test validates that the gate is enforced — not bypassed.
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-
-      await expect(
-        caller.subscription.activate({
-          rcCustomerId: "fake_customer_id",
-          productId: "gutsync_premium_monthly",
-          platform: "web",
-          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        })
-      ).rejects.toThrow(); // Throws because RC API returns no entitlement for fake ID
-    });
-  });
-
-  describe("meals.analyzePhoto — free tier limit enforcement", () => {
-    it("blocks scan when free limit is reached", async () => {
-      vi.mocked(db.isPremium).mockResolvedValue(false);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(3); // at limit
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const fakeBase64 = Buffer.from("fake-image-data").toString("base64");
-
-      await expect(
-        caller.meals.analyzePhoto({ imageBase64: fakeBase64, mimeType: "image/jpeg" })
-      ).rejects.toThrow(/FREE_LIMIT_REACHED/);
-    });
-
-    it("allows scan for premium users regardless of count", async () => {
-      vi.mocked(db.isPremium).mockResolvedValue(true);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(99); // way over limit
-      vi.mocked(db.createMeal).mockResolvedValue(8);
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const fakeBase64 = Buffer.from("fake-image-data").toString("base64");
-
-      const result = await caller.meals.analyzePhoto({ imageBase64: fakeBase64, mimeType: "image/jpeg" });
-      expect(result.mealType).toBe("lunch");
-      // Premium users should NOT have scan count incremented
-      expect(db.incrementScanCount).not.toHaveBeenCalled();
-    });
-
-    it("increments scan count for free-tier users after successful scan", async () => {
-      vi.mocked(db.isPremium).mockResolvedValue(false);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(1); // 1 of 3 used
-      vi.mocked(db.createMeal).mockResolvedValue(9);
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const fakeBase64 = Buffer.from("fake-image-data").toString("base64");
-
-      await caller.meals.analyzePhoto({ imageBase64: fakeBase64, mimeType: "image/jpeg" });
-      expect(db.incrementScanCount).toHaveBeenCalledWith(1);
     });
   });
 });

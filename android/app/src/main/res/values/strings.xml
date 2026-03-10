@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">GutSync AI</string>
-    <string name="title_activity_main">GutSync AI</string>
-    <string name="package_name">ai.gutsync.app</string>
-    <string name="custom_url_scheme">ai.gutsync.app</string>
-</resources>
