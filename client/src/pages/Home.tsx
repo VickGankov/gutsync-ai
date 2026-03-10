@@ -329,7 +329,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Foods</p>
                 <div className="space-y-1.5">
                   {foods.map((f, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div key={`food-${idx}`} className="flex items-center gap-2">
                       <span className="flex-1 text-sm truncate">{f.name}</span>
                       <button
                         type="button"
