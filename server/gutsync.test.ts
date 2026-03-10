@@ -88,7 +88,7 @@ function createUnauthContext(): TrpcContext {
   };
 }
 
-describe("GutSync Server Procedures", () => {
+describe("GutSync AI Server Procedures", () => {
   let db: typeof import("./db");
 
   beforeEach(async () => {

@@ -1,4 +1,4 @@
-// GutSync — Food Log Page
+// GutSync AI — Food Log Page
 // Wired to real tRPC backend
 
 import { motion } from "framer-motion";
@@ -167,7 +167,7 @@ export default function FoodLog() {
       {/* Header */}
       <motion.div variants={item} className="mb-6">
         <h1 className="text-2xl tracking-tight">Food Log</h1>
-        <p className="text-sm text-muted-foreground mt-1">Your meals with FODMAP breakdown</p>
+        <p className="text-sm text-muted-foreground mt-1">AI-analyzed meals with FODMAP breakdown</p>
       </motion.div>
 
       {/* How it works banner */}
@@ -176,7 +176,7 @@ export default function FoodLog() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent flex items-center">
           <div className="px-5">
             <p className="text-white text-sm font-medium">Snap. Detect. Track.</p>
-            <p className="text-white/70 text-xs mt-1">Hidden ingredients identified for you</p>
+            <p className="text-white/70 text-xs mt-1">AI finds hidden ingredients automatically</p>
           </div>
         </div>
       </motion.div>
@@ -194,7 +194,7 @@ export default function FoodLog() {
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
           <h3 className="font-display text-lg mb-1">No meals yet</h3>
           <p className="text-sm text-muted-foreground">
-            Tap the camera button to log your first meal and see your FODMAP analysis.
+            Tap the camera button to log your first meal and see AI-powered FODMAP analysis.
           </p>
         </motion.div>
       )}

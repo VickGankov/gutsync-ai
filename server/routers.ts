@@ -42,7 +42,7 @@ async function analyzeFood(imageUrl: string): Promise<{
     messages: [
       {
         role: "system",
-        content: `You are GutSync, a specialized food analysis assistant for people with IBS and gut health issues.
+        content: `You are GutSync AI, a specialized food analysis assistant for people with IBS and gut health issues.
 Analyze the food photo and return a JSON object with:
 - foods: array of food items, each with { name, category, fodmap, hiddenIngredients }
   - category: one of "protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"
@@ -139,7 +139,7 @@ async function analyzeCorrelations(
     messages: [
       {
         role: "system",
-        content: `You are GutSync's correlation engine. Analyze the food and symptom data to find patterns.
+        content: `You are GutSync AI's correlation engine. Analyze the food and symptom data to find patterns.
 Look for:
 - Foods that consistently appear 2-48 hours before symptoms
 - Combinations of foods that trigger symptoms together

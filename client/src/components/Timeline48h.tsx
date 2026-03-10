@@ -1,4 +1,4 @@
-// GutSync — 48-Hour Timeline
+// GutSync AI — 48-Hour Timeline
 // Wired to real tRPC backend
 
 import { useMemo } from "react";

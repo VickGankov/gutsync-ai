@@ -1,4 +1,4 @@
-// GutSync — Food Capture Modal
+// GutSync AI — Food Capture Modal
 // Supports camera capture and gallery upload, with editable AI results
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -239,7 +239,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
               <h2 className="text-xl font-display">
                 {step === "upload" && "Log a Meal"}
                 {step === "analyzing" && "Analyzing..."}
-                {step === "results" && "Analysis Results"}
+                {step === "results" && "AI Analysis"}
               </h2>
               <button onClick={handleClose} className="p-2 rounded-full hover:bg-muted transition-colors">
                 <X className="w-5 h-5 text-muted-foreground" />
@@ -259,7 +259,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   <div className="text-center">
                     <p className="font-medium text-foreground">Take or upload a photo</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      We'll help identify foods and hidden ingredients — you confirm what you ate
+                      Our AI will identify foods and hidden ingredients
                     </p>
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  Analyzing your meal — this may take a few seconds
+                  AI is analyzing your meal — this may take a few seconds
                 </p>
               </div>
             )}
