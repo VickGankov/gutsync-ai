@@ -250,12 +250,12 @@ export default function Insights() {
             </motion.div>
           )}
 
-          {/* FODMAP Distribution */}
+          {/* Sensitivity Distribution */}
           {meals.length > 0 && (
             <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="w-4 h-4 text-coral" />
-                <h3 className="text-sm font-semibold">FODMAP Distribution</h3>
+                <h3 className="text-sm font-semibold">Sensitivity Distribution</h3>
               </div>
               <div className="flex items-center gap-4">
                 <ResponsiveContainer width={120} height={120}>
@@ -290,8 +290,8 @@ export default function Insights() {
               </div>
               <p className="text-xs text-muted-foreground mt-3">
                 {fodmapCounts.high > fodmapCounts.low
-                  ? "You're consuming more high-FODMAP foods than low. Consider swapping some triggers."
-                  : "Good balance! Most of your foods are low-FODMAP."}
+                  ? "You're consuming more high-sensitivity foods than low. Consider swapping some triggers."
+                  : "Good balance! Most of your foods are low-sensitivity."}
               </p>
             </motion.div>
           )}

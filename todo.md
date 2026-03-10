@@ -61,3 +61,6 @@
 - [ ] Update VITE_APP_TITLE to "GutSync" (requires Settings panel — user action)
 - [ ] Upload new logo and update VITE_APP_LOGO (requires Settings panel — user action)
 - [ ] Update favicon with new logo (requires Settings panel — user action)
+- [x] Replace "FODMAP tracker" tagline with "food sensitivity tracker" across all pages
+- [x] Broaden FODMAP-specific user-facing messaging to "food sensitivity" language
+- [x] Keep FODMAP analysis as behind-the-scenes feature (labels on foods stay)
