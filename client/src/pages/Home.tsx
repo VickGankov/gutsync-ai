@@ -784,9 +784,9 @@ export default function Home() {
             </div>
             <div className="space-y-2.5">
               <AnimatePresence>
-                {recentMeals.map((meal) => (
+                {recentMeals.map((meal, idx) => (
                   <MealTile
-                    key={meal.id}
+                    key={`${meal.id}-${idx}`}
                     meal={meal}
                     onSaved={() => dashboard.refetch()}
                     onDeleted={handleMealDeleted}
@@ -807,9 +807,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1">
-              {recentSymptoms.map((sym) => (
+              {recentSymptoms.map((sym, idx) => (
                 <div
-                  key={sym.id}
+                  key={`${sym.id}-${idx}`}
                   className="bg-card rounded-xl p-3 border border-border/50 shadow-sm min-w-[130px] shrink-0"
                 >
                   <div className="text-2xl mb-1">{getSymptomEmoji(sym.type)}</div>
