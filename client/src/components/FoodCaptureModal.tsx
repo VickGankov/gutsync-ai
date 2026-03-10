@@ -53,6 +53,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
+  const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -173,12 +174,33 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       toast.error("Add at least one food item before saving");
       return;
     }
-    toast.success("Meal logged successfully", {
-      description: `${analyzedFoods.length} items saved with sensitivity analysis`,
-    });
-    utils.meals.list.invalidate();
-    utils.insights.dashboard.invalidate();
-    handleClose();
+    logManual.mutate(
+      {
+        mealType: "snack",
+        foods: analyzedFoods.map(f => ({
+          name: f.name,
+          category: f.category as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
+          fodmap: f.fodmap,
+          hiddenIngredients: f.hiddenIngredients,
+        })),
+        notes: mealSummary || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Meal logged successfully", {
+            description: `${analyzedFoods.length} items saved with sensitivity analysis`,
+          });
+          utils.meals.list.invalidate();
+          utils.insights.dashboard.invalidate();
+          handleClose();
+        },
+        onError: (error) => {
+          toast.error("Failed to save meal", {
+            description: error.message || "Please try again",
+          });
+        },
+      }
+    );
   };
 
   const handleClose = () => {
@@ -250,7 +272,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
             {step === "upload" && (
               <div className="space-y-4">
                 <div
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    console.log("Clicked upload area, opening file picker");
+                    fileInputRef.current?.click();
+                  }}
                   className="border-2 border-dashed border-border rounded-2xl p-12 flex flex-col items-center gap-4 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
                 >
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -269,6 +294,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   accept="image/*"
                   capture={initialMode === "camera" ? "environment" : undefined}
                   onChange={handleFileSelect}
+                  onError={(e) => {
+                    console.error("Camera error:", e);
+                    toast.error("Camera access denied. Please check permissions.");
+                  }}
                   className="hidden"
                 />
                 {error && (

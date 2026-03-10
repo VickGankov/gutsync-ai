@@ -64,3 +64,10 @@
 - [x] Replace "FODMAP tracker" tagline with "food sensitivity tracker" across all pages
 - [x] Broaden FODMAP-specific user-facing messaging to "food sensitivity" language
 - [x] Keep FODMAP analysis as behind-the-scenes feature (labels on foods stay)
+- [x] Add positive outcome types to symptom tracking (energy boost, better digestion, improved mood, better sleep, clearer skin, reduced brain fog)
+- [x] Update Symptoms page to show both negative and positive outcome options (separate tabs)
+- [ ] Update correlation analysis to show "beneficial foods" alongside trigger foods
+- [x] Add visual distinction for positive outcomes (different color/icon than negative symptoms)
+- [ ] Write tests for positive outcome logging and correlation
+- [x] Fix food scan not working on Take/Upload photo screen (added missing logManual mutation call)
+- [x] Fix camera not opening (added error handling and logging for debugging)
