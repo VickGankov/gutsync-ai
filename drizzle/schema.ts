@@ -51,11 +51,8 @@ export const symptoms = mysqlTable("symptoms", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   type: mysqlEnum("type", [
-    // Negative symptoms
     "bloating", "abdominal_pain", "gas", "nausea",
-    "fatigue", "headache", "diarrhea", "constipation",
-    // Positive outcomes
-    "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"
+    "fatigue", "headache", "diarrhea", "constipation"
   ]).notNull(),
   severity: int("severity").notNull(), // 1-5
   source: mysqlEnum("source", ["manual", "wearable"]).default("manual").notNull(),

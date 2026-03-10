@@ -97,7 +97,7 @@ function MealCard({ meal }: MealCardProps) {
           <div className="mt-3 bg-coral-light/20 border border-coral/15 rounded-xl px-3 py-2 flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 text-coral shrink-0" />
             <span className="text-xs text-foreground">
-              {highFodmapCount} high-sensitivity {highFodmapCount === 1 ? 'item' : 'items'} detected
+              {highFodmapCount} high-FODMAP {highFodmapCount === 1 ? 'item' : 'items'} detected
             </span>
           </div>
         )}
@@ -167,7 +167,7 @@ export default function FoodLog() {
       {/* Header */}
       <motion.div variants={item} className="mb-6">
         <h1 className="text-2xl tracking-tight">Food Log</h1>
-        <p className="text-sm text-muted-foreground mt-1">Your meals with sensitivity breakdown</p>
+        <p className="text-sm text-muted-foreground mt-1">Your meals with FODMAP breakdown</p>
       </motion.div>
 
       {/* How it works banner */}
@@ -194,7 +194,7 @@ export default function FoodLog() {
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
           <h3 className="font-display text-lg mb-1">No meals yet</h3>
           <p className="text-sm text-muted-foreground">
-            Tap the camera button to log your first meal and see your food sensitivity analysis.
+            Tap the camera button to log your first meal and see your FODMAP analysis.
           </p>
         </motion.div>
       )}

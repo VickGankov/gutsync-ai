@@ -98,7 +98,7 @@ export default function Profile() {
         </h3>
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
-            {['Food Sensitivities', 'Digestive Health', 'Lactose Sensitive', 'Gluten Sensitive'].map((tag) => (
+            {['Low FODMAP', 'IBS-D', 'Lactose Sensitive', 'Fructan Sensitive'].map((tag) => (
               <span key={tag} className="text-xs px-3 py-1.5 rounded-full bg-muted border border-border text-foreground font-medium">
                 {tag}
               </span>
@@ -170,7 +170,7 @@ export default function Profile() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-foreground">Symptom Check-ins</p>
-              <p className="text-xs text-muted-foreground">Ask how you feel after high-sensitivity meals</p>
+              <p className="text-xs text-muted-foreground">Ask how you feel after high-FODMAP meals</p>
             </div>
             <Switch defaultChecked onCheckedChange={() => handleToggle("Symptom check-ins")} />
           </div>
@@ -213,7 +213,7 @@ export default function Profile() {
       {/* App Info */}
       <motion.div variants={item} className="text-center py-4">
         <p className="text-xs text-muted-foreground">GutSync v1.0.0</p>
-        <p className="text-[11px] text-muted-foreground mt-1">Discover your personal food triggers</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Discover your personal FODMAP patterns</p>
       </motion.div>
     </motion.div>
   );

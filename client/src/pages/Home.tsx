@@ -186,12 +186,12 @@ function MealTile({ meal, onSaved, onDeleted }: {
             <div className="flex gap-1 mt-1">
               {highFodmap && (
                 <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-coral-light/50 text-coral">
-                  High sensitivity
+                  High FODMAP
                 </span>
               )}
               {allLow && (
                 <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
-                  Low sensitivity
+                  Low FODMAP
                 </span>
               )}
             </div>
@@ -215,10 +215,10 @@ function MealTile({ meal, onSaved, onDeleted }: {
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-0">
-              {/* Food details with sensitivity info */}
+              {/* Food details with FODMAP transparency */}
               <div className="space-y-2 mb-3">
                 {foods.map((f, idx) => (
-                  <div key={`detail-${f.name}-${idx}`}>
+                  <div key={idx}>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-foreground">{f.name}</span>
                       <div className="flex items-center gap-1.5">
@@ -329,7 +329,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Foods</p>
                 <div className="space-y-1.5">
                   {foods.map((f, idx) => (
-                    <div key={`food-${idx}`} className="flex items-center gap-2">
+                    <div key={idx} className="flex items-center gap-2">
                       <span className="flex-1 text-sm truncate">{f.name}</span>
                       <button
                         type="button"
@@ -612,7 +612,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <h1 className="text-white text-xl font-display">GutSync</h1>
-              <p className="text-white/80 text-sm">Discover your personal food triggers</p>
+              <p className="text-white/80 text-sm">Discover your personal FODMAP patterns</p>
             </div>
           </motion.div>
           <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
@@ -682,7 +682,7 @@ export default function Home() {
           <img src={HERO_IMG} alt="GutSync" className="w-full h-40 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
-            <p className="text-white/90 text-xs font-medium">Discover your personal food triggers</p>
+            <p className="text-white/90 text-xs font-medium">Discover your personal FODMAP patterns</p>
           </div>
         </motion.div>
 
@@ -768,7 +768,7 @@ export default function Home() {
             <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="font-display text-lg mb-1">Start tracking</h3>
             <p className="text-sm text-muted-foreground">
-              Tap the camera button below to log your first meal. GutSync will help identify food triggers and hidden ingredients.
+              Tap the camera button below to log your first meal. GutSync will help identify FODMAP triggers and hidden ingredients.
             </p>
           </motion.div>
         )}
@@ -784,9 +784,9 @@ export default function Home() {
             </div>
             <div className="space-y-2.5">
               <AnimatePresence>
-                {recentMeals.map((meal, idx) => (
+                {recentMeals.map((meal) => (
                   <MealTile
-                    key={`${meal.id}-${idx}`}
+                    key={meal.id}
                     meal={meal}
                     onSaved={() => dashboard.refetch()}
                     onDeleted={handleMealDeleted}
@@ -807,9 +807,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1">
-              {recentSymptoms.map((sym, idx) => (
+              {recentSymptoms.map((sym) => (
                 <div
-                  key={`${sym.id}-${idx}`}
+                  key={sym.id}
                   className="bg-card rounded-xl p-3 border border-border/50 shadow-sm min-w-[130px] shrink-0"
                 >
                   <div className="text-2xl mb-1">{getSymptomEmoji(sym.type)}</div>
