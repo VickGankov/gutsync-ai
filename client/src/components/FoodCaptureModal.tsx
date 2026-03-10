@@ -48,7 +48,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallScansUsed, setPaywallScansUsed] = useState(3);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Refs removed - using inline <label>+<input> pattern for better mobile compatibility
   const processedFileRef = useRef<File | null>(null);
 
   const utils = trpc.useUtils();
@@ -129,8 +129,13 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   }, [open, uploadedFile, runAnalysis]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[FoodCapture] handleFileSelect fired', e.target.files?.length);
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('[FoodCapture] No file selected');
+      return;
+    }
+    console.log('[FoodCapture] File selected:', file.name, file.type, file.size);
     processedFileRef.current = file;
     runAnalysis(file);
   };
@@ -239,9 +244,11 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const highFodmapFoods = analyzedFoods.filter((f) => f.fodmap === "high");
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
+          key="food-capture-modal"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -271,35 +278,42 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
             {/* Upload Step */}
             {step === "upload" && (
               <div className="space-y-4">
-                <div
-                  onClick={() => {
-                    console.log("Clicked upload area, opening file picker");
-                    fileInputRef.current?.click();
-                  }}
-                  className="border-2 border-dashed border-border rounded-2xl p-12 flex flex-col items-center gap-4 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Camera className="w-7 h-7 text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Take or upload a photo</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      We'll help identify foods and hidden ingredients — you confirm what you ate
-                    </p>
-                  </div>
+                <div className="text-center mb-2">
+                  <p className="text-sm text-muted-foreground">
+                    We'll help identify foods and hidden ingredients — you confirm what you ate
+                  </p>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture={initialMode === "camera" ? "environment" : undefined}
-                  onChange={handleFileSelect}
-                  onError={(e) => {
-                    console.error("Camera error:", e);
-                    toast.error("Camera access denied. Please check permissions.");
-                  }}
-                  className="hidden"
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <label
+                    className="border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-primary" />
+                    </div>
+                    <p className="font-medium text-foreground text-sm">Take Photo</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </label>
+                  <label
+                    className="border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-sage-light/60 flex items-center justify-center">
+                      <Plus className="w-6 h-6 text-sage-dark" />
+                    </div>
+                    <p className="font-medium text-foreground text-sm">Upload Photo</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
                 {error && (
                   <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-3 text-sm text-coral">
                     {error}
@@ -319,7 +333,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                 <div className="space-y-3">
                   {ANALYSIS_STEPS.map((text, i) => (
                     <motion.div
-                      key={i}
+                      key={`step-${i}`}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: analysisStep >= i ? 1 : 0.3, x: 0 }}
                       transition={{ delay: 0.1 }}
@@ -448,7 +462,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {food.hiddenIngredients.map((h, j) => (
                             <span
-                              key={j}
+                              key={`hidden-${h}-${j}`}
                               className="text-[11px] px-2 py-0.5 rounded-full bg-background border border-border text-muted-foreground"
                             >
                               {h}
@@ -608,7 +622,8 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
         </motion.div>
       )}
 
-      {/* Paywall overlay */}
+    </AnimatePresence>
+      {/* Paywall overlay - outside AnimatePresence to avoid key conflicts */}
       <Paywall
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
@@ -619,6 +634,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
         scansUsed={paywallScansUsed}
         dailyLimit={subStatus?.dailyLimit ?? 3}
       />
-    </AnimatePresence>
+    </>
   );
 }

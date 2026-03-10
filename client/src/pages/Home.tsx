@@ -218,7 +218,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
               {/* Food details with sensitivity info */}
               <div className="space-y-2 mb-3">
                 {foods.map((f, idx) => (
-                  <div key={idx}>
+                  <div key={`detail-${f.name}-${idx}`}>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-foreground">{f.name}</span>
                       <div className="flex items-center gap-1.5">

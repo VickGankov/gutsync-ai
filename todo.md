@@ -71,3 +71,5 @@
 - [ ] Write tests for positive outcome logging and correlation
 - [x] Fix food scan not working on Take/Upload photo screen (added missing logManual mutation call)
 - [x] Fix camera not opening (added error handling and logging for debugging)
+- [x] Fix persistent empty key warning (moved Paywall outside AnimatePresence, added key to modal)
+- [x] Fix camera capture: switched to label+input pattern for better mobile compatibility

@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, foods FROM meals LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 25CydgbU2RLn8zY.ca448ed85b67 --database Aye9Tq4ostcsrtEqbKqav7 --execute SELECT id, foods FROM meals LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "foods": "[{\"category\": \"grain\", \"fodmap\": \"low\", \"hiddenIngredients\": [], \"name\": \"White Rice\"}, {\"category\": \"fruit\", \"fodmap\": \"low\", \"hiddenIngredients\": [], \"name\": \"Grapefruit\"}]"
+    },
+    {
+      "id": "2",
+      "foods": "[{\"category\": \"vegetable\", \"fodmap\": \"moderate\", \"hiddenIngredients\": [], \"name\": \"Okra\"}]"
+    },
+    {
+      "id": "3",
+      "foods": "[{\"category\": \"other\", \"fodmap\": \"moderate\", \"hiddenIngredients\": [\"lactose\"], \"name\": \"Coffee with milk\"}]"
+    },
+    {
+      "id": "30001",
+      "foods": "[{\"category\": \"grain\", \"fodmap\": \"high\", \"hiddenIngredients\": [\"wheat\", \"lactose\", \"high-fructose corn syrup\", \"artificial sweeteners\"], \"name\": \"Strawberry & Yogurt Pretzels\"}]"
+    },
+    {
+      "id": "90001",
+      "foods": "[{\"category\": \"fruit\", \"fodmap\": \"low\", \"hiddenIngredients\": [], \"name\": \"Unripe Mangoes\"}, {\"category\": \"other\", \"fodmap\": \"high\", \"hiddenIngredients\": [\"wheat\", \"high-fructose corn syrup\"], \"name\": \"Soy Sauce\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfoods\n1\t[{\"category\": \"grain\", \"fodmap\": \"low\", \"hiddenIngredients\": [], \"name\": \"White Rice\"}, {\"category\": \"fruit\", \"fodmap\": \"low\", \"hiddenIngredients\": [], \"name\": \"Grapefruit\"}]\n2\t[{\"category\": \"vegetable\", \"fodmap\": \"moderate\", \"hiddenIngredients\": [], \"name\": \"Okra\"}]\n3\t[{\"category\": \"other\", \"fodmap\": \"moderate\", \"hiddenIngredients\": [\"lactose\"], \"name\": \"Coffee with milk\"}]\n30001\t[{\"category\": \"grain\", \"fodmap\": \"high\", \"hiddenIngredients\": [\"wheat\", \"lactose\", \"high-fructose corn syrup\", \"artificial sweeteners\"], \"name\": \"Strawberry & Yogurt Pretzels\"}]\n90001\t[{\"category\": \"fruit\", \"fodmap\": \"low\", \"hiddenIngredients\": [], \"name\": \"Unripe Mangoes\"}, {\"category\": \"other\", \"fodmap\": \"high\", \"hiddenIngredients\": [\"wheat\", \"high-fructose corn syrup\"], \"name\": \"Soy Sauce\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 107
+}
