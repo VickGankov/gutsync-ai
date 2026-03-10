@@ -1,18 +1,18 @@
-// GutSync AI — Symptoms Page
+// Symptoms & Positive Outcomes Tracking
 // Wired to real tRPC backend
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Watch, Plus, Heart, Moon, Brain, Activity, Loader2, Leaf } from "lucide-react";
+import { Watch, Plus, Heart, Moon, Brain, Activity, Loader2, Leaf, Smile, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
-type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation";
+type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog";
 
-const SYMPTOM_OPTIONS: { type: SymptomType; emoji: string; label: string }[] = [
+const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] = [
   { type: 'bloating', emoji: '🫧', label: 'Bloating' },
   { type: 'abdominal_pain', emoji: '⚡', label: 'Pain' },
   { type: 'gas', emoji: '💨', label: 'Gas' },
@@ -21,6 +21,15 @@ const SYMPTOM_OPTIONS: { type: SymptomType; emoji: string; label: string }[] = [
   { type: 'headache', emoji: '🤕', label: 'Headache' },
   { type: 'diarrhea', emoji: '💧', label: 'Diarrhea' },
   { type: 'constipation', emoji: '🧱', label: 'Constipation' },
+];
+
+const POSITIVE_OUTCOMES: { type: SymptomType; emoji: string; label: string }[] = [
+  { type: 'energy_boost', emoji: '⚡', label: 'Energy Boost' },
+  { type: 'better_digestion', emoji: '✨', label: 'Better Digestion' },
+  { type: 'improved_mood', emoji: '😊', label: 'Improved Mood' },
+  { type: 'better_sleep', emoji: '😴', label: 'Better Sleep' },
+  { type: 'clearer_skin', emoji: '🌟', label: 'Clearer Skin' },
+  { type: 'reduced_brain_fog', emoji: '🧠', label: 'Reduced Brain Fog' },
 ];
 
 const container = {
@@ -35,6 +44,7 @@ const item = {
 export default function Symptoms() {
   const { isAuthenticated } = useAuth();
   const [showLogger, setShowLogger] = useState(false);
+  const [logMode, setLogMode] = useState<'negative' | 'positive'>('negative');
   const [selectedType, setSelectedType] = useState<SymptomType | null>(null);
   const [severity, setSeverity] = useState(3);
 
@@ -56,8 +66,12 @@ export default function Symptoms() {
       { type: selectedType, severity, source: "manual" },
       {
         onSuccess: () => {
-          toast.success(`${getSymptomLabel(selectedType)} logged`, {
-            description: `Severity ${severity}/5 — AI will check meals from the last 48 hours`,
+          const label = getSymptomLabel(selectedType);
+          const isPositive = selectedType.includes('_') && !['abdominal_pain', 'brain_fog'].includes(selectedType);
+          toast.success(`${label} logged`, {
+            description: isPositive 
+              ? `Great! We'll track which foods contribute to this.`
+              : `Severity ${severity}/5 — GutSync will check meals from the last 48 hours`,
           });
           setShowLogger(false);
           setSelectedType(null);
@@ -70,13 +84,15 @@ export default function Symptoms() {
     );
   };
 
+  const isPositiveOutcome = selectedType && (selectedType.includes('energy') || selectedType.includes('better') || selectedType.includes('improved') || selectedType.includes('clearer') || selectedType.includes('reduced'));
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl tracking-tight">Symptoms</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track how you feel, we find the why</p>
+          <h1 className="text-2xl tracking-tight">How You Feel</h1>
+          <p className="text-sm text-muted-foreground mt-1">Log symptoms and positive outcomes</p>
         </div>
         <Button
           onClick={() => setShowLogger(!showLogger)}
@@ -98,25 +114,53 @@ export default function Symptoms() {
             className="overflow-hidden mb-5"
           >
             <div className="bg-card rounded-2xl border border-border/50 shadow-sm p-5">
-              <p className="text-sm font-medium mb-3">What are you feeling?</p>
-              <div className="grid grid-cols-4 gap-2 mb-4">
-                {SYMPTOM_OPTIONS.map((opt) => (
+              {/* Mode Selector */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => { setLogMode('negative'); setSelectedType(null); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                    logMode === 'negative'
+                      ? 'bg-coral/10 border border-coral text-coral'
+                      : 'bg-muted border border-border text-muted-foreground hover:border-border/80'
+                  }`}
+                >
+                  😟 Symptoms
+                </button>
+                <button
+                  onClick={() => { setLogMode('positive'); setSelectedType(null); }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                    logMode === 'positive'
+                      ? 'bg-sage-light/50 border border-sage text-sage-dark'
+                      : 'bg-muted border border-border text-muted-foreground hover:border-border/80'
+                  }`}
+                >
+                  😊 Positive
+                </button>
+              </div>
+
+              <p className="text-sm font-medium mb-3">
+                {logMode === 'negative' ? 'What symptoms are you experiencing?' : 'What positive changes did you notice?'}
+              </p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {(logMode === 'negative' ? NEGATIVE_SYMPTOMS : POSITIVE_OUTCOMES).map((opt) => (
                   <button
                     key={opt.type}
                     onClick={() => setSelectedType(opt.type)}
                     className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all ${
                       selectedType === opt.type
-                        ? 'border-primary bg-primary/5 shadow-sm'
+                        ? logMode === 'negative'
+                          ? 'border-coral bg-coral/5 shadow-sm'
+                          : 'border-sage bg-sage-light/30 shadow-sm'
                         : 'border-border/50 hover:border-primary/30'
                     }`}
                   >
                     <span className="text-xl">{opt.emoji}</span>
-                    <span className="text-[10px] font-medium text-foreground">{opt.label}</span>
+                    <span className="text-[10px] font-medium text-foreground text-center leading-tight">{opt.label}</span>
                   </button>
                 ))}
               </div>
 
-              {selectedType && (
+              {selectedType && logMode === 'negative' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <p className="text-sm font-medium mb-2">How severe?</p>
                   <div className="flex items-center gap-3 mb-4">
@@ -142,17 +186,24 @@ export default function Symptoms() {
                     </div>
                     <span className="text-xs text-muted-foreground">Severe</span>
                   </div>
-                  <Button
-                    className="w-full rounded-xl h-11 bg-primary hover:bg-primary/90"
-                    onClick={handleLogSymptom}
-                    disabled={logSymptom.isPending}
-                  >
-                    {logSymptom.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : null}
-                    Log {getSymptomLabel(selectedType)}
-                  </Button>
                 </motion.div>
+              )}
+
+              {selectedType && (
+                <Button
+                  className={`w-full rounded-xl h-11 ${
+                    logMode === 'positive'
+                      ? 'bg-sage hover:bg-sage/90'
+                      : 'bg-primary hover:bg-primary/90'
+                  }`}
+                  onClick={handleLogSymptom}
+                  disabled={logSymptom.isPending}
+                >
+                  {logSymptom.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Log {getSymptomLabel(selectedType)}
+                </Button>
               )}
             </div>
           </motion.div>
@@ -227,61 +278,52 @@ export default function Symptoms() {
       {!symptomsQuery.isLoading && symptoms.length === 0 && (
         <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
-          <h3 className="font-display text-lg mb-1">No symptoms logged</h3>
+          <h3 className="font-display text-lg mb-1">No entries yet</h3>
           <p className="text-sm text-muted-foreground">
-            Tap "Log" above to record a symptom. The AI will correlate it with your recent meals.
+            Tap "Log" above to track symptoms or positive outcomes. GutSync will correlate them with your meals.
           </p>
         </motion.div>
       )}
 
-      {/* Symptom History */}
+      {/* History */}
       {symptoms.length > 0 && (
         <motion.div variants={item}>
-          <h2 className="text-lg mb-3">Symptom History</h2>
+          <h2 className="text-lg mb-3">Your History</h2>
           <div className="space-y-2.5">
-            {symptoms.map((sym) => (
-              <motion.div
-                key={sym.id}
-                variants={item}
-                className="bg-card rounded-xl p-4 border border-border/50 shadow-sm"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getSymptomEmoji(sym.type)}</span>
-                    <div>
-                      <p className="text-sm font-medium">{getSymptomLabel(sym.type)}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((level) => (
-                            <div
-                              key={level}
-                              className={`w-2 h-2 rounded-full ${
-                                level <= sym.severity
-                                  ? sym.severity <= 2 ? 'bg-sage' : sym.severity <= 3 ? 'bg-sand-dark' : 'bg-coral'
-                                  : 'bg-muted'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[11px] text-muted-foreground">{sym.severity}/5</span>
+            {symptoms.map((sym, idx) => {
+              const isPositive = sym.type.includes('energy') || sym.type.includes('better') || sym.type.includes('improved') || sym.type.includes('clearer') || sym.type.includes('reduced');
+              return (
+                <motion.div
+                  key={`${sym.id}-${idx}`}
+                  variants={item}
+                  className={`rounded-xl p-4 border shadow-sm ${
+                    isPositive
+                      ? 'bg-sage-light/20 border-sage/30'
+                      : 'bg-card border-border/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{getSymptomEmoji(sym.type)}</span>
+                      <div>
+                        <p className="font-medium text-foreground">{getSymptomLabel(sym.type)}</p>
+                        <p className="text-xs text-muted-foreground">{formatTimeAgo(sym.loggedAt)}</p>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[11px] text-muted-foreground">{formatTimeAgo(sym.loggedAt)}</span>
-                    {sym.source === 'wearable' && (
-                      <div className="flex items-center gap-1 mt-1 justify-end">
-                        <Watch className="w-3 h-3 text-primary" />
-                        <span className="text-[10px] text-primary font-medium">Auto-detected</span>
+                    {!isPositive && (
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <div
+                            key={level}
+                            className={`w-2 h-2 rounded-full ${level <= sym.severity ? 'bg-coral' : 'bg-muted'}`}
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
-                </div>
-                {sym.notes && (
-                  <p className="text-xs text-muted-foreground mt-2 pl-11">{sym.notes}</p>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       )}

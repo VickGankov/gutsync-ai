@@ -1,4 +1,4 @@
-// GutSync AI — Insights Page
+// GutSync — Insights Page
 // Wired to real tRPC backend
 
 import { motion } from "framer-motion";
@@ -160,7 +160,7 @@ export default function Insights() {
       <motion.div variants={item} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl tracking-tight">Insights</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-powered correlations from your data</p>
+          <p className="text-sm text-muted-foreground mt-1">Correlations discovered from your data</p>
         </div>
         <Button
           onClick={(e) => { e.stopPropagation(); runAnalysis.mutate(); }}
@@ -250,12 +250,12 @@ export default function Insights() {
             </motion.div>
           )}
 
-          {/* FODMAP Distribution */}
+          {/* Sensitivity Distribution */}
           {meals.length > 0 && (
             <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="w-4 h-4 text-coral" />
-                <h3 className="text-sm font-semibold">FODMAP Distribution</h3>
+                <h3 className="text-sm font-semibold">Sensitivity Distribution</h3>
               </div>
               <div className="flex items-center gap-4">
                 <ResponsiveContainer width={120} height={120}>
@@ -290,8 +290,8 @@ export default function Insights() {
               </div>
               <p className="text-xs text-muted-foreground mt-3">
                 {fodmapCounts.high > fodmapCounts.low
-                  ? "You're consuming more high-FODMAP foods than low. Consider swapping some triggers."
-                  : "Good balance! Most of your foods are low-FODMAP."}
+                  ? "You're consuming more high-sensitivity foods than low. Consider swapping some triggers."
+                  : "Good balance! Most of your foods are low-sensitivity."}
               </p>
             </motion.div>
           )}
@@ -306,8 +306,8 @@ export default function Insights() {
               <p className="text-sm text-foreground leading-relaxed">
                 You've logged <strong>{meals.length} meals</strong> and <strong>{symptoms.length} symptoms</strong>.
                 {correlations.length > 0
-                  ? ` The AI has discovered ${correlations.length} trigger pattern${correlations.length === 1 ? '' : 's'}. Review the recommendations above to improve your gut health.`
-                  : ' Keep logging to help the AI discover food-symptom patterns.'}
+                  ? ` GutSync has found ${correlations.length} trigger pattern${correlations.length === 1 ? '' : 's'}. Review the recommendations above to improve your gut health.`
+                  : ' Keep logging to discover food-symptom patterns.'}
               </p>
             </motion.div>
           )}

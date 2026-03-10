@@ -1,11 +1,11 @@
-// GutSync AI — Home Dashboard
+// GutSync — Home Dashboard
 // Minimalistic design: tap meal tile to expand, clean edit/delete
 
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Sparkles, ChevronRight, Leaf, Clock, LogIn,
   X, Check, Trash2, User, LogOut, Crown, Settings, Zap,
-  MoreHorizontal, ChevronDown,
+  MoreHorizontal, ChevronDown, Info,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { formatTimeAgo, getSymptomEmoji, getSymptomLabel } from "@/lib/store";
 import type { FoodItem } from "@/lib/store";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 
@@ -49,6 +50,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
   const [mealType, setMealType] = useState(meal.mealType);
   const [foods, setFoods] = useState<FoodItem[]>(meal.foods);
   const [newFood, setNewFood] = useState("");
+  const [showExplanation, setShowExplanation] = useState<string | null>(null);
   const [notes, setNotes] = useState(meal.notes ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -184,12 +186,12 @@ function MealTile({ meal, onSaved, onDeleted }: {
             <div className="flex gap-1 mt-1">
               {highFodmap && (
                 <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-coral-light/50 text-coral">
-                  High FODMAP
+                  High sensitivity
                 </span>
               )}
               {allLow && (
                 <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
-                  Low FODMAP
+                  Low sensitivity
                 </span>
               )}
             </div>
@@ -213,14 +215,31 @@ function MealTile({ meal, onSaved, onDeleted }: {
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-0">
-              {/* Food details */}
-              <div className="space-y-1.5 mb-3">
+              {/* Food details with sensitivity info */}
+              <div className="space-y-2 mb-3">
                 {foods.map((f, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <span className="text-sm text-foreground">{f.name}</span>
-                    <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}>
-                      {f.fodmap}
-                    </span>
+                  <div key={`detail-${f.name}-${idx}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">{f.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}>
+                          {f.fodmap}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setShowExplanation(showExplanation === f.name ? null : f.name); }}
+                          className="w-4 h-4 flex items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Why this classification?"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    {showExplanation === f.name && (
+                      <p className="text-[11px] text-muted-foreground mt-1 ml-0.5 leading-relaxed bg-muted/50 rounded-lg px-2.5 py-1.5">
+                        {getFODMAPExplanation(f.name, f.fodmap as "low" | "moderate" | "high")}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -310,7 +329,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Foods</p>
                 <div className="space-y-1.5">
                   {foods.map((f, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div key={`food-${idx}`} className="flex items-center gap-2">
                       <span className="flex-1 text-sm truncate">{f.name}</span>
                       <button
                         type="button"
@@ -516,7 +535,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {subStatus.data?.isPremium
-                      ? "Unlimited AI scans · Advanced insights"
+                      ? "Unlimited meal tracking · Advanced insights"
                       : `${subStatus.data?.scansRemaining ?? 3} scans remaining today`}
                   </p>
                 </div>
@@ -589,18 +608,18 @@ export default function Home() {
       <>
         <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
           <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-            <img src={HERO_IMG} alt="GutSync AI" className="w-full h-48 object-cover" />
+            <img src={HERO_IMG} alt="GutSync" className="w-full h-48 object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <h1 className="text-white text-xl font-display">GutSync AI</h1>
-              <p className="text-white/80 text-sm">Your invisible gut health detective</p>
+              <h1 className="text-white text-xl font-display">GutSync</h1>
+              <p className="text-white/80 text-sm">Discover your personal food triggers</p>
             </div>
           </motion.div>
           <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
             <Leaf className="w-10 h-10 text-primary mx-auto mb-3" />
             <h2 className="text-lg font-display mb-2">Sign in to start tracking</h2>
             <p className="text-sm text-muted-foreground mb-5">
-              Take a photo of your meal and let AI detect hidden triggers, track symptoms, and discover patterns.
+              Log your meals, track your symptoms, and discover which foods trigger your discomfort.
             </p>
             <Button
               onClick={handleSignIn}
@@ -660,10 +679,10 @@ export default function Home() {
 
         {/* Hero */}
         <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-          <img src={HERO_IMG} alt="GutSync AI" className="w-full h-40 object-cover" />
+          <img src={HERO_IMG} alt="GutSync" className="w-full h-40 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
-            <p className="text-white/90 text-xs font-medium">Your invisible gut health detective</p>
+            <p className="text-white/90 text-xs font-medium">Discover your personal food triggers</p>
           </div>
         </motion.div>
 
@@ -710,7 +729,7 @@ export default function Home() {
           <QuickSymptomLog onLogged={() => dashboard.refetch()} />
         </motion.div>
 
-        {/* Latest AI Discovery */}
+        {/* Latest Discovery */}
         {topCorrelation && (
           <motion.div variants={item}>
             <Link href="/insights">
@@ -749,7 +768,7 @@ export default function Home() {
             <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="font-display text-lg mb-1">Start tracking</h3>
             <p className="text-sm text-muted-foreground">
-              Tap the camera button below to log your first meal. The AI will analyze it for FODMAP triggers and hidden ingredients.
+              Tap the camera button below to log your first meal. GutSync will help identify food triggers and hidden ingredients.
             </p>
           </motion.div>
         )}
@@ -765,9 +784,9 @@ export default function Home() {
             </div>
             <div className="space-y-2.5">
               <AnimatePresence>
-                {recentMeals.map((meal) => (
+                {recentMeals.map((meal, idx) => (
                   <MealTile
-                    key={meal.id}
+                    key={`${meal.id}-${idx}`}
                     meal={meal}
                     onSaved={() => dashboard.refetch()}
                     onDeleted={handleMealDeleted}
@@ -788,9 +807,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1">
-              {recentSymptoms.map((sym) => (
+              {recentSymptoms.map((sym, idx) => (
                 <div
-                  key={sym.id}
+                  key={`${sym.id}-${idx}`}
                   className="bg-card rounded-xl p-3 border border-border/50 shadow-sm min-w-[130px] shrink-0"
                 >
                   <div className="text-2xl mb-1">{getSymptomEmoji(sym.type)}</div>

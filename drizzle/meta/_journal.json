@@ -22,6 +22,27 @@
       "when": 1772908174626,
       "tag": "0002_typical_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1773105494776,
+      "tag": "0003_cooing_sumo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1773111409421,
+      "tag": "0004_hard_blur",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1773112089213,
+      "tag": "0005_fantastic_sunspot",
+      "breakpoints": true
     }
   ]
 }

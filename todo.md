@@ -50,3 +50,26 @@
 - [x] Improve error messages: specific feedback for different failure types
 - [x] Write tests for non-food rejection and free tier enforcement
 - [x] Prepare mobile strategy recommendation (web-first, then native apps)
+- [x] Reply to Reddit comments addressing AI skepticism (drafts delivered)
+- [x] Update Reddit post body with user-control focused messaging (draft delivered)
+- [x] Update landing page copy (removed AI-heavy messaging across all pages)
+- [x] Add transparency feature: FODMAP explanation info buttons on expanded meal tiles
+- [x] Emphasize user control in meal logging flow (updated all user-facing text)
+- [x] Test all changes and verify messaging is consistent (36 tests pass)
+- [x] Generate new logo: leaf + gut/circle motif, empowering, non-AI feeling
+- [x] Rename app from "GutSync AI" to "GutSync" across all files (20 replacements in 14 files)
+- [ ] Update VITE_APP_TITLE to "GutSync" (requires Settings panel — user action)
+- [ ] Upload new logo and update VITE_APP_LOGO (requires Settings panel — user action)
+- [ ] Update favicon with new logo (requires Settings panel — user action)
+- [x] Replace "FODMAP tracker" tagline with "food sensitivity tracker" across all pages
+- [x] Broaden FODMAP-specific user-facing messaging to "food sensitivity" language
+- [x] Keep FODMAP analysis as behind-the-scenes feature (labels on foods stay)
+- [x] Add positive outcome types to symptom tracking (energy boost, better digestion, improved mood, better sleep, clearer skin, reduced brain fog)
+- [x] Update Symptoms page to show both negative and positive outcome options (separate tabs)
+- [ ] Update correlation analysis to show "beneficial foods" alongside trigger foods
+- [x] Add visual distinction for positive outcomes (different color/icon than negative symptoms)
+- [ ] Write tests for positive outcome logging and correlation
+- [x] Fix food scan not working on Take/Upload photo screen (added missing logManual mutation call)
+- [x] Fix camera not opening (added error handling and logging for debugging)
+- [x] Fix persistent empty key warning (moved Paywall outside AnimatePresence, added key to modal)
+- [x] Fix camera capture: switched to label+input pattern for better mobile compatibility

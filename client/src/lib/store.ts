@@ -1,4 +1,4 @@
-// GutSync AI — Types & Utility Functions
+// GutSync — Types & Utility Functions
 // These types mirror the database schema for frontend use
 
 export interface FoodItem {

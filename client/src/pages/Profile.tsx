@@ -1,4 +1,4 @@
-// GutSync AI — Profile Page
+// GutSync — Profile Page
 // Wired to real auth
 
 import { motion } from "framer-motion";
@@ -98,14 +98,14 @@ export default function Profile() {
         </h3>
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
-            {['Low FODMAP', 'IBS-D', 'Lactose Sensitive', 'Fructan Sensitive'].map((tag) => (
+            {['Food Sensitivities', 'Digestive Health', 'Lactose Sensitive', 'Gluten Sensitive'].map((tag) => (
               <span key={tag} className="text-xs px-3 py-1.5 rounded-full bg-muted border border-border text-foreground font-medium">
                 {tag}
               </span>
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            The AI uses your profile to prioritize relevant ingredient detection and trigger analysis.
+            Your profile helps prioritize relevant ingredient detection and trigger analysis.
           </p>
         </div>
       </motion.div>
@@ -170,14 +170,14 @@ export default function Profile() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-foreground">Symptom Check-ins</p>
-              <p className="text-xs text-muted-foreground">Ask how you feel after high-FODMAP meals</p>
+              <p className="text-xs text-muted-foreground">Ask how you feel after high-sensitivity meals</p>
             </div>
             <Switch defaultChecked onCheckedChange={() => handleToggle("Symptom check-ins")} />
           </div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-foreground">Discovery Alerts</p>
-              <p className="text-xs text-muted-foreground">When AI finds a new trigger pattern</p>
+              <p className="text-xs text-muted-foreground">When a new trigger pattern is found</p>
             </div>
             <Switch defaultChecked onCheckedChange={() => handleToggle("Discovery alerts")} />
           </div>
@@ -212,8 +212,8 @@ export default function Profile() {
 
       {/* App Info */}
       <motion.div variants={item} className="text-center py-4">
-        <p className="text-xs text-muted-foreground">GutSync AI v1.0.0</p>
-        <p className="text-[11px] text-muted-foreground mt-1">Your invisible gut health detective</p>
+        <p className="text-xs text-muted-foreground">GutSync v1.0.0</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Discover your personal food triggers</p>
       </motion.div>
     </motion.div>
   );
