@@ -16,3 +16,37 @@
 - [x] Center scan button in bottom nav (middle position)
 - [x] Add long-press on scan button to upload a photo from gallery
 - [x] Add editable food list after AI scan (add/remove items)
+- [x] Install Capacitor core, CLI, iOS and Android packages
+- [x] Initialize Capacitor with app ID and name
+- [x] Configure capacitor.config.ts with server URL and plugins
+- [x] Configure iOS permissions in Info.plist (camera, health)
+- [x] Configure Android permissions in AndroidManifest.xml
+- [x] Add app icons and splash screen assets
+- [x] Write app store submission guide
+- [x] Install RevenueCat Capacitor SDK and purchases plugin
+- [x] Add subscriptions table to database schema (userId, rcCustomerId, tier, expiresAt)
+- [x] Add scanCount table to track free-tier usage per user
+- [x] Create server-side subscription router (verify receipt, get status, webhook)
+- [x] Enforce free tier scan limit (3 free scans/day) server-side
+- [x] Build Paywall UI component (pricing cards, feature comparison)
+- [x] Add premium gate on scan button (show paywall after free limit hit)
+- [x] Add premium badge and status to Profile page
+- [x] Wire RevenueCat API keys via secrets
+- [x] Write tests for subscription enforcement logic
+- [x] Restore Symptoms tab in bottom nav (replace Profile tab)
+- [x] Move profile access to leaf icon in Home top-right corner (slide-up sheet or navigate to /profile)
+- [x] Make recent meal tiles editable (edit foods, meal type, notes inline)
+- [x] Fix Google OAuth disallowed_useragent error (open login in system browser)
+- [x] Add swipe-to-delete on meal tiles with undo toast
+- [x] Add one-tap symptom quick-log row on home screen
+- [x] Fix meal edit functionality (not saving changes)
+- [x] Fix meal delete functionality (swipe-to-delete not working)
+- [x] Fix insights analyze functionality (not triggering correlation analysis)
+- [x] Fix edit button not responding on meal tiles
+- [x] Fix delete button not responding on meal tiles
+- [x] Redesign meal tiles to be more minimalistic while keeping edit/delete functionality
+- [x] Fix food scan: reject non-food images (empty foods array) in analyzePhoto mutation
+- [x] Improve free tier UX: show warning when 1 scan left, confirmation dialog before last scan
+- [x] Improve error messages: specific feedback for different failure types
+- [x] Write tests for non-food rejection and free tier enforcement
+- [x] Prepare mobile strategy recommendation (web-first, then native apps)
