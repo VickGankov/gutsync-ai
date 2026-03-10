@@ -20,7 +20,7 @@ const ANALYSIS_STEPS = [
   "Uploading photo...",
   "Identifying food items...",
   "Detecting hidden ingredients...",
-  "Analyzing FODMAP levels...",
+  "Analyzing sensitivity levels...",
   "Generating breakdown...",
 ];
 
@@ -174,7 +174,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       return;
     }
     toast.success("Meal logged successfully", {
-      description: `${analyzedFoods.length} items saved with FODMAP analysis`,
+      description: `${analyzedFoods.length} items saved with sensitivity analysis`,
     });
     utils.meals.list.invalidate();
     utils.insights.dashboard.invalidate();
@@ -516,10 +516,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-4 flex gap-3">
                     <AlertTriangle className="w-5 h-5 text-coral shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">High FODMAP Alert</p>
+                      <p className="text-sm font-medium text-foreground">High Sensitivity Alert</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {highFodmapFoods.map((f) => f.name).join(", ")}{" "}
-                        {highFodmapFoods.length === 1 ? "is" : "are"} high FODMAP. I'll monitor for symptoms in the next 4-6 hours.
+                        {highFodmapFoods.length === 1 ? "is" : "are"} high sensitivity. I'll monitor for symptoms in the next 4-6 hours.
                       </p>
                     </div>
                   </div>
