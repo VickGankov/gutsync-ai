@@ -290,11 +290,11 @@ export default function Symptoms() {
         <motion.div variants={item}>
           <h2 className="text-lg mb-3">Your History</h2>
           <div className="space-y-2.5">
-            {symptoms.map((sym) => {
+            {symptoms.map((sym, idx) => {
               const isPositive = sym.type.includes('energy') || sym.type.includes('better') || sym.type.includes('improved') || sym.type.includes('clearer') || sym.type.includes('reduced');
               return (
                 <motion.div
-                  key={sym.id}
+                  key={`${sym.id}-${idx}`}
                   variants={item}
                   className={`rounded-xl p-4 border shadow-sm ${
                     isPositive
