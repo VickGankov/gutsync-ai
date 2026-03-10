@@ -53,6 +53,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
+  const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -173,12 +174,33 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       toast.error("Add at least one food item before saving");
       return;
     }
-    toast.success("Meal logged successfully", {
-      description: `${analyzedFoods.length} items saved with sensitivity analysis`,
-    });
-    utils.meals.list.invalidate();
-    utils.insights.dashboard.invalidate();
-    handleClose();
+    logManual.mutate(
+      {
+        mealType: "snack",
+        foods: analyzedFoods.map(f => ({
+          name: f.name,
+          category: f.category as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
+          fodmap: f.fodmap,
+          hiddenIngredients: f.hiddenIngredients,
+        })),
+        notes: mealSummary || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Meal logged successfully", {
+            description: `${analyzedFoods.length} items saved with sensitivity analysis`,
+          });
+          utils.meals.list.invalidate();
+          utils.insights.dashboard.invalidate();
+          handleClose();
+        },
+        onError: (error) => {
+          toast.error("Failed to save meal", {
+            description: error.message || "Please try again",
+          });
+        },
+      }
+    );
   };
 
   const handleClose = () => {
