@@ -50,3 +50,9 @@
 - [x] Improve error messages: specific feedback for different failure types
 - [x] Write tests for non-food rejection and free tier enforcement
 - [x] Prepare mobile strategy recommendation (web-first, then native apps)
+- [x] Reply to Reddit comments addressing AI skepticism (drafts delivered)
+- [x] Update Reddit post body with user-control focused messaging (draft delivered)
+- [x] Update landing page copy (removed AI-heavy messaging across all pages)
+- [x] Add transparency feature: FODMAP explanation info buttons on expanded meal tiles
+- [x] Emphasize user control in meal logging flow (updated all user-facing text)
+- [x] Test all changes and verify messaging is consistent (36 tests pass)

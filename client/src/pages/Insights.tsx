@@ -160,7 +160,7 @@ export default function Insights() {
       <motion.div variants={item} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl tracking-tight">Insights</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-powered correlations from your data</p>
+          <p className="text-sm text-muted-foreground mt-1">Correlations discovered from your data</p>
         </div>
         <Button
           onClick={(e) => { e.stopPropagation(); runAnalysis.mutate(); }}
@@ -306,8 +306,8 @@ export default function Insights() {
               <p className="text-sm text-foreground leading-relaxed">
                 You've logged <strong>{meals.length} meals</strong> and <strong>{symptoms.length} symptoms</strong>.
                 {correlations.length > 0
-                  ? ` The AI has discovered ${correlations.length} trigger pattern${correlations.length === 1 ? '' : 's'}. Review the recommendations above to improve your gut health.`
-                  : ' Keep logging to help the AI discover food-symptom patterns.'}
+                  ? ` GutSync has found ${correlations.length} trigger pattern${correlations.length === 1 ? '' : 's'}. Review the recommendations above to improve your gut health.`
+                  : ' Keep logging to discover food-symptom patterns.'}
               </p>
             </motion.div>
           )}

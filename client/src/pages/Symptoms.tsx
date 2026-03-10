@@ -57,7 +57,7 @@ export default function Symptoms() {
       {
         onSuccess: () => {
           toast.success(`${getSymptomLabel(selectedType)} logged`, {
-            description: `Severity ${severity}/5 — AI will check meals from the last 48 hours`,
+            description: `Severity ${severity}/5 — GutSync will check meals from the last 48 hours`,
           });
           setShowLogger(false);
           setSelectedType(null);
@@ -229,7 +229,7 @@ export default function Symptoms() {
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
           <h3 className="font-display text-lg mb-1">No symptoms logged</h3>
           <p className="text-sm text-muted-foreground">
-            Tap "Log" above to record a symptom. The AI will correlate it with your recent meals.
+            Tap "Log" above to record a symptom. GutSync will correlate it with your recent meals.
           </p>
         </motion.div>
       )}

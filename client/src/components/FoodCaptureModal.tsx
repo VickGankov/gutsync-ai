@@ -239,7 +239,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
               <h2 className="text-xl font-display">
                 {step === "upload" && "Log a Meal"}
                 {step === "analyzing" && "Analyzing..."}
-                {step === "results" && "AI Analysis"}
+                {step === "results" && "Analysis Results"}
               </h2>
               <button onClick={handleClose} className="p-2 rounded-full hover:bg-muted transition-colors">
                 <X className="w-5 h-5 text-muted-foreground" />
@@ -259,7 +259,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   <div className="text-center">
                     <p className="font-medium text-foreground">Take or upload a photo</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Our AI will identify foods and hidden ingredients
+                      We'll help identify foods and hidden ingredients — you confirm what you ate
                     </p>
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  AI is analyzing your meal — this may take a few seconds
+                  Analyzing your meal — this may take a few seconds
                 </p>
               </div>
             )}

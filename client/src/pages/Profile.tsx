@@ -105,7 +105,7 @@ export default function Profile() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            The AI uses your profile to prioritize relevant ingredient detection and trigger analysis.
+            Your profile helps prioritize relevant ingredient detection and trigger analysis.
           </p>
         </div>
       </motion.div>
@@ -177,7 +177,7 @@ export default function Profile() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-foreground">Discovery Alerts</p>
-              <p className="text-xs text-muted-foreground">When AI finds a new trigger pattern</p>
+              <p className="text-xs text-muted-foreground">When a new trigger pattern is found</p>
             </div>
             <Switch defaultChecked onCheckedChange={() => handleToggle("Discovery alerts")} />
           </div>
@@ -213,7 +213,7 @@ export default function Profile() {
       {/* App Info */}
       <motion.div variants={item} className="text-center py-4">
         <p className="text-xs text-muted-foreground">GutSync AI v1.0.0</p>
-        <p className="text-[11px] text-muted-foreground mt-1">Your invisible gut health detective</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Discover your personal FODMAP patterns</p>
       </motion.div>
     </motion.div>
   );

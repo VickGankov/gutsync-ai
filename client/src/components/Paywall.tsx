@@ -37,10 +37,10 @@ interface PaywallProps {
 }
 
 const PREMIUM_FEATURES = [
-  { icon: Zap, label: "Unlimited AI food scans" },
+  { icon: Zap, label: "Unlimited food scans" },
   { icon: TrendingUp, label: "Advanced trigger pattern analysis" },
   { icon: Shield, label: "48-hour correlation engine" },
-  { icon: Sparkles, label: "Priority AI processing" },
+  { icon: Sparkles, label: "Priority processing" },
 ];
 
 export default function Paywall({ isOpen, onClose, onSuccess, scansUsed = 3, dailyLimit = 3 }: PaywallProps) {

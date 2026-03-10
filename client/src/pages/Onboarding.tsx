@@ -20,15 +20,15 @@ const steps = [
     image: HERO_IMG,
     icon: Leaf,
     title: "Welcome to GutSync AI",
-    subtitle: "Your invisible gut health detective",
-    description: "We use AI to find the hidden food triggers behind your bloating, pain, and discomfort — so you don't have to keep a tedious food diary.",
+    subtitle: "Your personal FODMAP tracker",
+    description: "Discover which foods trigger your bloating, pain, and discomfort — without keeping a tedious food diary.",
   },
   {
     image: FOOD_SCAN_IMG,
     icon: Camera,
     title: "Snap, Don't Type",
     subtitle: "Photo-based food logging",
-    description: "Just take a photo of your meal. Our AI identifies every ingredient — including the hidden ones like garlic powder in that restaurant sauce.",
+    description: "Just take a photo of your meal. We help identify ingredients — including hidden ones like garlic powder in that restaurant sauce. You always confirm what you ate.",
   },
   {
     image: INSIGHTS_IMG,
@@ -40,9 +40,9 @@ const steps = [
   {
     image: WELLNESS_IMG,
     icon: Sparkles,
-    title: "AI Finds Patterns",
-    subtitle: "Intelligent correlation engine",
-    description: "After a few days of tracking, our AI discovers complex trigger patterns you'd never find on your own — like 'you only bloat when combining dairy with high-fructan vegetables.'",
+    title: "Discover Your Patterns",
+    subtitle: "Smart correlation engine",
+    description: "After a few days of tracking, GutSync finds complex trigger patterns you'd miss on your own — like 'you only bloat when combining dairy with high-fructan vegetables.'",
   },
 ];
 
