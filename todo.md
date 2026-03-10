@@ -70,3 +70,4 @@
 - [x] Add visual distinction for positive outcomes (different color/icon than negative symptoms)
 - [ ] Write tests for positive outcome logging and correlation
 - [x] Fix food scan not working on Take/Upload photo screen (added missing logManual mutation call)
+- [x] Fix camera not opening (added error handling and logging for debugging)

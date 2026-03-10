@@ -272,7 +272,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
             {step === "upload" && (
               <div className="space-y-4">
                 <div
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    console.log("Clicked upload area, opening file picker");
+                    fileInputRef.current?.click();
+                  }}
                   className="border-2 border-dashed border-border rounded-2xl p-12 flex flex-col items-center gap-4 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
                 >
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -291,6 +294,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   accept="image/*"
                   capture={initialMode === "camera" ? "environment" : undefined}
                   onChange={handleFileSelect}
+                  onError={(e) => {
+                    console.error("Camera error:", e);
+                    toast.error("Camera access denied. Please check permissions.");
+                  }}
                   className="hidden"
                 />
                 {error && (
