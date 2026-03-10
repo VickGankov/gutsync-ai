@@ -1,4 +1,4 @@
-// GutSync AI — Onboarding Flow
+// GutSync — Onboarding Flow
 // Design: Organic Minimalism — warm, calming, step-by-step introduction
 
 import { useState } from "react";
@@ -19,7 +19,7 @@ const steps = [
   {
     image: HERO_IMG,
     icon: Leaf,
-    title: "Welcome to GutSync AI",
+    title: "Welcome to GutSync",
     subtitle: "Your personal FODMAP tracker",
     description: "Discover which foods trigger your bloating, pain, and discomfort — without keeping a tedious food diary.",
   },

@@ -46,7 +46,7 @@ export default function InAppBrowserWarning({ loginUrl, onDismiss }: Props) {
         </h2>
         <p className="text-sm text-muted-foreground text-center leading-relaxed mb-5">
           Google blocks sign-in from {browserName}'s browser for security reasons.
-          Open GutSync AI in <strong>{systemBrowserName}</strong> to continue.
+          Open GutSync in <strong>{systemBrowserName}</strong> to continue.
         </p>
 
         {/* Steps */}

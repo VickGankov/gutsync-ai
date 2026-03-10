@@ -1,4 +1,4 @@
-// GutSync AI — Food Capture Modal
+// GutSync — Food Capture Modal
 // Supports camera capture and gallery upload, with editable AI results
 
 import { useState, useRef, useEffect, useCallback } from "react";

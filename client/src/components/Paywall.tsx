@@ -1,5 +1,5 @@
 /**
- * GutSync AI — Paywall Component
+ * GutSync — Paywall Component
  * Shows premium upgrade options when the free scan limit is reached.
  * Integrates with RevenueCat Capacitor SDK for native purchases.
  */

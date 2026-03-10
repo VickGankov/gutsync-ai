@@ -1,4 +1,4 @@
-// GutSync AI — Symptoms Page
+// GutSync — Symptoms Page
 // Wired to real tRPC backend
 
 import { motion, AnimatePresence } from "framer-motion";

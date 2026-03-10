@@ -56,3 +56,8 @@
 - [x] Add transparency feature: FODMAP explanation info buttons on expanded meal tiles
 - [x] Emphasize user control in meal logging flow (updated all user-facing text)
 - [x] Test all changes and verify messaging is consistent (36 tests pass)
+- [x] Generate new logo: leaf + gut/circle motif, empowering, non-AI feeling
+- [x] Rename app from "GutSync AI" to "GutSync" across all files (20 replacements in 14 files)
+- [ ] Update VITE_APP_TITLE to "GutSync" (requires Settings panel — user action)
+- [ ] Upload new logo and update VITE_APP_LOGO (requires Settings panel — user action)
+- [ ] Update favicon with new logo (requires Settings panel — user action)

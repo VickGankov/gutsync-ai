@@ -1,4 +1,4 @@
-// GutSync AI — Insights Page
+// GutSync — Insights Page
 // Wired to real tRPC backend
 
 import { motion } from "framer-motion";

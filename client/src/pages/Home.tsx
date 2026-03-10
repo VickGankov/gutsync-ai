@@ -1,4 +1,4 @@
-// GutSync AI — Home Dashboard
+// GutSync — Home Dashboard
 // Minimalistic design: tap meal tile to expand, clean edit/delete
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -608,10 +608,10 @@ export default function Home() {
       <>
         <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
           <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-            <img src={HERO_IMG} alt="GutSync AI" className="w-full h-48 object-cover" />
+            <img src={HERO_IMG} alt="GutSync" className="w-full h-48 object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <h1 className="text-white text-xl font-display">GutSync AI</h1>
+              <h1 className="text-white text-xl font-display">GutSync</h1>
               <p className="text-white/80 text-sm">Discover your personal FODMAP patterns</p>
             </div>
           </motion.div>
@@ -679,7 +679,7 @@ export default function Home() {
 
         {/* Hero */}
         <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-          <img src={HERO_IMG} alt="GutSync AI" className="w-full h-40 object-cover" />
+          <img src={HERO_IMG} alt="GutSync" className="w-full h-40 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
             <p className="text-white/90 text-xs font-medium">Discover your personal FODMAP patterns</p>

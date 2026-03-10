@@ -1,4 +1,4 @@
-// GutSync AI — Profile Page
+// GutSync — Profile Page
 // Wired to real auth
 
 import { motion } from "framer-motion";
@@ -212,7 +212,7 @@ export default function Profile() {
 
       {/* App Info */}
       <motion.div variants={item} className="text-center py-4">
-        <p className="text-xs text-muted-foreground">GutSync AI v1.0.0</p>
+        <p className="text-xs text-muted-foreground">GutSync v1.0.0</p>
         <p className="text-[11px] text-muted-foreground mt-1">Discover your personal FODMAP patterns</p>
       </motion.div>
     </motion.div>

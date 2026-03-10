@@ -1,4 +1,4 @@
-// GutSync AI — Food Log Page
+// GutSync — Food Log Page
 // Wired to real tRPC backend
 
 import { motion } from "framer-motion";
