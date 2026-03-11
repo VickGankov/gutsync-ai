@@ -11,42 +11,42 @@
   "background_color": "#ffffff",
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-LZB6G9Bm7YLgdB6xKjwXsS.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-FX9m6vg9wsphe7SbDhDUKU.webp",
+      "sizes": "2048x2048",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-512-aNcJUqxf7Yszp25uJRcPFP.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-512-8Uu99Z2dq7Rg5CQ6AYupzH.webp",
+      "sizes": "2048x2048",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-LZB6G9Bm7YLgdB6xKjwXsS.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-FX9m6vg9wsphe7SbDhDUKU.webp",
+      "sizes": "2048x2048",
+      "type": "image/webp",
       "purpose": "maskable"
     }
   ],
   "categories": ["health", "lifestyle"],
   "screenshots": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-1-T6v292EVKJhYu7eA58W5ow.png",
-      "sizes": "540x720",
-      "type": "image/png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-1-LAXHf4zHaj5BBJZmwuvBBF.webp",
+      "sizes": "1792x2400",
+      "type": "image/webp",
       "form_factor": "narrow"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-2-br6D3hqqsqkdCC4EWKymzp.png",
-      "sizes": "540x720",
-      "type": "image/png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-2-42vQumVrTVQCd2dVEPzib9.webp",
+      "sizes": "1792x2400",
+      "type": "image/webp",
       "form_factor": "narrow"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-3-U57QevZ3FzdjDNr6KzMFaW.png",
-      "sizes": "540x720",
-      "type": "image/png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-3-d2TovavEPQmDR75fshE9s9.webp",
+      "sizes": "1792x2400",
+      "type": "image/webp",
       "form_factor": "narrow"
     }
   ],
@@ -58,9 +58,9 @@
       "url": "/?action=scan",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-LZB6G9Bm7YLgdB6xKjwXsS.png",
-          "sizes": "192x192",
-          "type": "image/png"
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-FX9m6vg9wsphe7SbDhDUKU.webp",
+          "sizes": "2048x2048",
+          "type": "image/webp"
         }
       ]
     },
@@ -71,9 +71,9 @@
       "url": "/?action=symptom",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-LZB6G9Bm7YLgdB6xKjwXsS.png",
-          "sizes": "192x192",
-          "type": "image/png"
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-FX9m6vg9wsphe7SbDhDUKU.webp",
+          "sizes": "2048x2048",
+          "type": "image/webp"
         }
       ]
     }
