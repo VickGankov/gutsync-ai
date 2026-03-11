@@ -1,0 +1,1 @@
+ALTER TABLE `symptoms` MODIFY COLUMN `type` enum('bloating','abdominal_pain','gas','nausea','fatigue','headache','diarrhea','constipation') NOT NULL;

@@ -73,3 +73,4 @@
 - [x] Fix camera not opening (added error handling and logging for debugging)
 - [x] Fix persistent empty key warning (moved Paywall outside AnimatePresence, added key to modal)
 - [x] Fix camera capture: switched to label+input pattern for better mobile compatibility
+- [x] Document scan functionality limitation in Messenger in-app browser (known limitation, will fix in v2)
