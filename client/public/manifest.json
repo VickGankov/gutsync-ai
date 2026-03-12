@@ -11,20 +11,20 @@
   "background_color": "#ffffff",
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-b7iK9sHDk7narKEGkqEScc.png",
-      "sizes": "2048x2048",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-192_aa48ab29.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-512-8eKQUPwyfFoVFAUf5Adi3m.png",
-      "sizes": "2048x2048",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-512_5c3329db.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-b7iK9sHDk7narKEGkqEScc.png",
-      "sizes": "2048x2048",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-192_aa48ab29.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     }
@@ -58,8 +58,8 @@
       "url": "/?action=scan",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-b7iK9sHDk7narKEGkqEScc.png",
-          "sizes": "2048x2048",
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-192_aa48ab29.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ]
@@ -71,8 +71,8 @@
       "url": "/?action=symptom",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-icon-192-b7iK9sHDk7narKEGkqEScc.png",
-          "sizes": "2048x2048",
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-192_aa48ab29.png",
+          "sizes": "192x192",
           "type": "image/png"
         }
       ]
