@@ -210,6 +210,24 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    registerEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string().min(8), name: z.string().optional() })).mutation(async ({ input, ctx }) => {
+      const { registerEmail } = await import('./emailAuth');
+      const user = await registerEmail(input.email, input.password, input.name);
+      const { sdk } = await import('./_core/sdk');
+      const token = await sdk.createSessionToken(user.id.toString(), { name: user.name || '' });
+      const opts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, token, { ...opts, maxAge: 365*24*60*60*1000 });
+      return { success: true, user };
+    }),
+    loginEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string() })).mutation(async ({ input, ctx }) => {
+      const { loginEmail } = await import('./emailAuth');
+      const user = await loginEmail(input.email, input.password);
+      const { sdk } = await import('./_core/sdk');
+      const token = await sdk.createSessionToken(user.id.toString(), { name: user.name || '' });
+      const opts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, token, { ...opts, maxAge: 365*24*60*60*1000 });
+      return { success: true, user };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

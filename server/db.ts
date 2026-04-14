@@ -27,8 +27,8 @@ export async function getDb() {
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
+  if (!user.openId && !user.email) {
+    throw new Error("User openId or email is required");
   }
 
   const db = await getDb();
@@ -38,9 +38,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: any = {};
+    if (user.openId) values.openId = user.openId;
+    if (user.email) values.email = user.email;
     const updateSet: Record<string, unknown> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;

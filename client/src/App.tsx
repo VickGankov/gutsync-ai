@@ -10,18 +10,20 @@ import Symptoms from "./pages/Symptoms";
 import Insights from "./pages/Insights";
 import Profile from "./pages/Profile";
 import Onboarding from "./pages/Onboarding";
+import EmailAuth from "./pages/EmailAuth";
 import BottomNav from "./components/BottomNav";
 import { useState, useEffect } from "react";
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/food"} component={FoodLog} />
-      <Route path={"/symptoms"} component={Symptoms} />
-      <Route path={"/insights"} component={Insights} />
-      <Route path={"/profile"} component={Profile} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/auth" component={EmailAuth} />
+      <Route path="/" component={Home} />
+      <Route path="/food" component={FoodLog} />
+      <Route path="/symptoms" component={Symptoms} />
+      <Route path="/insights" component={Insights} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
