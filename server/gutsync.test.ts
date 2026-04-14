@@ -325,60 +325,6 @@ describe("GutSync Server Procedures", () => {
     });
   });
 
-  // ─── Wearable ───
-  describe("wearable.log", () => {
-    it("logs wearable data", async () => {
-      vi.mocked(db.createWearableEntry).mockResolvedValue(5);
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const result = await caller.wearable.log({
-        hrv: 55,
-        heartRate: 68,
-        sleepQuality: 82,
-        stressLevel: 25,
-      });
-
-      expect(result.id).toBe(5);
-      expect(db.createWearableEntry).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 1,
-          hrv: 55,
-          heartRate: 68,
-          sleepQuality: 82,
-          stressLevel: 25,
-        })
-      );
-    });
-
-    it("validates HRV range", async () => {
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      await expect(caller.wearable.log({
-        hrv: -1,
-        heartRate: 68,
-        sleepQuality: 82,
-        stressLevel: 25,
-      })).rejects.toThrow();
-    });
-  });
-
-  describe("wearable.recent", () => {
-    it("returns recent wearable data", async () => {
-      const mockData = [
-        { id: 1, userId: 1, hrv: 55, heartRate: 68, sleepQuality: 82, stressLevel: 25, recordedAt: Date.now() },
-      ];
-      vi.mocked(db.getWearableDataByUser).mockResolvedValue(mockData as any);
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-      const result = await caller.wearable.recent();
-
-      expect(db.getWearableDataByUser).toHaveBeenCalledWith(1, 7);
-      expect(result).toEqual(mockData);
-    });
-  });
-
   // ─── Subscription ───
   describe("subscription.status", () => {
     it("returns free tier status with scan counts", async () => {

@@ -16,8 +16,7 @@ import {
   getSymptomsByUser,
   upsertCorrelation,
   getCorrelationsByUser,
-  createWearableEntry,
-  getWearableDataByUser,
+
   getSubscription,
   isPremium,
   upsertSubscription,
@@ -420,12 +419,11 @@ export const appRouter = router({
       const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
       const fortyEightHoursAgo = now - 48 * 60 * 60 * 1000;
 
-      const [allMeals, recentMeals, allSymptoms, correlationsData, wearable] = await Promise.all([
+      const [allMeals, recentMeals, allSymptoms, correlationsData] = await Promise.all([
         getMealsByUser(ctx.user.id, 50),
         getMealsInRange(ctx.user.id, fortyEightHoursAgo, now),
         getSymptomsByUser(ctx.user.id, 50),
         getCorrelationsByUser(ctx.user.id),
-        getWearableDataByUser(ctx.user.id, 7),
       ]);
 
       // Calculate gut health score (simple heuristic)
@@ -446,7 +444,7 @@ export const appRouter = router({
         recentMeals: recentMeals.slice(0, 5),
         recentSymptoms: allSymptoms.slice(0, 5),
         topCorrelation: correlationsData[0] ?? null,
-        wearableData: wearable,
+
       };
     }),
   }),
@@ -587,30 +585,6 @@ export const appRouter = router({
       }),
   }),
 
-  wearable: router({
-    log: protectedProcedure
-      .input(z.object({
-        hrv: z.number().min(0).max(200),
-        heartRate: z.number().min(30).max(220),
-        sleepQuality: z.number().min(0).max(100),
-        stressLevel: z.number().min(0).max(100),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const id = await createWearableEntry({
-          userId: ctx.user.id,
-          hrv: input.hrv,
-          heartRate: input.heartRate,
-          sleepQuality: input.sleepQuality,
-          stressLevel: input.stressLevel,
-          recordedAt: Date.now(),
-        });
-        return { id };
-      }),
-
-    recent: protectedProcedure.query(async ({ ctx }) => {
-      return getWearableDataByUser(ctx.user.id, 7);
-    }),
-  }),
 });
 
 export type AppRouter = typeof appRouter;

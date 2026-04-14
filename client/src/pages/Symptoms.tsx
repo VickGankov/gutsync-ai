@@ -49,7 +49,7 @@ export default function Symptoms() {
   const [severity, setSeverity] = useState(3);
 
   const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 20 }, { enabled: isAuthenticated });
-  const wearableQuery = trpc.wearable.recent.useQuery(undefined, { enabled: isAuthenticated });
+
   const logSymptom = trpc.symptoms.log.useMutation({
     onSuccess: () => {
       symptomsQuery.refetch();
@@ -57,8 +57,7 @@ export default function Symptoms() {
   });
 
   const symptoms = symptomsQuery.data ?? [];
-  const wearableData = wearableQuery.data ?? [];
-  const latestWearable = wearableData[0];
+
 
   const handleLogSymptom = () => {
     if (!selectedType) return;
@@ -210,62 +209,7 @@ export default function Symptoms() {
         )}
       </AnimatePresence>
 
-      {/* Wearable Data */}
-      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Watch className="w-4 h-4 text-primary" />
-          <p className="text-sm font-semibold">Wearable Insights</p>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ml-auto ${
-            latestWearable ? 'text-sage-dark bg-sage-light/50' : 'text-muted-foreground bg-muted'
-          }`}>
-            {latestWearable ? 'Connected' : 'No data yet'}
-          </span>
-        </div>
-        {latestWearable ? (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-muted/50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Heart className="w-3.5 h-3.5 text-coral" />
-                <span className="text-[11px] text-muted-foreground">HRV</span>
-              </div>
-              <p className="text-xl font-mono font-medium">{latestWearable.hrv}<span className="text-xs text-muted-foreground ml-1">ms</span></p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {latestWearable.hrv > 50 ? 'Good recovery' : latestWearable.hrv > 35 ? 'Moderate stress' : 'Elevated stress'}
-              </p>
-            </div>
-            <div className="bg-muted/50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Activity className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[11px] text-muted-foreground">Heart Rate</span>
-              </div>
-              <p className="text-xl font-mono font-medium">{latestWearable.heartRate}<span className="text-xs text-muted-foreground ml-1">bpm</span></p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Resting</p>
-            </div>
-            <div className="bg-muted/50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Moon className="w-3.5 h-3.5 text-sage" />
-                <span className="text-[11px] text-muted-foreground">Sleep Quality</span>
-              </div>
-              <p className="text-xl font-mono font-medium">{latestWearable.sleepQuality}<span className="text-xs text-muted-foreground ml-1">%</span></p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Last night</p>
-            </div>
-            <div className="bg-muted/50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Brain className="w-3.5 h-3.5 text-sand-dark" />
-                <span className="text-[11px] text-muted-foreground">Stress Level</span>
-              </div>
-              <p className="text-xl font-mono font-medium">{latestWearable.stressLevel}<span className="text-xs text-muted-foreground ml-1">%</span></p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {latestWearable.stressLevel < 30 ? 'Low' : latestWearable.stressLevel < 50 ? 'Moderate' : 'High'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">Connect your Apple Watch or Garmin to see real-time health data</p>
-          </div>
-        )}
-      </motion.div>
+
 
       {/* Loading */}
       {symptomsQuery.isLoading && (

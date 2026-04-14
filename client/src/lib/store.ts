@@ -24,22 +24,12 @@ export interface SymptomEntry {
   userId: number;
   type: 'bloating' | 'abdominal_pain' | 'gas' | 'nausea' | 'fatigue' | 'headache' | 'diarrhea' | 'constipation';
   severity: number;
-  source: 'manual' | 'wearable';
+  source: 'manual';
   notes: string | null;
   loggedAt: number;
   createdAt: Date;
 }
 
-export interface WearableDataEntry {
-  id: number;
-  userId: number;
-  hrv: number;
-  heartRate: number;
-  sleepQuality: number;
-  stressLevel: number;
-  recordedAt: number;
-  createdAt: Date;
-}
 
 export interface CorrelationEntry {
   id: number;
