@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 
 const WELLNESS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-wellness-Y3yqX8dgxLnj59BBic4aog.webp";
 
@@ -83,9 +82,12 @@ export default function Profile() {
         ) : (
           <div className="text-center py-2">
             <p className="text-sm text-muted-foreground mb-3">Sign in to save your data</p>
-            <a href={getLoginUrl()}>
-              <Button className="rounded-xl bg-primary hover:bg-primary/90">Sign In</Button>
-            </a>
+            <Button
+              className="rounded-xl bg-primary hover:bg-primary/90"
+              onClick={() => window.location.assign("/auth")}
+            >
+              Sign In
+            </Button>
           </div>
         )}
       </motion.div>

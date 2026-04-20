@@ -1,5 +1,6 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { assertRateLimit } from "./authRateLimit";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
@@ -208,24 +209,54 @@ Return a JSON array of discovered correlations. Be conservative — only report 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async opts => {
+      if (!opts.ctx.user) return null;
+      const { sanitizeAuthUser } = await import('./emailAuth');
+      return sanitizeAuthUser(opts.ctx.user);
+    }),
     registerEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string().min(8), name: z.string().optional() })).mutation(async ({ input, ctx }) => {
+      assertRateLimit(ctx.req, 'register', 5, { scope: input.email });
       const { registerEmail } = await import('./emailAuth');
       const user = await registerEmail(input.email, input.password, input.name);
       const { sdk } = await import('./_core/sdk');
-      const token = await sdk.createSessionToken(user.id.toString(), { name: user.name || '' });
+      const token = await sdk.createSessionToken(user.id, { name: user.name, email: user.email });
       const opts = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, token, { ...opts, maxAge: 365*24*60*60*1000 });
       return { success: true, user };
     }),
     loginEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string() })).mutation(async ({ input, ctx }) => {
+      assertRateLimit(ctx.req, 'login', 10, { scope: input.email });
       const { loginEmail } = await import('./emailAuth');
       const user = await loginEmail(input.email, input.password);
       const { sdk } = await import('./_core/sdk');
-      const token = await sdk.createSessionToken(user.id.toString(), { name: user.name || '' });
+      const token = await sdk.createSessionToken(user.id, { name: user.name, email: user.email });
       const opts = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, token, { ...opts, maxAge: 365*24*60*60*1000 });
       return { success: true, user };
+    }),
+    requestPasswordReset: publicProcedure.input(z.object({ email: z.string().email() })).mutation(async ({ input, ctx }) => {
+      assertRateLimit(ctx.req, 'password_reset_request', 5, { scope: input.email });
+      const { requestPasswordReset } = await import('./emailAuth');
+      return requestPasswordReset(input.email);
+    }),
+    resetPassword: publicProcedure.input(z.object({ token: z.string().min(1), password: z.string().min(8) })).mutation(async ({ input, ctx }) => {
+      assertRateLimit(ctx.req, 'password_reset', 10);
+      const { resetPassword } = await import('./emailAuth');
+      const user = await resetPassword(input.token, input.password);
+      const { sdk } = await import('./_core/sdk');
+      const token = await sdk.createSessionToken(user.id, { name: user.name, email: user.email });
+      const opts = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, token, { ...opts, maxAge: 365*24*60*60*1000 });
+      return { success: true, user };
+    }),
+    requestEmailVerification: publicProcedure.input(z.object({ email: z.string().email() })).mutation(async ({ input, ctx }) => {
+      assertRateLimit(ctx.req, 'email_verification', 5, { scope: input.email });
+      const { requestEmailVerification } = await import('./emailAuth');
+      return requestEmailVerification(input.email);
+    }),
+    verifyEmail: publicProcedure.input(z.object({ token: z.string().min(1) })).mutation(async ({ input }) => {
+      const { verifyEmail } = await import('./emailAuth');
+      return verifyEmail(input.token);
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

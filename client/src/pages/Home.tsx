@@ -11,14 +11,11 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { formatTimeAgo, getSymptomEmoji, getSymptomLabel } from "@/lib/store";
 import type { FoodItem } from "@/lib/store";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
-import { isInAppBrowser } from "@/lib/browser";
-import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 
 const HERO_IMG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-hero-Pvw9osKZy8TFVwjYfuzJB7.webp";
@@ -580,7 +577,6 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
 export default function Home() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [showInAppWarning, setShowInAppWarning] = useState(false);
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
 
   const dashboard = trpc.insights.dashboard.useQuery(undefined, {
@@ -591,11 +587,7 @@ export default function Home() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const handleSignIn = () => {
-    if (isInAppBrowser()) {
-      setShowInAppWarning(true);
-    } else {
-      window.location.href = getLoginUrl();
-    }
+    window.location.assign("/auth");
   };
 
   const handleMealDeleted = useCallback((id: number) => {
@@ -631,12 +623,6 @@ export default function Home() {
           </motion.div>
         </motion.div>
 
-        {showInAppWarning && (
-          <InAppBrowserWarning
-            loginUrl={getLoginUrl()}
-            onDismiss={() => setShowInAppWarning(false)}
-          />
-        )}
       </>
     );
   }
