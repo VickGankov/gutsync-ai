@@ -240,10 +240,13 @@ export async function getTodayScanCount(userId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const result = await db.select().from(scanUsage)
-    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)))
-    .limit(1);
-  return result[0]?.scanCount ?? 0;
+  const result = await db
+    .select({
+      total: sql<number>`cast(coalesce(sum(${scanUsage.scanCount}), 0) as signed)`,
+    })
+    .from(scanUsage)
+    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
+  return Number(result[0]?.total ?? 0);
 }
 
 /** Increment today's scan count. Creates the record if it doesn't exist. */
@@ -255,8 +258,11 @@ export async function incrementScanCount(userId: number): Promise<number> {
     .values({ userId, usageDate: today, scanCount: 1 })
     .onDuplicateKeyUpdate({ set: { scanCount: sql`${scanUsage.scanCount} + 1` } });
   // Re-fetch the updated count
-  const result = await db.select().from(scanUsage)
-    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)))
-    .limit(1);
-  return result[0]?.scanCount ?? 1;
+  const result = await db
+    .select({
+      total: sql<number>`cast(coalesce(sum(${scanUsage.scanCount}), 0) as signed)`,
+    })
+    .from(scanUsage)
+    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
+  return Number(result[0]?.total ?? 1);
 }

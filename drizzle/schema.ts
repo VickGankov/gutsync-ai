@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -134,16 +134,22 @@ export type InsertSubscription = typeof subscriptions.$inferInsert;
  * Daily AI scan usage tracking for free-tier enforcement.
  * Resets automatically each calendar day.
  */
-export const scanUsage = mysqlTable("scan_usage", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  /** YYYY-MM-DD date string for the usage day */
-  usageDate: varchar("usageDate", { length: 10 }).notNull(),
-  /** Number of AI scans performed on this date */
-  scanCount: int("scanCount").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const scanUsage = mysqlTable(
+  "scan_usage",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    /** YYYY-MM-DD date string for the usage day */
+    usageDate: varchar("usageDate", { length: 10 }).notNull(),
+    /** Number of AI scans performed on this date */
+    scanCount: int("scanCount").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    userDateUnique: uniqueIndex("scan_usage_user_date_unique").on(table.userId, table.usageDate),
+  })
+);
 
 export type ScanUsage = typeof scanUsage.$inferSelect;
 export type InsertScanUsage = typeof scanUsage.$inferInsert;
