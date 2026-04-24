@@ -85,6 +85,13 @@
       "when": 1776181438762,
       "tag": "0011_small_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1777053813293,
+      "tag": "0012_wooden_hairball",
+      "breakpoints": true
     }
   ]
 }
