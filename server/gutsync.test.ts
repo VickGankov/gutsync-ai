@@ -195,13 +195,8 @@ describe("GutSync Server Procedures", () => {
       expect(result.foods[0].name).toBe("Grilled Chicken");
       expect(result.photoUrl).toBe("https://cdn.example.com/meals/test.jpg");
       expect(result.summary).toBe("Grilled chicken with rice");
-      expect(db.createMeal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 1,
-          mealType: "lunch",
-          photoUrl: "https://cdn.example.com/meals/test.jpg",
-        })
-      );
+      // analyzePhoto no longer saves meals — saving happens via logManual on user confirm
+      expect(db.createMeal).not.toHaveBeenCalled();
     });
   });
 

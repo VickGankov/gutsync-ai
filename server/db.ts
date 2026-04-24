@@ -253,7 +253,7 @@ export async function incrementScanCount(userId: number): Promise<number> {
   const today = new Date().toISOString().slice(0, 10);
   await db.insert(scanUsage)
     .values({ userId, usageDate: today, scanCount: 1 })
-    .onDuplicateKeyUpdate({ set: { scanCount: sql`scan_count + 1` } });
+    .onDuplicateKeyUpdate({ set: { scanCount: sql`${scanUsage.scanCount} + 1` } });
   // Re-fetch the updated count
   const result = await db.select().from(scanUsage)
     .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)))

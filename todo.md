@@ -80,3 +80,5 @@
 - [x] Fix authenticateRequest to support email-auth users (lookup by numeric ID)
 - [x] Fix duplicate meal entries (removed createMeal from analyzePhoto, use AI mealType in logManual)
 - [x] Fix scan count not decreasing immediately (invalidate subscription.status after scan)
+- [x] Fix incrementScanCount SQL error: column reference was `scan_count` but actual DB column is `scanCount` — used Drizzle column ref
+- [x] Fix analyzePhoto test: updated assertion to expect createMeal NOT called (meal saving moved to logManual)
