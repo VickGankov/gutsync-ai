@@ -270,6 +270,14 @@ class SDKServer {
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
+    // For email-auth users, openId in JWT is the numeric user ID
+    if (!user) {
+      const numericId = parseInt(sessionUserId, 10);
+      if (!isNaN(numericId)) {
+        user = await db.getUserById(numericId);
+      }
+    }
+
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
       try {

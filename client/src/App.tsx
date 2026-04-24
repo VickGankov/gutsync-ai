@@ -13,6 +13,18 @@ import Onboarding from "./pages/Onboarding";
 import EmailAuth from "./pages/EmailAuth";
 import BottomNav from "./components/BottomNav";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+function AppShell() {
+  const [location] = useLocation();
+  const isAuthPage = location === '/auth';
+  return (
+    <div className={`min-h-screen bg-background ${isAuthPage ? '' : 'pb-24'}`}>
+      <Router />
+      {!isAuthPage && <BottomNav />}
+    </div>
+  );
+}
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -66,10 +78,7 @@ function App() {
           {showOnboarding ? (
             <Onboarding onComplete={handleOnboardingComplete} />
           ) : (
-            <div className="min-h-screen bg-background pb-24">
-              <Router />
-              <BottomNav />
-            </div>
+            <AppShell />
           )}
         </TooltipProvider>
       </ThemeProvider>

@@ -76,3 +76,5 @@
 - [x] Document scan functionality limitation in Messenger in-app browser (known limitation, will fix in v2)
 - [x] Switch authentication from Manus OAuth to email-only sign-in
 - [x] Fix auth: remove OAuth redirect, use email-only login
+- [x] Fix auth page layout (hide BottomNav on /auth)
+- [x] Fix authenticateRequest to support email-auth users (lookup by numeric ID)
