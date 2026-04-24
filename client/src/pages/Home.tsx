@@ -555,7 +555,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-left"
                   >
                     <Settings className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Settings</span>
+                    <span className="text-sm font-medium">Settings & Wearables</span>
                     <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
                   </button>
                 </Link>
@@ -638,36 +638,6 @@ export default function Home() {
           />
         )}
       </>
-    );
-  }
-
-  if (dashboard.isLoading) {
-    return (
-      <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-        <motion.div variants={item} className="mb-6">
-          <p className="text-sm text-muted-foreground">{greeting}{user?.name ? `, ${user.name.split(" ")[0]}` : ""}</p>
-          <h1 className="text-2xl tracking-tight mt-0.5">Your Gut Today</h1>
-        </motion.div>
-        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm">
-          <p className="text-sm text-muted-foreground">Loading your latest meals, symptoms, and insights...</p>
-        </motion.div>
-      </motion.div>
-    );
-  }
-
-  if (dashboard.error) {
-    return (
-      <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm">
-          <h2 className="text-lg font-display mb-2">We couldn't load your dashboard</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Please check your connection and try again.
-          </p>
-          <Button onClick={() => dashboard.refetch()} className="rounded-xl">
-            Retry
-          </Button>
-        </motion.div>
-      </motion.div>
     );
   }
 

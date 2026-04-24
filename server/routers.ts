@@ -227,20 +227,6 @@ export const appRouter = router({
       ctx.res.cookie(COOKIE_NAME, token, { ...opts, maxAge: 365*24*60*60*1000 });
       return { success: true, user };
     }),
-    forgotPassword: publicProcedure
-      .input(z.object({ email: z.string().email() }))
-      .mutation(async ({ input }) => {
-        const { requestPasswordReset } = await import('./emailAuth');
-        await requestPasswordReset(input.email);
-        return { success: true } as const;
-      }),
-    resetPassword: publicProcedure
-      .input(z.object({ token: z.string().min(1), newPassword: z.string().min(8) }))
-      .mutation(async ({ input }) => {
-        const { resetPasswordWithToken } = await import('./emailAuth');
-        await resetPasswordWithToken(input.token, input.newPassword);
-        return { success: true } as const;
-      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -363,7 +349,7 @@ export const appRouter = router({
       .input(z.object({
         type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"]),
         severity: z.number().min(1).max(5),
-        source: z.enum(["manual"]).optional(),
+        source: z.enum(["manual", "wearable"]).optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {

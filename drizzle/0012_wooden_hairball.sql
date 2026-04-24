@@ -1,1 +1,0 @@
-ALTER TABLE `scan_usage` ADD CONSTRAINT `scan_usage_user_date_unique` UNIQUE(`userId`,`usageDate`);

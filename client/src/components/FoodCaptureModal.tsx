@@ -98,8 +98,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       setMealSummary(result.summary);
       setDetectedMealType(result.mealType || "snack");
       setSavedPhotoUrl(result.photoUrl || null);
-      await utils.subscription.status.invalidate();
-      await utils.subscription.status.refetch();
+      utils.subscription.status.invalidate();
       setTimeout(() => setStep("results"), 400);
     } catch (err: unknown) {
       clearInterval(stepInterval);
@@ -124,7 +123,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       setStep("upload");
       setPreviewUrl(null);
     }
-  }, [analyzePhoto, utils.subscription.status]);
+  }, [analyzePhoto]);
 
   // Handle uploaded file from long-press
   useEffect(() => {
@@ -135,8 +134,13 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   }, [open, uploadedFile, runAnalysis]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[FoodCapture] handleFileSelect fired', e.target.files?.length);
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('[FoodCapture] No file selected');
+      return;
+    }
+    console.log('[FoodCapture] File selected:', file.name, file.type, file.size);
     processedFileRef.current = file;
     runAnalysis(file);
   };

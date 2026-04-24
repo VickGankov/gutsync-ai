@@ -2,7 +2,7 @@
 // Wired to real auth
 
 import { motion } from "framer-motion";
-import { User, Shield, Bell, ChevronRight, Leaf, Apple, LogOut } from "lucide-react";
+import { User, Watch, Shield, Bell, ChevronRight, Leaf, Apple, Smartphone, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -107,6 +107,49 @@ export default function Profile() {
           <p className="text-xs text-muted-foreground mt-2">
             Your profile helps prioritize relevant ingredient detection and trigger analysis.
           </p>
+        </div>
+      </motion.div>
+
+      {/* Connected Devices */}
+      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Watch className="w-4 h-4 text-primary" />
+          Connected Devices
+        </h3>
+        <div className="space-y-1 divide-y divide-border/50">
+          <SettingsRow
+            icon={Watch}
+            label="Apple Watch"
+            description="HRV, Heart Rate, Sleep"
+            iconColor="text-sage-dark"
+            action={
+              <button onClick={() => toast.success("Feature coming soon")} className="text-xs text-primary font-medium">
+                Connect
+              </button>
+            }
+          />
+          <SettingsRow
+            icon={Smartphone}
+            label="Apple Health"
+            description="Activity, Steps, Workouts"
+            iconColor="text-coral"
+            action={
+              <button onClick={() => toast.success("Feature coming soon")} className="text-xs text-primary font-medium">
+                Connect
+              </button>
+            }
+          />
+          <SettingsRow
+            icon={Watch}
+            label="Garmin Connect"
+            description="Not connected"
+            iconColor="text-muted-foreground"
+            action={
+              <button onClick={() => toast.success("Feature coming soon")} className="text-xs text-primary font-medium">
+                Connect
+              </button>
+            }
+          />
         </div>
       </motion.div>
 

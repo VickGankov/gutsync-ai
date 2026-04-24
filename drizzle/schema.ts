@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -46,7 +46,7 @@ export type Meal = typeof meals.$inferSelect;
 export type InsertMeal = typeof meals.$inferInsert;
 
 /**
- * Symptoms tracked manually by users.
+ * Symptoms tracked by users (manual) or detected by wearables (auto).
  */
 export const symptoms = mysqlTable("symptoms", {
   id: int("id").autoincrement().primaryKey(),
@@ -59,7 +59,7 @@ export const symptoms = mysqlTable("symptoms", {
     "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"
   ]).notNull(),
   severity: int("severity").notNull(), // 1-5
-  source: mysqlEnum("source", ["manual"]).default("manual").notNull(),
+  source: mysqlEnum("source", ["manual", "wearable"]).default("manual").notNull(),
   notes: text("notes"),
   loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -86,6 +86,23 @@ export const correlations = mysqlTable("correlations", {
 
 export type Correlation = typeof correlations.$inferSelect;
 export type InsertCorrelation = typeof correlations.$inferInsert;
+
+/**
+ * Wearable health data snapshots (HRV, heart rate, sleep, stress).
+ */
+export const wearableData = mysqlTable("wearable_data", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  hrv: int("hrv").notNull(),
+  heartRate: int("heartRate").notNull(),
+  sleepQuality: int("sleepQuality").notNull(), // 0-100
+  stressLevel: int("stressLevel").notNull(), // 0-100
+  recordedAt: bigint("recordedAt", { mode: "number" }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WearableData = typeof wearableData.$inferSelect;
+export type InsertWearableData = typeof wearableData.$inferInsert;
 
 /**
  * User subscription status, synced from RevenueCat webhooks.
@@ -117,37 +134,16 @@ export type InsertSubscription = typeof subscriptions.$inferInsert;
  * Daily AI scan usage tracking for free-tier enforcement.
  * Resets automatically each calendar day.
  */
-export const scanUsage = mysqlTable(
-  "scan_usage",
-  {
-    id: int("id").autoincrement().primaryKey(),
-    userId: int("userId").notNull(),
-    /** YYYY-MM-DD date string for the usage day */
-    usageDate: varchar("usageDate", { length: 10 }).notNull(),
-    /** Number of AI scans performed on this date */
-    scanCount: int("scanCount").default(0).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  },
-  (table) => ({
-    userDateUnique: uniqueIndex("scan_usage_user_date_unique").on(table.userId, table.usageDate),
-  })
-);
+export const scanUsage = mysqlTable("scan_usage", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** YYYY-MM-DD date string for the usage day */
+  usageDate: varchar("usageDate", { length: 10 }).notNull(),
+  /** Number of AI scans performed on this date */
+  scanCount: int("scanCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
 export type ScanUsage = typeof scanUsage.$inferSelect;
 export type InsertScanUsage = typeof scanUsage.$inferInsert;
-
-/**
- * One-time password reset tokens for email-auth users.
- */
-export const passwordResetTokens = mysqlTable("password_reset_tokens", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  tokenHash: varchar("tokenHash", { length: 128 }).notNull().unique(),
-  expiresAt: bigint("expiresAt", { mode: "number" }).notNull(),
-  usedAt: bigint("usedAt", { mode: "number" }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
-export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
