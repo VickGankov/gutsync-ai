@@ -82,3 +82,4 @@
 - [x] Fix scan count not decreasing immediately (invalidate subscription.status after scan)
 - [x] Fix incrementScanCount SQL error: column reference was `scan_count` but actual DB column is `scanCount` — used Drizzle column ref
 - [x] Fix analyzePhoto test: updated assertion to expect createMeal NOT called (meal saving moved to logManual)
+- [x] Create comprehensive README.md documenting architecture, auth, schema, API, flows, design, and known issues
