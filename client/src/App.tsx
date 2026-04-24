@@ -11,12 +11,14 @@ import Insights from "./pages/Insights";
 import Profile from "./pages/Profile";
 import Onboarding from "./pages/Onboarding";
 import EmailAuth from "./pages/EmailAuth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import BottomNav from "./components/BottomNav";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 function AppShell() {
   const [location] = useLocation();
-  const isAuthPage = location === '/auth';
+  const isAuthPage = location === '/auth' || location === '/forgot-password' || location === '/reset-password';
   return (
     <div className={`min-h-screen bg-background ${isAuthPage ? '' : 'pb-24'}`}>
       <Router />
@@ -30,6 +32,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={EmailAuth} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/" component={Home} />
       <Route path="/food" component={FoodLog} />
       <Route path="/symptoms" component={Symptoms} />

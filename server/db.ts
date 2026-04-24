@@ -5,7 +5,6 @@ import {
   InsertMeal, meals, type MealFood,
   InsertSymptom, symptoms,
   InsertCorrelation, correlations,
-  InsertWearableData, wearableData,
   subscriptions, type InsertSubscription,
   scanUsage,
 } from "../drizzle/schema";
@@ -173,21 +172,6 @@ export async function getCorrelationsByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(correlations).where(eq(correlations.userId, userId)).orderBy(desc(correlations.confidence));
-}
-
-// ─── Wearable Data Queries ───
-
-export async function createWearableEntry(entry: InsertWearableData) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.insert(wearableData).values(entry);
-  return result[0].insertId;
-}
-
-export async function getWearableDataByUser(userId: number, limit = 7) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(wearableData).where(eq(wearableData.userId, userId)).orderBy(desc(wearableData.recordedAt)).limit(limit);
 }
 
 // ─── Subscription Queries ───
