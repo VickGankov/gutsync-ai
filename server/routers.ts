@@ -277,17 +277,7 @@ export const appRouter = router({
           await incrementScanCount(ctx.user.id);
         }
 
-        // Save meal to database
-        const mealId = await createMeal({
-          userId: ctx.user.id,
-          photoUrl,
-          mealType: analysis.mealType,
-          foods: analysis.foods,
-          loggedAt: Date.now(),
-        });
-
         return {
-          id: mealId,
           photoUrl,
           mealType: analysis.mealType,
           foods: analysis.foods,

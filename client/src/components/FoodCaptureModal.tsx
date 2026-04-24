@@ -40,6 +40,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [analysisStep, setAnalysisStep] = useState(0);
   const [analyzedFoods, setAnalyzedFoods] = useState<AnalyzedFood[]>([]);
   const [mealSummary, setMealSummary] = useState("");
+  const [detectedMealType, setDetectedMealType] = useState<"breakfast" | "lunch" | "dinner" | "snack">("snack");
   const [error, setError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -94,6 +95,8 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       setAnalysisStep(ANALYSIS_STEPS.length);
       setAnalyzedFoods(result.foods);
       setMealSummary(result.summary);
+      setDetectedMealType(result.mealType || "snack");
+      utils.subscription.status.invalidate();
       setTimeout(() => setStep("results"), 400);
     } catch (err: unknown) {
       clearInterval(stepInterval);
@@ -181,7 +184,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     }
     logManual.mutate(
       {
-        mealType: "snack",
+        mealType: detectedMealType,
         foods: analyzedFoods.map(f => ({
           name: f.name,
           category: f.category as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
@@ -197,6 +200,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           });
           utils.meals.list.invalidate();
           utils.insights.dashboard.invalidate();
+          utils.subscription.status.invalidate();
           handleClose();
         },
         onError: (error) => {

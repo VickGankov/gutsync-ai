@@ -78,3 +78,5 @@
 - [x] Fix auth: remove OAuth redirect, use email-only login
 - [x] Fix auth page layout (hide BottomNav on /auth)
 - [x] Fix authenticateRequest to support email-auth users (lookup by numeric ID)
+- [x] Fix duplicate meal entries (removed createMeal from analyzePhoto, use AI mealType in logManual)
+- [x] Fix scan count not decreasing immediately (invalidate subscription.status after scan)
