@@ -41,6 +41,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [analyzedFoods, setAnalyzedFoods] = useState<AnalyzedFood[]>([]);
   const [mealSummary, setMealSummary] = useState("");
   const [detectedMealType, setDetectedMealType] = useState<"breakfast" | "lunch" | "dinner" | "snack">("snack");
+  const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -96,6 +97,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       setAnalyzedFoods(result.foods);
       setMealSummary(result.summary);
       setDetectedMealType(result.mealType || "snack");
+      setSavedPhotoUrl(result.photoUrl || null);
       utils.subscription.status.invalidate();
       setTimeout(() => setStep("results"), 400);
     } catch (err: unknown) {
@@ -192,6 +194,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           hiddenIngredients: f.hiddenIngredients,
         })),
         notes: mealSummary || undefined,
+        photoUrl: savedPhotoUrl || undefined,
       },
       {
         onSuccess: () => {

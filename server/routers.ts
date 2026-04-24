@@ -295,6 +295,7 @@ export const appRouter = router({
           hiddenIngredients: z.array(z.string()),
         })),
         notes: z.string().optional(),
+        photoUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const mealId = await createMeal({
@@ -302,6 +303,7 @@ export const appRouter = router({
           mealType: input.mealType,
           foods: input.foods,
           notes: input.notes ?? null,
+          photoUrl: input.photoUrl,
           loggedAt: Date.now(),
         });
         return { id: mealId };
