@@ -63,6 +63,17 @@ export default function EmailAuth() {
             required
             minLength={8}
           />
+          {mode === 'login' && (
+            <div className="text-right -mt-1">
+              <button
+                type="button"
+                onClick={() => setLocation('/forgot-password')}
+                className="text-xs text-primary font-medium hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 

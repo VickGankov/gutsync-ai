@@ -13,8 +13,6 @@ vi.mock("./db", () => ({
   getSymptomsByUser: vi.fn().mockResolvedValue([]),
   upsertCorrelation: vi.fn(),
   getCorrelationsByUser: vi.fn().mockResolvedValue([]),
-  createWearableEntry: vi.fn().mockResolvedValue(1),
-  getWearableDataByUser: vi.fn().mockResolvedValue([]),
   // Subscription mocks (default: free tier, 0 scans used)
   getSubscription: vi.fn().mockResolvedValue(null),
   isPremium: vi.fn().mockResolvedValue(false),
@@ -288,7 +286,6 @@ describe("GutSync Server Procedures", () => {
       vi.mocked(db.getMealsInRange).mockResolvedValue([]);
       vi.mocked(db.getSymptomsByUser).mockResolvedValue([]);
       vi.mocked(db.getCorrelationsByUser).mockResolvedValue([]);
-      vi.mocked(db.getWearableDataByUser).mockResolvedValue([]);
 
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
@@ -310,7 +307,6 @@ describe("GutSync Server Procedures", () => {
         { id: 2, userId: 1, type: "abdominal_pain", severity: 5, source: "manual", loggedAt: now, createdAt: new Date(), notes: null },
       ] as any);
       vi.mocked(db.getCorrelationsByUser).mockResolvedValue([]);
-      vi.mocked(db.getWearableDataByUser).mockResolvedValue([]);
 
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);

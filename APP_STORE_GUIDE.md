@@ -70,7 +70,7 @@ Once Xcode opens, you need to configure a few things:
 1. **Select your Team:** In the project navigator, click `App` → `Signing & Capabilities` → select your Apple Developer team from the dropdown.
 2. **Set Bundle Identifier:** Confirm it reads `ai.gutsync.app` (already set).
 3. **Set Version:** Under `General`, set `Version` to `1.0` and `Build` to `1`.
-4. **Enable HealthKit:** Under `Signing & Capabilities`, click `+ Capability` and add **HealthKit**. Check both "Health Records" and "Background Delivery".
+4. **Confirm capabilities:** For this launch, do not enable health/device integrations that are not implemented yet.
 
 ### Step A3: Test on a Device
 
@@ -192,7 +192,7 @@ analyzes FODMAP levels — all in seconds.
 WHAT MAKES GUTSYNC AI DIFFERENT
 • No manual logging — just take a photo
 • Detects hidden trigger ingredients your eyes can't see
-• Connects to Apple Health / Garmin for automatic stress and HRV monitoring
+• Helps connect meals, ingredients, and symptoms over time
 • Finds complex trigger patterns (e.g., "bloating when combining dairy + high-fructan vegetables")
 • Personalized insights that get smarter over time
 

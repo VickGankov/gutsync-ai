@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Camera, Activity, Sparkles, Watch, Leaf } from "lucide-react";
+import { ArrowRight, Camera, Activity, Sparkles, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-hero-Pvw9osKZy8TFVwjYfuzJB7.webp";
@@ -34,8 +34,8 @@ const steps = [
     image: INSIGHTS_IMG,
     icon: Activity,
     title: "Your Body Talks",
-    subtitle: "Wearable + manual tracking",
-    description: "Log symptoms with a single tap, or let your smartwatch detect stress markers automatically. We connect the dots between what you eat and how you feel.",
+    subtitle: "Simple symptom tracking",
+    description: "Log symptoms with a single tap. We connect the dots between what you eat and how you feel over time.",
   },
   {
     image: WELLNESS_IMG,

@@ -5,7 +5,6 @@ import {
   InsertMeal, meals, type MealFood,
   InsertSymptom, symptoms,
   InsertCorrelation, correlations,
-  InsertWearableData, wearableData,
   subscriptions, type InsertSubscription,
   scanUsage,
 } from "../drizzle/schema";
@@ -175,21 +174,6 @@ export async function getCorrelationsByUser(userId: number) {
   return db.select().from(correlations).where(eq(correlations.userId, userId)).orderBy(desc(correlations.confidence));
 }
 
-// ─── Wearable Data Queries ───
-
-export async function createWearableEntry(entry: InsertWearableData) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.insert(wearableData).values(entry);
-  return result[0].insertId;
-}
-
-export async function getWearableDataByUser(userId: number, limit = 7) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(wearableData).where(eq(wearableData.userId, userId)).orderBy(desc(wearableData.recordedAt)).limit(limit);
-}
-
 // ─── Subscription Queries ───
 
 /** Get a user's subscription record. Returns null if no record exists (= free tier). */
@@ -240,10 +224,13 @@ export async function getTodayScanCount(userId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const result = await db.select().from(scanUsage)
-    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)))
-    .limit(1);
-  return result[0]?.scanCount ?? 0;
+  const result = await db
+    .select({
+      total: sql<number>`cast(coalesce(sum(${scanUsage.scanCount}), 0) as signed)`,
+    })
+    .from(scanUsage)
+    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
+  return Number(result[0]?.total ?? 0);
 }
 
 /** Increment today's scan count. Creates the record if it doesn't exist. */
@@ -255,8 +242,11 @@ export async function incrementScanCount(userId: number): Promise<number> {
     .values({ userId, usageDate: today, scanCount: 1 })
     .onDuplicateKeyUpdate({ set: { scanCount: sql`${scanUsage.scanCount} + 1` } });
   // Re-fetch the updated count
-  const result = await db.select().from(scanUsage)
-    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)))
-    .limit(1);
-  return result[0]?.scanCount ?? 1;
+  const result = await db
+    .select({
+      total: sql<number>`cast(coalesce(sum(${scanUsage.scanCount}), 0) as signed)`,
+    })
+    .from(scanUsage)
+    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
+  return Number(result[0]?.total ?? 1);
 }

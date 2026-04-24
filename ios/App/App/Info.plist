@@ -54,11 +54,6 @@
 	<string>GutSync AI accesses your photo library so you can upload existing meal photos for analysis.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>GutSync AI may save meal photos to your photo library.</string>
-	<!-- Apple Health Integration -->
-	<key>NSHealthShareUsageDescription</key>
-	<string>GutSync AI reads heart rate variability and sleep data from Apple Health to automatically detect gut health patterns.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>GutSync AI writes gut health scores and food log data to Apple Health.</string>
 	<!-- Microphone for voice symptom logging -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>GutSync AI uses the microphone for voice-based symptom logging.</string>

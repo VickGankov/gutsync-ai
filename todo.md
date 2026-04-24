@@ -2,7 +2,7 @@
 
 - [x] Resolve merge conflicts (Home.tsx, NotFound.tsx keep custom design)
 - [x] Restore App.tsx with onboarding, all routes, and bottom nav
-- [x] Push database schema (meals, symptoms, correlations, wearable_data tables)
+- [x] Push database schema (meals, symptoms, correlations tables)
 - [x] Create server db.ts query helpers for all tables
 - [x] Create tRPC routers for meals, symptoms, insights
 - [x] Integrate LLM for AI food photo analysis (invokeLLM with image)

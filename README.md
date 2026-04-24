@@ -166,7 +166,6 @@ The database uses MySQL/TiDB with Drizzle ORM. Schema is defined in `drizzle/sch
 | `correlations` | AI-discovered patterns | `userId`, `trigger`, `symptom`, `confidence` (0–100), `occurrences`, `recommendation` |
 | `subscriptions` | Premium status | `userId`, `rcCustomerId`, `tier` (free/premium), `expiresAt`, `platform` |
 | `scan_usage` | Daily scan counter | `userId`, `usageDate` (YYYY-MM-DD), `scanCount` |
-| `wearable_data` | **DEPRECATED** — table exists but feature removed from codebase | `userId`, `hrv`, `heartRate`, `sleepQuality`, `stressLevel` |
 
 ### MealFood JSON Structure
 
@@ -240,6 +239,8 @@ All procedures are defined in `server/routers.ts`. Database helpers are in `serv
 | `auth.me` | query | public | Returns current user or `null` |
 | `auth.registerEmail` | mutation | public | Register with email + password + optional name |
 | `auth.loginEmail` | mutation | public | Login with email + password |
+| `auth.forgotPassword` | mutation | public | Request a one-time password reset link |
+| `auth.resetPassword` | mutation | public | Reset password with a valid token |
 | `auth.logout` | mutation | public | Clears session cookie |
 
 ### Meals Router (`meals.*`)
@@ -501,13 +502,11 @@ Tests mock `server/db.ts` and `server/_core/llm.ts` using `vi.mock()`. The LLM m
 
 1. **Messenger In-App Browser:** The food scan camera does not work in Facebook Messenger's in-app browser due to restricted camera API access. Users must open the app in their default browser.
 
-2. **Wearable Data Table:** The `wearable_data` table still exists in the schema but the feature has been completely removed from the codebase (routers, UI, tests). The table can be dropped in a future migration.
+2. **RevenueCat Webhook:** The `subscription.webhook` procedure is a placeholder. It logs events but does not look up users by `rcCustomerId` — it uses a hardcoded `userId: 0`. This needs to be implemented for production.
 
-3. **RevenueCat Webhook:** The `subscription.webhook` procedure is a placeholder. It logs events but does not look up users by `rcCustomerId` — it uses a hardcoded `userId: 0`. This needs to be implemented for production.
+3. **Correlation Analysis:** Currently only identifies trigger foods (negative correlations). Does not yet show "beneficial foods" that correlate with positive outcomes.
 
-4. **Correlation Analysis:** Currently only identifies trigger foods (negative correlations). Does not yet show "beneficial foods" that correlate with positive outcomes.
-
-5. **Home Page Mock Data:** The Home page (`Home.tsx`) uses mock data generators from `lib/store.ts` for the gut health score, recent meals, and symptoms display. These should be replaced with real tRPC queries (the `insights.dashboard` query exists but is not yet wired to the Home page).
+4. **Home Page Mock Data:** The Home page (`Home.tsx`) uses mock data generators from `lib/store.ts` for the gut health score, recent meals, and symptoms display. These should be replaced with real tRPC queries (the `insights.dashboard` query exists but is not yet wired to the Home page).
 
 ---
 
