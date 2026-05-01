@@ -442,8 +442,13 @@ pnpm dev              # Start dev server (tsx watch)
 pnpm build            # Build for production (vite + esbuild)
 pnpm test             # Run all tests (vitest)
 pnpm check            # TypeScript type check
+pnpm verify           # Type check, test, and build
 pnpm db:push          # Generate + run database migrations
 ```
+
+### Deployment
+
+Render deployment is configured in `render.yaml`. See `DEPLOYMENT.md` for setup, required environment variables, and the first-deploy migration step.
 
 ### Adding a New Feature
 
@@ -467,6 +472,9 @@ All environment variables are injected by the platform. Do not hardcode or commi
 | `BUILT_IN_FORGE_API_KEY` | Server-side API key |
 | `REVENUECAT_SECRET_KEY` | RevenueCat API key (optional) |
 | `VITE_REVENUECAT_PUBLIC_KEY` | RevenueCat client key (optional) |
+| `APP_BASE_URL` | Public app URL used in password reset links |
+| `RESEND_API_KEY` | Resend API key for password reset emails |
+| `RESEND_FROM_EMAIL` | Verified sender address for password reset emails |
 
 ### Static Assets
 

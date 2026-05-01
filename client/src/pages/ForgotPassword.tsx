@@ -11,8 +11,12 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await forgotPassword.mutateAsync({ email });
-    setSubmitted(true);
+    try {
+      await forgotPassword.mutateAsync({ email });
+      setSubmitted(true);
+    } catch {
+      // The mutation error is rendered below.
+    }
   };
 
   return (

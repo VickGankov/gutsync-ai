@@ -10,8 +10,8 @@ function hashResetToken(token: string) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-function getAppBaseUrl() {
-  return process.env.APP_BASE_URL || process.env.VITE_APP_URL || 'http://localhost:3000';
+function getAppBaseUrl(requestBaseUrl?: string) {
+  return process.env.APP_BASE_URL || requestBaseUrl || process.env.VITE_APP_URL || 'http://localhost:3000';
 }
 
 async function sendPasswordResetEmail(email: string, resetUrl: string) {
@@ -19,8 +19,10 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
   if (!resendKey || !fromEmail) {
-    console.warn(`[Auth] Password reset link for ${email}: ${resetUrl}`);
-    return;
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[Auth] Password reset link for ${email}: ${resetUrl}`);
+    }
+    throw new Error("Password reset email is not configured. Please contact support.");
   }
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -80,7 +82,7 @@ export async function loginEmail(email: string, password: string) {
   return { id: user.id, email: user.email || '', name: user.name, role: user.role };
 }
 
-export async function requestPasswordReset(email: string): Promise<void> {
+export async function requestPasswordReset(email: string, requestBaseUrl?: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Password reset is temporarily unavailable. Please try again later.");
 
@@ -101,7 +103,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
       expiresAt,
     });
 
-    const resetUrl = `${getAppBaseUrl()}/reset-password?token=${encodeURIComponent(rawToken)}`;
+    const resetUrl = `${getAppBaseUrl(requestBaseUrl)}/reset-password?token=${encodeURIComponent(rawToken)}`;
     await sendPasswordResetEmail(email, resetUrl);
   } catch (error) {
     console.error("[Auth] Password reset request failed:", error);

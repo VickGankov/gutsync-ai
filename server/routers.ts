@@ -30,6 +30,19 @@ import type { MealFood } from "../drizzle/schema";
 // Free tier: 3 AI scans per day
 const FREE_DAILY_SCAN_LIMIT = 3;
 
+function getRequestBaseUrl(req: { protocol?: string; headers?: Record<string, string | string[] | undefined>; get?: (name: string) => string | undefined }) {
+  const origin = req.get?.('origin') || req.headers?.origin;
+  if (typeof origin === 'string' && origin) return origin;
+
+  const forwardedProto = req.headers?.['x-forwarded-proto'];
+  const forwardedHost = req.headers?.['x-forwarded-host'];
+  const host = forwardedHost || req.headers?.host;
+  const proto = forwardedProto || req.protocol || 'https';
+
+  if (typeof host === 'string') return `${Array.isArray(proto) ? proto[0] : proto}://${host}`;
+  return undefined;
+}
+
 // ─── AI Food Analysis ───
 
 async function analyzeFood(imageUrl: string): Promise<{
@@ -229,9 +242,9 @@ export const appRouter = router({
     }),
     forgotPassword: publicProcedure
       .input(z.object({ email: z.string().email() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const { requestPasswordReset } = await import('./emailAuth');
-        await requestPasswordReset(input.email);
+        await requestPasswordReset(input.email, getRequestBaseUrl(ctx.req));
         return { success: true } as const;
       }),
     resetPassword: publicProcedure

@@ -1,0 +1,13 @@
+---
+description: Keep Cursor and GitHub as the source of truth
+alwaysApply: true
+---
+
+# Source Of Truth
+
+- Make code changes in Cursor only.
+- Treat GitHub `main` as the source of truth for deploy environments.
+- Deploy through Render from GitHub.
+- Do not use Manus to edit code or migration journals.
+- Before creating migrations, check existing migration numbers and use the next unused number.
+- If a deploy environment has stale untracked files, delete only the specific stale files named by the error and pull from GitHub again.
