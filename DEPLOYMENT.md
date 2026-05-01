@@ -18,7 +18,7 @@ pnpm run verify
 
 Create a new Render Blueprint from `render.yaml`, or create a Web Service manually with:
 
-- Build command: `corepack enable && pnpm install --frozen-lockfile && pnpm run build`
+- Build command: `corepack enable && pnpm install --frozen-lockfile && pnpm run db:migrate && pnpm run build`
 - Start command: `pnpm start`
 - Node version: `22`
 - Branch: `main`
@@ -41,13 +41,9 @@ VITE_REVENUECAT_PUBLIC_KEY=
 
 ## First Deploy
 
-After the first successful Render build, open a Render shell and run:
+Render free services do not include Shell, so migrations run during the build with `pnpm run db:migrate`.
 
-```bash
-pnpm run db:push
-```
-
-Then set `APP_BASE_URL` to the final Render/custom domain URL and redeploy.
+After the first deploy succeeds, set `APP_BASE_URL` to the final Render/custom domain URL and redeploy.
 
 ## Migration Rules
 
@@ -58,4 +54,4 @@ Then set `APP_BASE_URL` to the final Render/custom domain URL and redeploy.
 
 ## CI/CD Direction
 
-For launch, keep migrations manual from Render shell. After launch, add GitHub Actions CI and a controlled migration step.
+For launch, migrations run during Render builds. After launch, add GitHub Actions CI and a controlled migration step.

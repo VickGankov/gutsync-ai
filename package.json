@@ -12,6 +12,7 @@
     "test": "vitest run",
     "verify": "pnpm run check && pnpm test && pnpm run build",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:migrate": "drizzle-kit migrate",
     "cap:sync": "pnpm run build && npx cap sync",
     "cap:ios": "pnpm run build && npx cap sync ios && npx cap open ios",
     "cap:android": "pnpm run build && npx cap sync android && npx cap open android"

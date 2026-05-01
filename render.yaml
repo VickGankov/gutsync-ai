@@ -5,7 +5,7 @@ services:
     plan: free
     region: oregon
     branch: main
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run db:migrate && pnpm run build
     startCommand: pnpm start
     autoDeploy: true
     healthCheckPath: /
