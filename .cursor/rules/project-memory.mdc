@@ -1,0 +1,12 @@
+---
+description: Read and maintain durable project memory
+alwaysApply: true
+---
+
+# Project Memory
+
+- At the start of project work, read `PROJECT_MEMORY.md` if it exists.
+- Use `PROJECT_MEMORY.md` as curated cross-chat context for decisions, user preferences, architecture notes, and active project status.
+- Treat memory entries as context to verify against the current codebase and git state, not as unquestioned truth.
+- When a conversation creates durable context that will help future agents, update `PROJECT_MEMORY.md` with a concise dated entry.
+- Prefer short summaries over raw transcript excerpts. Remove or revise stale memory when it becomes misleading.
