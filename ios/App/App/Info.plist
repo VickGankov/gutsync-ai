@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>GutSync AI</string>
+        <string>GutSync</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -49,14 +49,14 @@
 	<true/>
 	<!-- Camera & Photo Library -->
 	<key>NSCameraUsageDescription</key>
-	<string>GutSync AI uses your camera to photograph meals for AI-powered food and FODMAP analysis.</string>
+	<string>GutSync uses your camera to photograph meals for food sensitivity analysis.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GutSync AI accesses your photo library so you can upload existing meal photos for analysis.</string>
+	<string>GutSync accesses your photo library so you can upload existing meal photos for analysis.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>GutSync AI may save meal photos to your photo library.</string>
+	<string>GutSync may save meal photos to your photo library.</string>
 	<!-- Microphone for voice symptom logging -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>GutSync AI uses the microphone for voice-based symptom logging.</string>
+	<string>GutSync uses the microphone for voice-based symptom logging.</string>
 	<!-- Portrait orientation only for phone -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

@@ -148,7 +148,10 @@ export default function Profile() {
           Privacy & Data
         </h3>
         <div className="space-y-1 divide-y divide-border/50">
-          <SettingsRow icon={Shield} label="Data Encryption" description="End-to-end encrypted" iconColor="text-sage-dark" />
+          <SettingsRow icon={Shield} label="Privacy Policy" description="How GutSync handles your data" iconColor="text-sage-dark" action={
+            <a href="/privacy" className="text-xs font-semibold text-primary">View</a>
+          } />
+          <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-sage-dark" />
           <SettingsRow icon={User} label="Export My Data" description="Download all your health data" iconColor="text-primary" />
         </div>
       </motion.div>

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "ai.gutsync.app",
-  appName: "GutSync AI",
+  appName: "GutSync",
   webDir: "dist/public",
   // When running locally with a dev server, point to it:
   // server: {

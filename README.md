@@ -1,10 +1,10 @@
-# GutSync AI
+# GutSync
 
 **A mobile-first food sensitivity tracker that uses AI-powered photo analysis to help users with IBS and chronic bloating identify dietary triggers.** Users snap a photo of their meal, the AI identifies foods and hidden ingredients with FODMAP ratings, and over time the app discovers correlations between specific foods and symptoms.
 
-**Live URL:** [https://gutsyncai-aye9tq4o.manus.space](https://gutsyncai-aye9tq4o.manus.space)
-**App ID:** `com.gutsync.app`
-**Deployment Target:** Google Play Store via PWA Builder
+**Live URL:** Render or custom domain configured from GitHub `main`
+**App ID:** `ai.gutsync.app`
+**Deployment Target:** Render web app plus Capacitor builds for app stores
 
 ---
 
@@ -413,7 +413,7 @@ The app is configured as a Progressive Web App for deployment to the Google Play
 ### manifest.json
 
 Located at `client/public/manifest.json` with:
-- App ID: `com.gutsync.app`
+- App ID: `ai.gutsync.app`
 - Display: `standalone`, orientation: `portrait-primary`
 - Icons: 192x192 and 512x512 PNG (hosted on CDN)
 - Screenshots: 3 narrow-format screenshots (1536x2752)
@@ -514,8 +514,6 @@ Tests mock `server/db.ts` and `server/_core/llm.ts` using `vi.mock()`. The LLM m
 
 3. **Correlation Analysis:** Currently only identifies trigger foods (negative correlations). Does not yet show "beneficial foods" that correlate with positive outcomes.
 
-4. **Home Page Mock Data:** The Home page (`Home.tsx`) uses mock data generators from `lib/store.ts` for the gut health score, recent meals, and symptoms display. These should be replaced with real tRPC queries (the `insights.dashboard` query exists but is not yet wired to the Home page).
-
 ---
 
 ## Pending Work
@@ -524,8 +522,6 @@ The following items from `todo.md` are not yet completed:
 
 | Priority | Item |
 |----------|------|
-| High | Create privacy policy page (required for Google Play Store health app submission) |
-| High | Add meal type picker on results screen (let user override AI-detected type before saving) |
 | Medium | Update correlation analysis to show "beneficial foods" alongside trigger foods |
 | Medium | Write tests for positive outcome logging and correlation |
 | Low | Update VITE_APP_TITLE to "GutSync" (user action in Settings panel) |

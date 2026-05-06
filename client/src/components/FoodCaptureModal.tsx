@@ -26,6 +26,8 @@ const ANALYSIS_STEPS = [
 
 const FODMAP_OPTIONS = ["low", "moderate", "high"] as const;
 const CATEGORY_OPTIONS = ["protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"] as const;
+const MEAL_TYPE_OPTIONS = ["breakfast", "lunch", "dinner", "snack"] as const;
+type MealType = (typeof MEAL_TYPE_OPTIONS)[number];
 
 interface AnalyzedFood {
   name: string;
@@ -40,7 +42,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [analysisStep, setAnalysisStep] = useState(0);
   const [analyzedFoods, setAnalyzedFoods] = useState<AnalyzedFood[]>([]);
   const [mealSummary, setMealSummary] = useState("");
-  const [detectedMealType, setDetectedMealType] = useState<"breakfast" | "lunch" | "dinner" | "snack">("snack");
+  const [detectedMealType, setDetectedMealType] = useState<MealType>("snack");
   const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -217,6 +219,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setAnalysisStep(0);
     setAnalyzedFoods([]);
     setMealSummary("");
+    setDetectedMealType("snack");
     setError(null);
     setEditingIndex(null);
     setShowAddForm(false);
@@ -387,6 +390,28 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                 {mealSummary && (
                   <p className="text-sm text-muted-foreground italic">{mealSummary}</p>
                 )}
+
+                <div className="rounded-2xl border border-border/50 bg-muted/30 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Meal type
+                  </p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {MEAL_TYPE_OPTIONS.map((mealType) => (
+                      <button
+                        key={mealType}
+                        type="button"
+                        onClick={() => setDetectedMealType(mealType)}
+                        className={`rounded-xl px-2 py-2 text-xs font-semibold capitalize transition-colors ${
+                          detectedMealType === mealType
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {mealType}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Editable hint */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -91,6 +91,8 @@ describe("GutSync Server Procedures", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     db = await import("./db");
   });
 
@@ -359,6 +361,12 @@ describe("GutSync Server Procedures", () => {
       // The activate procedure calls RevenueCat API to verify the entitlement.
       // Without a real RC key in test env, it throws BAD_REQUEST (no entitlement found).
       // This test validates that the gate is enforced — not bypassed.
+      vi.stubEnv("REVENUECAT_SECRET_KEY", "test_revenuecat_secret");
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ subscriber: { entitlements: {} } }),
+      }));
+
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
 

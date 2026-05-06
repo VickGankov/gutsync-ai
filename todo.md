@@ -46,6 +46,7 @@
 - [x] Fix delete button not responding on meal tiles
 - [x] Redesign meal tiles to be more minimalistic while keeping edit/delete functionality
 - [x] Fix food scan: reject non-food images (empty foods array) in analyzePhoto mutation
+- [x] Add meal type picker on scan results screen
 - [x] Improve free tier UX: show warning when 1 scan left, confirmation dialog before last scan
 - [x] Improve error messages: specific feedback for different failure types
 - [x] Write tests for non-food rejection and free tier enforcement
@@ -83,3 +84,6 @@
 - [x] Fix incrementScanCount SQL error: column reference was `scan_count` but actual DB column is `scanCount` — used Drizzle column ref
 - [x] Fix analyzePhoto test: updated assertion to expect createMeal NOT called (meal saving moved to logManual)
 - [x] Create comprehensive README.md documenting architecture, auth, schema, API, flows, design, and known issues
+- [x] Add privacy policy page and link it from Profile for store review
+- [x] Align app branding and app ID metadata for release
+- [x] Remove unused analytics placeholder from production HTML build

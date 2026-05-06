@@ -13,3 +13,4 @@ This file is the durable context for future Cursor chats in this workspace.
 ## Durable Context
 
 - 2026-05-01: The user wants future Cursor chats in this workspace to preserve useful context across conversations. Use this file as the curated source of project memory.
+- 2026-05-06: Release-readiness pass is underway. `pnpm run verify` passes locally after dependency install. Implemented launch fixes for privacy policy, meal type override after scan, production RevenueCat fail-closed activation, isolated email-auth tests, GutSync branding/app ID alignment, and removal of unused analytics HTML placeholders. Remaining launch risks include configuring real Render/RevenueCat/Forge/Resend environment variables, RevenueCat webhook user lookup, beneficial-food correlations, and store assets/favicon.

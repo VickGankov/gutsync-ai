@@ -1,6 +1,6 @@
-# GutSync AI — App Store Submission Guide
+# GutSync — App Store Submission Guide
 
-This guide walks you through building and publishing GutSync AI to both the **Apple App Store** and **Google Play Store** using Capacitor. The project is already configured — follow the steps below on your local machine.
+This guide walks you through building and publishing GutSync to both the **Apple App Store** and **Google Play Store** using Capacitor. The project is already configured — follow the steps below on your local machine.
 
 ---
 
@@ -22,7 +22,7 @@ Before you begin, ensure you have the following accounts and tools ready.
 
 ## Step 1: Download the Project
 
-Download your project code from the **Code panel** in the Manus Management UI (click the download icon). Extract the ZIP to a folder on your computer, e.g., `~/Projects/gutsync-ai`.
+Use the GitHub repository as the source of truth. Pull the latest `main` branch to your local machine, e.g., `~/Projects/gutsync-ai`.
 
 ---
 
@@ -38,11 +38,11 @@ pnpm install
 
 ## Step 3: Configure Your Backend URL
 
-Open `capacitor.config.ts` and update the `server.url` to point to your live production backend (your Manus-hosted URL):
+Open `capacitor.config.ts` and, if you want the native shell to load the deployed web app instead of bundled assets, update the optional `server.url` to point to your live Render or custom domain:
 
 ```ts
 server: {
-  url: "https://gutsyncai-aye9tq4o.manus.space",
+  url: "https://your-render-or-custom-domain",
   cleartext: false,
 },
 ```
@@ -92,7 +92,7 @@ Connect your iPhone via USB. In Xcode, select your device from the top device pi
 
 | Field | Value |
 |---|---|
-| Name | GutSync AI |
+| Name | GutSync |
 | Bundle ID | ai.gutsync.app |
 | SKU | gutsync-ai-001 |
 | Primary Language | English (U.S.) |
@@ -156,7 +156,7 @@ Connect your Android phone via USB with **Developer Mode** and **USB Debugging**
 
 | Field | Value |
 |---|---|
-| App name | GutSync AI |
+| App name | GutSync |
 | Default language | English (United States) |
 | App or game | App |
 | Free or paid | Free |
@@ -183,13 +183,13 @@ Your invisible gut health detective — powered by AI
 
 ### Full Description
 ```
-GutSync AI is the effortless gut health tracker that does the hard work for you.
+GutSync is the effortless gut health tracker that does the hard work for you.
 
 Simply photograph your meals and our AI instantly identifies every food item, 
 detects hidden ingredients like garlic powder and high-fructose corn syrup, and 
 analyzes FODMAP levels — all in seconds.
 
-WHAT MAKES GUTSYNC AI DIFFERENT
+WHAT MAKES GUTSYNC DIFFERENT
 • No manual logging — just take a photo
 • Detects hidden trigger ingredients your eyes can't see
 • Helps connect meals, ingredients, and symptoms over time
@@ -224,7 +224,7 @@ digestive health, food intolerance, AI nutrition, symptom tracker
 
 **App loads a blank white screen:** Confirm the `server.url` in `capacitor.config.ts` is set to your live production URL and the server is running.
 
-**Camera not working on device:** Ensure you granted camera permissions when prompted. On iOS, go to Settings → GutSync AI → Camera and toggle it on.
+**Camera not working on device:** Ensure you granted camera permissions when prompted. On iOS, go to Settings → GutSync → Camera and toggle it on.
 
 ---
 
@@ -239,4 +239,4 @@ Once live, remember to:
 
 ---
 
-*Generated for GutSync AI v1.0 — March 2026*
+*Generated for GutSync v1.0 — March 2026*

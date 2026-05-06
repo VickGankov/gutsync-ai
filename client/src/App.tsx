@@ -14,11 +14,13 @@ import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
 import Symptoms from "./pages/Symptoms";
 
 const AUTH_ROUTE = "/auth";
 const PROTECTED_PATHS = new Set(["/", "/food", "/symptoms", "/insights", "/profile"]);
+const PUBLIC_INFO_PATHS = new Set(["/privacy"]);
 
 function buildAuthPath(pathname: string) {
   return pathname && pathname !== "/"
@@ -35,7 +37,8 @@ function Router() {
   const isAuthActionRoute =
     authSearchParams.get("mode") === "reset" || authSearchParams.has("verify");
   const isAuthPage = location === AUTH_ROUTE || location === "/forgot-password" || location === "/reset-password";
-  const showBottomNav = !isAuthPage;
+  const isPublicInfoPage = PUBLIC_INFO_PATHS.has(location);
+  const showBottomNav = !isAuthPage && !isPublicInfoPage;
 
   useEffect(() => {
     if (loading) return;
@@ -81,6 +84,7 @@ function Router() {
         <Route path="/symptoms" component={Symptoms} />
         <Route path="/insights" component={Insights} />
         <Route path="/profile" component={Profile} />
+        <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -94,6 +98,7 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [location] = useLocation();
   const isAuthFlow = location === AUTH_ROUTE || location === "/forgot-password" || location === "/reset-password";
+  const isPublicInfoFlow = PUBLIC_INFO_PATHS.has(location);
 
   useEffect(() => {
     const hasOnboarded = localStorage.getItem("gutsync_onboarded");
@@ -125,7 +130,7 @@ function App() {
               },
             }}
           />
-          {showOnboarding && !isAuthFlow ? (
+          {showOnboarding && !isAuthFlow && !isPublicInfoFlow ? (
             <Onboarding onComplete={handleOnboardingComplete} />
           ) : (
             <div className="min-h-screen bg-background pb-24">

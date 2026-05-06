@@ -532,7 +532,13 @@ export const appRouter = router({
             throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'RevenueCat verification failed' });
           }
         } else {
-          // No RC key configured — trust client (dev/test mode)
+          if (process.env.NODE_ENV === 'production') {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'RevenueCat verification is not configured',
+            });
+          }
+          // No RC key configured — trust client only outside production for local development.
           await upsertSubscription({
             userId: ctx.user.id,
             rcCustomerId: input.rcCustomerId,
