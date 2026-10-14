@@ -98,7 +98,7 @@ describe("analyzeWithCache", () => {
     const r = await analyzeWithCache("img", d, quiet);
     expect(d.getFacts).not.toHaveBeenCalled();
     expect(d.lookup).not.toHaveBeenCalled();
-    expect(r.foods[0]).toMatchObject({ name: "Kirkland zero sugar vitamin water, lemonade", fodmap: "low", hiddenIngredients: [], packaged: true, basis: "label" });
+    expect(r.foods[0]).toMatchObject({ name: "Zero Sugar Vitamin Water", fodmap: "low", hiddenIngredients: [], packaged: true, basis: "label" });
   });
 
   it("flags triggers found on a packaged product's label", async () => {
@@ -200,7 +200,7 @@ describe("applyLabelToFoods", () => {
     ];
     const out = applyLabelToFoods(foods, label);
     expect(out[0]).toEqual(foods[0]);
-    expect(out[1].name).toBe(label.productName);
+    expect(out[1].name).toBe("Zero Sugar Vitamin Water");
     expect(out[1].fodmap).toBe("low");
     expect(out[1].hiddenIngredients).toEqual([]);
     expect(out[1].basis).toBe("label");

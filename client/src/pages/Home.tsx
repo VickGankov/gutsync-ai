@@ -33,6 +33,34 @@ const item = {
 };
 
 // ─── Minimalistic Meal Tile ─────────────────────────────────────────────────
+/** Collapsible ingredient list for one food (shows flagged triggers even when no full list is on file). */
+function IngredientsDisclosure({ food }: { food: FoodItem }) {
+  const list = food.ingredients ?? [];
+  const triggers = food.hiddenIngredients ?? [];
+  return (
+    <details className="group mt-1" onClick={(e) => e.stopPropagation()}>
+      <summary className="cursor-pointer select-none text-[11px] font-medium text-primary list-none flex items-center gap-1">
+        <span className="inline-block transition-transform group-open:rotate-90">›</span>
+        Ingredients{list.length ? ` (${list.length})` : ""}
+      </summary>
+      <div className="mt-1 ml-3 space-y-1.5">
+        {list.length > 0 ? (
+          <p className="text-[11px] leading-snug text-muted-foreground">{list.join(", ")}</p>
+        ) : (
+          <p className="text-[11px] leading-snug text-muted-foreground">No ingredient list on file for this item.</p>
+        )}
+        {triggers.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {triggers.map((t, i) => (
+              <span key={`${t}-${i}`} className="text-[10px] px-1.5 py-0.5 rounded-full bg-coral-light/40 text-coral">{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function MealTile({ meal, onSaved, onDeleted }: {
   meal: {
     id: number;
@@ -86,8 +114,8 @@ function MealTile({ meal, onSaved, onDeleted }: {
       hiddenIngredients: f.hiddenIngredients ?? [],
       ...(f.ingredients?.length ? { ingredients: f.ingredients } : {}),
     }));
-    updateMealMut.mutate({ id: meal.id, mealType, foods: sanitizedFoods, notes });
-  }, [foods, meal.id, mealType, notes, updateMealMut]);
+    updateMealMut.mutate({ id: meal.id, mealType, foods: sanitizedFoods });
+  }, [foods, meal.id, mealType, updateMealMut]);
 
   const handleCancel = useCallback(() => {
     setMealType(meal.mealType);
@@ -236,9 +264,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
                         </button>
                       </div>
                     </div>
-                    {f.ingredients && f.ingredients.length > 0 && (
-                      <p className="text-[11px] text-muted-foreground mt-1 ml-0.5 leading-snug">Ingredients: {f.ingredients.join(", ")}</p>
-                    )}
+                    <IngredientsDisclosure food={f} />
                     {showExplanation === f.name && (
                       <p className="text-[11px] text-muted-foreground mt-1 ml-0.5 leading-relaxed bg-muted/50 rounded-lg px-2.5 py-1.5">
                         {getFODMAPExplanation(f.name, f.fodmap as "low" | "moderate" | "high")}
@@ -247,20 +273,6 @@ function MealTile({ meal, onSaved, onDeleted }: {
                   </div>
                 ))}
               </div>
-
-              {/* Hidden ingredients */}
-              {foods.some((f) => f.hiddenIngredients?.length > 0) && (
-                <div className="mb-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Hidden ingredients</p>
-                  <p className="text-xs text-muted-foreground">
-                    {foods.flatMap((f) => f.hiddenIngredients || []).join(", ")}
-                  </p>
-                </div>
-              )}
-
-              {meal.notes && (
-                <p className="text-xs text-muted-foreground italic mb-3">{meal.notes}</p>
-              )}
 
               {/* Action buttons */}
               <div className="flex gap-2">
@@ -331,64 +343,32 @@ function MealTile({ meal, onSaved, onDeleted }: {
               {/* Food items */}
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Foods</p>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {foods.map((f, idx) => (
-                    <div key={`food-${idx}`} className="flex items-center gap-2">
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-sm truncate">{f.name}</span>
-                        {f.ingredients && f.ingredients.length > 0 && (
-                          <span className="block text-[11px] text-muted-foreground leading-snug">{f.ingredients.join(", ")}</span>
-                        )}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => cycleFodmap(idx)}
-                        className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}
-                        title="Tap to cycle FODMAP level"
-                      >
-                        {f.fodmap}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeFood(idx)}
-                        className="p-1 rounded hover:bg-coral-light/40 transition-colors"
-                        aria-label="Remove food"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-coral" />
-                      </button>
+                    <div key={`food-${idx}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="flex-1 min-w-0 text-sm truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => cycleFodmap(idx)}
+                          className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}
+                          title="Tap to cycle FODMAP level"
+                        >
+                          {f.fodmap}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFood(idx)}
+                          className="p-1 rounded hover:bg-coral-light/40 transition-colors"
+                          aria-label="Remove food"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-coral" />
+                        </button>
+                      </div>
+                      <IngredientsDisclosure food={f} />
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    ref={inputRef}
-                    value={newFood}
-                    onChange={(e) => setNewFood(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addFood()}
-                    placeholder="Add food…"
-                    className="flex-1 text-sm bg-muted rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60"
-                  />
-                  <button
-                    type="button"
-                    onClick={addFood}
-                    disabled={!newFood.trim()}
-                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">Notes</p>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any notes…"
-                  rows={2}
-                  className="w-full text-sm bg-muted rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60 resize-none"
-                />
               </div>
 
               {/* Save / Cancel */}

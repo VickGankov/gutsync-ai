@@ -50,6 +50,35 @@ export function pickBestProduct(query: string, hits: Array<{ product_name?: stri
   return best && best.score >= 0.6 ? best.match : null;
 }
 
+const FDC_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
+
+/** USDA FoodData Central "Branded" foods: US label data incl. many store brands. Key: FDC_API_KEY (DEMO_KEY is heavily rate limited). */
+export async function searchFdc(query: string, fetchImpl: typeof fetch = fetch, timeoutMs = 4000): Promise<ProductMatch | null> {
+  const key = process.env.FDC_API_KEY || "DEMO_KEY";
+  const url = `${FDC_URL}?${new URLSearchParams({ api_key: key, query, dataType: "Branded", pageSize: "10" })}`;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(url, { headers: { Accept: "application/json" }, signal: ctl.signal });
+    if (!res.ok) return null;
+    const data = await res.json() as { foods?: Array<{ description?: string; brandOwner?: string; brandName?: string; ingredients?: string }> };
+    return pickBestProduct(query, (data.foods ?? []).map(f => ({
+      product_name: f.description, brands: `${f.brandName ?? ""} ${f.brandOwner ?? ""}`, ingredients_text: f.ingredients,
+    })));
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Ask every source at once; USDA (US labels) wins over Open Food Facts when both match. */
+export async function searchAllSources(query: string): Promise<ProductMatch | null> {
+  const [fdc, off] = await Promise.all([searchFdc(query), searchOpenFoodFacts(query)]);
+  console.log(`[product] "${query}" -> usda:${fdc ? "hit" : "miss"} off:${off ? "hit" : "miss"}`);
+  return fdc ?? off;
+}
+
 export async function searchOpenFoodFacts(query: string, fetchImpl: typeof fetch = fetch, timeoutMs = 4000): Promise<ProductMatch | null> {
   const url = `${SEARCH_URL}?${new URLSearchParams({
     search_terms: query, search_simple: "1", action: "process", json: "1", page_size: "8",
@@ -78,7 +107,7 @@ export interface ProductStore {
 export async function findProduct(
   name: string,
   store: ProductStore,
-  search: (q: string) => Promise<ProductMatch | null> = q => searchOpenFoodFacts(q),
+  search: (q: string) => Promise<ProductMatch | null> = searchAllSources,
 ): Promise<ProductMatch | null> {
   const key = `pkg ${normalizeFoodKey(name)}`.slice(0, 160);
   try {
@@ -91,4 +120,15 @@ export async function findProduct(
   const match = await search(name);
   store.save({ productKey: key, name: match?.name ?? name, ingredients: match?.ingredients ?? [], found: !!match }).catch(() => {});
   return match;
+}
+
+/** "Kirkland Signature vitrain ZERO acai blueberry pomegranate vitamin-enhanced water beverage" -> "Vitrain Zero Acai Blueberry Pomegranate". */
+export function shortProductName(name: string): string {
+  let t = name.replace(/\s+/g, " ").trim();
+  t = t.replace(/^(kirkland signature|kirkland|costco|trader joe'?s|great value|great value brand|365 whole foods market|365)\s+/i, "");
+  t = t.replace(/\b(vitamin[- ]enhanced|flavored with (other )?natural flavors|enhanced with [^,]*|water beverage|beverage|drink|bottle of|can of)\b/gi, " ");
+  t = t.replace(/[,(].*$/, "").replace(/\s+/g, " ").trim();
+  const w = t.split(" ").filter(Boolean).slice(0, 5);
+  if (!w.length) return name.trim();
+  return w.map(x => (x === x.toUpperCase() && x.length > 3) || /^[a-z]/.test(x) ? x[0].toUpperCase() + x.slice(1).toLowerCase() : x).join(" ");
 }

@@ -8,6 +8,7 @@ import {
   type FoodFact, type FoodCategory, type FodmapLevel,
 } from "../shared/foodCache";
 import { classifyIngredients } from "../shared/ingredients";
+import { shortProductName } from "./productLookup";
 import type { MealFood } from "../drizzle/schema";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -98,7 +99,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
       if (labelled.includes(i)) {
         const v = classifyIngredients(i.labelIngredients);
         return {
-          name: displayName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
+          name: shortProductName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
           ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
           packaged: true, basis: "label" as const, ingredients: i.labelIngredients,
         };
@@ -107,7 +108,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
       if (hit) {
         const v = classifyIngredients(hit.ingredients);
         return {
-          name: displayName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
+          name: shortProductName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
           ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
           packaged: true, basis: "database" as const, ingredients: hit.ingredients,
         };
@@ -118,7 +119,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
         const likely = (i.likelyTriggers ?? []).filter(t => !(sugarFree && /sugar|syrup|fructose|glucose|honey|agave/i.test(t)));
         const verdict = classifyIngredients(likely);
         return {
-          name: displayName(i.name), category: "other" as const, fodmap: likely.length ? verdict.fodmap : sugarFree ? "low" as const : "moderate" as const,
+          name: shortProductName(i.name), category: "other" as const, fodmap: likely.length ? verdict.fodmap : sugarFree ? "low" as const : "moderate" as const,
           hiddenIngredients: likely,
           ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
           packaged: true, basis: "estimate" as const,
@@ -359,7 +360,7 @@ export function applyLabelToFoods(foods: MealFood[], label: { productName: strin
   const v = classifyIngredients(label.ingredients);
   return foods.map((f, i) => i !== best ? f : {
     ...f,
-    name: label.productName || f.name,
+    name: label.productName ? shortProductName(label.productName) : f.name,
     fodmap: v.fodmap,
     hiddenIngredients: v.triggers,
     ...(label.proteinGrams > 0 ? { proteinGrams: Math.round(label.proteinGrams) } : {}),

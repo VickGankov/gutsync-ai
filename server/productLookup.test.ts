@@ -54,3 +54,19 @@ describe("findProduct", () => {
     expect(store.save).toHaveBeenCalledWith(expect.objectContaining({ found: true, ingredients: ["x", "y"] }));
   });
 });
+
+import { shortProductName, searchFdc } from "./productLookup";
+describe("shortProductName", () => {
+  it("drops brand and marketing words and caps length", () => {
+    expect(shortProductName("Kirkland Signature vitrain ZERO acai blueberry pomegranate vitamin-enhanced water beverage")).toBe("Vitrain Zero Acai Blueberry Pomegranate");
+    expect(shortProductName("Coca-Cola Zero Sugar")).toBe("Coca-Cola Zero Sugar");
+  });
+});
+describe("searchFdc", () => {
+  it("maps branded results and returns null on failure", async () => {
+    const ok = (async () => ({ ok: true, json: async () => ({ foods: [{ description: "VITRAIN ZERO ACAI BLUEBERRY POMEGRANATE", brandName: "KIRKLAND SIGNATURE", ingredients: "WATER, CITRIC ACID, SUCRALOSE, ACESULFAME POTASSIUM." }] }) }) as unknown as Response) as typeof fetch;
+    const r = await searchFdc("Kirkland Signature vitrain zero acai blueberry pomegranate", ok);
+    expect(r?.ingredients).toEqual(["WATER", "CITRIC ACID", "SUCRALOSE", "ACESULFAME POTASSIUM"]);
+    expect(await searchFdc("x y z", (async () => { throw new Error("x"); }) as any)).toBeNull();
+  });
+});
