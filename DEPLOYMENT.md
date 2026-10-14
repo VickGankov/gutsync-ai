@@ -54,6 +54,8 @@ Legacy fallback: if `LLM_API_KEY` / `S3_*` are not set, the app still uses `BUIL
 
 Render free services do not include Shell, so migrations run during the build with `pnpm run db:migrate`.
 
+`db:migrate` runs `drizzle-kit migrate` (journaled migrations 0000–0011) and then `scripts/migrate-manual.mjs`, which applies every other numbered `.sql` file in `drizzle/` once, in order, and records it in the `_manual_migrations` table. To add a schema change, add the next-numbered `.sql` file and deploy; no manual SQL needed. Statements that fail only because the object already exists are skipped, so hand-applied migrations are adopted safely. Any other error fails the build and the previous version stays live.
+
 After the first deploy succeeds, set `APP_BASE_URL` to the final Render/custom domain URL and redeploy.
 
 ## Migration Rules
