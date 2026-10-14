@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex, boolean } from "drizzle-orm/mysql-core";
 import type { ReintroCheckIn } from "../shared/reintro";
 
 /**
@@ -46,7 +46,7 @@ export interface MealFood {
   /** Packaged/branded product (identified by its printed name). */
   packaged?: boolean;
   /** Where the FODMAP/ingredient data came from: the product label, or an AI estimate. */
-  basis?: 'label' | 'estimate';
+  basis?: 'label' | 'database' | 'estimate';
   /** Full ingredient list when read from a label (display only). */
   ingredients?: string[];
 }
@@ -264,3 +264,13 @@ export const foodCache = mysqlTable("food_cache", {
 
 export type FoodFactRow = typeof foodCache.$inferSelect;
 export type InsertFoodFact = typeof foodCache.$inferInsert;
+
+/** Packaged-product ingredient lists from Open Food Facts, cached by normalized product key. */
+export const productCache = mysqlTable("product_cache", {
+  id: int("id").autoincrement().primaryKey(),
+  productKey: varchar("productKey", { length: 160 }).notNull().unique(),
+  name: varchar("name", { length: 200 }).notNull(),
+  ingredients: json("ingredients").$type<string[]>().notNull(),
+  found: boolean("found").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

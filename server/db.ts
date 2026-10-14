@@ -11,7 +11,7 @@ import {
   subscriptions, type InsertSubscription,
   scanUsage,
   reintroChallenges,
-  foodCache,
+  foodCache, productCache,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
@@ -411,4 +411,19 @@ export async function saveFoodFacts(facts: Array<typeof foodCache.$inferInsert>)
   const db = await getDb();
   if (!db || facts.length === 0) return;
   await db.insert(foodCache).ignore().values(facts);
+}
+
+export async function getProductCache(key: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(productCache).where(eq(productCache.productKey, key)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function saveProductCache(row: typeof productCache.$inferInsert) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(productCache).values(row).onDuplicateKeyUpdate({
+    set: { name: row.name, ingredients: row.ingredients, found: row.found, createdAt: new Date() },
+  });
 }

@@ -38,7 +38,7 @@ interface AnalyzedFood {
   proteinGrams?: number;
   packaged?: boolean;
   ingredients?: string[];
-  basis?: "label" | "estimate";
+  basis?: "label" | "database" | "estimate";
 }
 
 export default function FoodCaptureModal({ open, onClose, initialMode = "camera", uploadedFile }: FoodCaptureModalProps) {
@@ -623,8 +623,8 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
 
                       {(
                         <div className="mt-2 flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                          {food.basis === "label" ? (
-                            <span className="text-[11px] font-medium text-sage-dark bg-sage-light/50 px-2 py-0.5 rounded-full">✓ From product label</span>
+                          {food.basis === "label" || food.basis === "database" ? (
+                            <span className="text-[11px] font-medium text-sage-dark bg-sage-light/50 px-2 py-0.5 rounded-full">{food.basis === "label" ? "✓ From product label" : "✓ From Open Food Facts"}</span>
                           ) : (
                             <>
                               <span className="text-[11px] text-muted-foreground">{food.packaged ? "Ingredients estimated from the front of the pack." : "Not right? Scan the label."}</span>
@@ -649,7 +649,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                       )}
 
                       {food.packaged && food.hiddenIngredients.length === 0 && (
-                        <p className="mt-2 text-[11px] text-sage-dark">No common FODMAP triggers {food.basis === "label" ? "in the ingredients" : "likely"}.</p>
+                        <p className="mt-2 text-[11px] text-sage-dark">No common FODMAP triggers {food.basis === "estimate" ? "likely" : "in the ingredients"}.</p>
                       )}
                       {food.ingredients && food.ingredients.length > 0 && (
                         <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">Ingredients: {food.ingredients.join(", ")}</p>

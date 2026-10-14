@@ -16,7 +16,7 @@ import {
   getSymptomsByUser,
   updateSymptomSeverity,
   deleteSymptom,
-  getFoodFactsByKeys,
+  getFoodFactsByKeys, getProductCache, saveProductCache,
   saveFoodFacts,
   upsertCorrelation,
   getCorrelationsByUser,
@@ -49,6 +49,7 @@ import {
   type ReintroCheckIn,
 } from "@shared/reintro";
 import { buildFitnessSummary, DAY_MS } from "./fitness";
+import { findProduct } from "./productLookup";
 import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
@@ -170,6 +171,7 @@ async function analyzeMeal(imageUrl: string) {
     lookup: lookupFoodFacts,
     getFacts: getFoodFactsByKeys,
     saveFacts: saveFoodFacts,
+    findProduct: name => findProduct(name, { get: getProductCache, save: saveProductCache }),
     legacy: analyzeFood,
   });
 }

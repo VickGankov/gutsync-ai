@@ -125,6 +125,30 @@ describe("analyzeWithCache", () => {
     expect(r.foods[0]).toMatchObject({ basis: "estimate", fodmap: "high" });
   });
 
+  it("uses the product database's ingredient list when found", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [{ name: "Brand X sports drink", grams: 500, packaged: true, labelProteinG: 0, labelIngredients: [], likelyTriggers: [] }],
+        mealType: "snack", summary: "x",
+      }),
+      findProduct: vi.fn().mockResolvedValue({ name: "Brand X sports drink", ingredients: ["Water", "High Fructose Corn Syrup", "Citric acid"] }),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods[0]).toMatchObject({ basis: "database", fodmap: "high", ingredients: ["Water", "High Fructose Corn Syrup", "Citric acid"] });
+  });
+
+  it("falls back to the estimate when the product database misses or fails", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [{ name: "Obscure drink", grams: 300, packaged: true, labelProteinG: 0, labelIngredients: [], likelyTriggers: [] }],
+        mealType: "snack", summary: "x",
+      }),
+      findProduct: vi.fn().mockRejectedValue(new Error("down")),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods[0].basis).toBe("estimate");
+  });
+
   it("merges the same product listed twice into one item", async () => {
     const d = deps({
       identify: vi.fn().mockResolvedValue({

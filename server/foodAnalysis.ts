@@ -21,6 +21,8 @@ export interface Deps {
   lookup(items: Array<{ key: string; name: string }>): Promise<FoodFact[]>;
   getFacts(keys: string[]): Promise<FoodFact[]>;
   saveFacts(facts: FoodFact[]): Promise<void>;
+  /** Optional packaged-product lookup (Open Food Facts) returning a real ingredient list. */
+  findProduct?(name: string): Promise<{ name: string; ingredients: string[] } | null>;
   /** Original single-call analysis, used if anything in the fast path fails. */
   legacy(imageUrl: string): Promise<Analysis>;
 }
@@ -60,6 +62,15 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
     const packagedGuess = items.filter(i => i.packaged && i.labelIngredients.length < 2);
     const generic = items.filter(i => !i.packaged);
 
+    // Real ingredient lists from the product database beat any estimate; look them up in parallel.
+    const dbHits = new Map<string, { name: string; ingredients: string[] }>();
+    if (deps.findProduct && packagedGuess.length) {
+      await Promise.all(packagedGuess.map(async i => {
+        const hit = await deps.findProduct!(i.name).catch(() => null);
+        if (hit && hit.ingredients.length >= 2) dbHits.set(i.key, hit);
+      }));
+    }
+
     const genericKeys = Array.from(new Set(generic.map(i => i.key)));
     let known: FoodFact[] = [];
     if (genericKeys.length) {
@@ -90,6 +101,15 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
           name: displayName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
           ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
           packaged: true, basis: "label" as const, ingredients: i.labelIngredients,
+        };
+      }
+      const hit = dbHits.get(i.key);
+      if (hit) {
+        const v = classifyIngredients(hit.ingredients);
+        return {
+          name: displayName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
+          ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
+          packaged: true, basis: "database" as const, ingredients: hit.ingredients,
         };
       }
       if (i.packaged) {
