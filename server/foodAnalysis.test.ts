@@ -113,7 +113,7 @@ describe("analyzeWithCache", () => {
     expect(r.foods[0].hiddenIngredients).toEqual(expect.arrayContaining(["chicory root fiber", "maltitol"]));
   });
 
-  it("estimates packaged products with no legible label, but never caches them", async () => {
+  it("does not invent ingredients for packaged products with no legible label", async () => {
     const d = deps({
       identify: vi.fn().mockResolvedValue({
         foods: [{ name: "Brand X cola", grams: 355, packaged: true, labelProteinG: 0, labelIngredients: [] }],
@@ -122,9 +122,9 @@ describe("analyzeWithCache", () => {
       lookup: vi.fn().mockResolvedValue([fact("pkg brand x cola", { category: "other", proteinPer100gTenths: 0, source: "ai", hiddenIngredients: ["high-fructose corn syrup"], fodmap: "high" })]),
     });
     const r = await analyzeWithCache("img", d, quiet);
-    expect(d.lookup).toHaveBeenCalledWith([{ key: "pkg brand x cola", name: "Brand X cola" }]);
+    expect(d.lookup).not.toHaveBeenCalled();
     expect(d.saveFacts).not.toHaveBeenCalled();
-    expect(r.foods[0]).toMatchObject({ packaged: true, basis: "estimate", fodmap: "high" });
+    expect(r.foods[0]).toMatchObject({ packaged: true, basis: "estimate", fodmap: "moderate", hiddenIngredients: [] });
   });
 
   it("reports timings and cache hits", async () => {

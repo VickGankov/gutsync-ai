@@ -53,11 +53,8 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
     const missing = genericKeys.filter(k => !byKey.has(k));
 
     // One lookup call covers unknown generic foods and un-labelled packaged products.
-    const guessKeys = Array.from(new Set(packagedGuess.map(i => `pkg ${i.key}`)));
-    const toLookup = [
-      ...missing.map(k => ({ key: k, name: generic.find(i => i.key === k)!.name })),
-      ...guessKeys.map(k => ({ key: k, name: packagedGuess.find(i => `pkg ${i.key}` === k)!.name })),
-    ];
+    // Un-labelled packaged products get NO AI lookup: it could only invent ingredients from the name.
+    const toLookup = missing.map(k => ({ key: k, name: generic.find(i => i.key === k)!.name }));
     const lookedUp = new Map<string, FoodFact>();
     let lookupMs = 0;
     if (toLookup.length) {
@@ -80,10 +77,12 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
         };
       }
       if (i.packaged) {
-        const f = lookedUp.get(`pkg ${i.key}`)!;
+        // Without a label we can't know the ingredients, so show none rather than invent any.
+        const sugarFree = /\b(zero|diet|sugar[- ]?free|no sugar|unsweetened)\b/i.test(i.name);
         return {
-          name: displayName(i.name), category: f.category, fodmap: f.fodmap, hiddenIngredients: f.hiddenIngredients,
-          proteinGrams: i.labelProteinG > 0 ? Math.round(i.labelProteinG) : proteinForPortion(f.proteinPer100gTenths, i.grams),
+          name: displayName(i.name), category: "other" as const, fodmap: sugarFree ? "low" as const : "moderate" as const,
+          hiddenIngredients: [] as string[],
+          ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
           packaged: true, basis: "estimate" as const,
         };
       }
