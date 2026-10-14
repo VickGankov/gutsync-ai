@@ -149,6 +149,22 @@ describe("analyzeWithCache", () => {
     expect(r.foods[0].basis).toBe("estimate");
   });
 
+  it("attaches drink volume so it counts toward water", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [
+          { ...G, name: "Vitrain Zero lemonade", grams: 591, packaged: true, drinkMl: 591 },
+          { ...G, name: "banana", grams: 120 },
+        ],
+        mealType: "snack", summary: "x",
+      }),
+      getFacts: vi.fn().mockResolvedValue([fact("banana")]),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods.find(f => f.name.startsWith("Vitrain"))?.volumeMl).toBe(591);
+    expect(r.foods.find(f => f.name === "Banana")?.volumeMl).toBeUndefined();
+  });
+
   it("merges the same product listed twice into one item", async () => {
     const d = deps({
       identify: vi.fn().mockResolvedValue({

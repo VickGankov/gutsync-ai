@@ -112,6 +112,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
       fodmap: f.fodmap as FoodItem["fodmap"],
       hiddenIngredients: f.hiddenIngredients ?? [],
       ...(f.ingredients?.length ? { ingredients: f.ingredients } : {}),
+      ...(f.volumeMl ? { volumeMl: f.volumeMl } : {}),
     }));
     updateMealMut.mutate({ id: meal.id, mealType, foods: sanitizedFoods });
   }, [foods, meal.id, mealType, updateMealMut]);

@@ -8,6 +8,7 @@ export interface FoodItem {
   hiddenIngredients: string[];
   /** Full ingredient list when known (label or product database). */
   ingredients?: string[];
+  volumeMl?: number;
 }
 
 export interface MealEntry {

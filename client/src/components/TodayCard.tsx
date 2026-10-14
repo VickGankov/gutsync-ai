@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Activity, ArrowRight, Check, Dumbbell, UtensilsCrossed } from "lucide-react";
+import { Activity, ArrowRight, Check, Droplets, Dumbbell, UtensilsCrossed } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatTimeAgo, getSymptomLabel } from "@/lib/store";
 import { summarizeToday } from "@shared/today";
@@ -13,12 +13,12 @@ interface Props {
   reintroCheckInPending: boolean;
 }
 
-function Tile({ href, icon, value, label }: { href: string; icon: React.ReactNode; value: string; label: string }) {
+function Tile({ href, icon, value, unit, label }: { href: string; icon: React.ReactNode; value: string; unit?: string; label: string }) {
   return (
     <Link href={href} className="flex-1 min-w-0 block">
-      <div className="rounded-2xl bg-white/60 dark:bg-white/10 border border-white/70 dark:border-white/10 px-3 py-2.5 active:scale-95 transition-transform cursor-pointer">
-        <div className="flex items-center gap-1.5 text-sage-dark [&_svg]:shrink-0">{icon}<span className="text-[10px] uppercase tracking-wider font-medium">{label}</span></div>
-        <p className="text-lg font-display text-foreground mt-0.5 truncate">{value}</p>
+      <div className="rounded-2xl bg-white/60 dark:bg-white/10 border border-white/70 dark:border-white/10 px-2 py-2.5 active:scale-95 transition-transform cursor-pointer">
+        <div className="flex items-center gap-1 text-sage-dark [&_svg]:hidden">{icon}<span className="text-[9px] uppercase tracking-wide font-medium truncate">{label}</span></div>
+        <p className="text-base font-display text-foreground mt-0.5 truncate">{value}{unit && <span className="text-[10px] font-sans text-muted-foreground ml-0.5">{unit}</span>}</p>
       </div>
     </Link>
   );
@@ -32,6 +32,8 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
   const fitness = trpc.fitness.summary.useQuery({ days: 1, tzOffsetMinutes: d.getTimezoneOffset() });
   const proteinG = fitness.data ? fitness.data.today?.proteinG ?? 0 : null;
   const proteinTarget = fitness.data?.targets.proteinTargetG ?? null;
+  const waterMl = fitness.data ? fitness.data.today?.waterMl ?? 0 : null;
+  const waterTargetMl = fitness.data?.targets.waterTargetMl ?? null;
 
   const s = summarizeToday({
     now, startOfDay, hour: d.getHours(), meals, symptoms,
@@ -69,14 +71,22 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
         {headline} {lastMealText && <span className="text-muted-foreground text-sm font-sans">{lastMealText}</span>}
       </p>
 
-      <div className="flex gap-2 mt-4 relative">
+      <div className="flex gap-1.5 mt-4 relative">
         <Tile href="/food" icon={<UtensilsCrossed className="w-3 h-3" />} label="Meals" value={String(s.mealsToday)} />
         <Tile href="/symptoms" icon={<Activity className="w-3 h-3" />} label="Symptoms" value={String(s.symptomsToday)} />
         <Tile
           href="/progress"
           icon={<Dumbbell className="w-3 h-3" />}
           label="Protein"
-          value={proteinG === null ? "–" : proteinTarget ? `${proteinG}/${proteinTarget}g` : `${proteinG}g`}
+          unit="g"
+          value={proteinG === null ? "–" : proteinTarget ? `${proteinG}/${proteinTarget}` : `${proteinG}`}
+        />
+        <Tile
+          href="/progress"
+          icon={<Droplets className="w-3 h-3" />}
+          label="Water"
+          unit="L"
+          value={waterMl === null ? "–" : waterTargetMl ? `${(waterMl / 1000).toFixed(1)}/${(waterTargetMl / 1000).toFixed(1)}` : (waterMl / 1000).toFixed(1)}
         />
       </div>
 

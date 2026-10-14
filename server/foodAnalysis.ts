@@ -14,7 +14,7 @@ import type { MealFood } from "../drizzle/schema";
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export interface Timings { path: "fast" | "legacy"; identifyMs: number; lookupMs: number; totalMs: number; foods: number; cacheHits: number }
 export interface Analysis { foods: MealFood[]; mealType: MealType; summary: string; timings?: Timings }
-export interface IdentifiedFood { name: string; grams: number; packaged: boolean; labelIngredients: string[]; labelProteinG: number; likelyTriggers?: string[] }
+export interface IdentifiedFood { name: string; grams: number; packaged: boolean; labelIngredients: string[]; labelProteinG: number; likelyTriggers?: string[]; drinkMl?: number }
 export interface Identified { foods: IdentifiedFood[]; mealType: MealType; summary: string }
 
 export interface Deps {
@@ -53,6 +53,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
         labelIngredients: f.labelIngredients.length > prev.labelIngredients.length ? f.labelIngredients : prev.labelIngredients,
         likelyTriggers: Array.from(new Set([...(prev.likelyTriggers ?? []), ...(f.likelyTriggers ?? [])])),
         labelProteinG: Math.max(prev.labelProteinG, f.labelProteinG),
+        drinkMl: Math.max(prev.drinkMl ?? 0, f.drinkMl ?? 0),
       });
     }
     const items = Array.from(merged.values());
@@ -95,7 +96,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
       if (toSave.length) deps.saveFacts(toSave).catch(() => { /* caching is best-effort */ });
     }
 
-    const foods: MealFood[] = items.map(i => {
+    const built: MealFood[] = items.map(i => {
       if (labelled.includes(i)) {
         const v = classifyIngredients(i.labelIngredients);
         return {
@@ -131,6 +132,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
         proteinGrams: proteinForPortion(f.proteinPer100gTenths, i.grams),
       };
     });
+    const foods: MealFood[] = built.map((f, idx) => (items[idx].drinkMl ? { ...f, volumeMl: items[idx].drinkMl } : f));
     const timings: Timings = {
       path: "fast", identifyMs: t1 - t0, lookupMs, totalMs: Date.now() - t0,
       foods: items.length, cacheHits: genericKeys.length - missing.length,
@@ -154,12 +156,13 @@ export async function identifyFoods(imageUrl: string): Promise<Identified> {
       {
         role: "system",
         content: `You identify foods in meal photos for a gut-health tracker. Return JSON only.
-- foods: every distinct food or drink item visible, including visible sauces and dressings. For each: name, estimatedGrams (grams or mL of that item in the visible portion), packaged, labelIngredients, likelyTriggers, labelProteinG.
+- foods: every distinct food or drink item visible, including visible sauces and dressings. For each: name, estimatedGrams (grams or mL of that item in the visible portion), packaged, labelIngredients, likelyTriggers, drinkMl, labelProteinG.
 - One entry per physical item. Never list a package and its contents separately, and never list the same product twice (a bottle and its label are one item).
 - For unpackaged food use plain, generic, singular, lowercase names without cooking adjectives: "chicken breast", "white rice", "broccoli", "tomato sauce", "egg".
 - For a packaged or branded product (bottle, can, wrapper, box), set packaged=true (any bottled or canned drink, snack, bar or boxed item with a brand on it is packaged, even if it looks like plain lemonade or juice) and name it exactly as printed on the package: brand plus product name and flavor, e.g. "Kirkland Signature zero sugar vitamin water, lemonade". Read the whole label; if it says zero sugar, diet or sparkling, say so in the name.
 - labelIngredients: if the product's ingredient list is legible anywhere in the photo, transcribe it exactly as printed, one entry per ingredient. Otherwise an empty array. Never guess ingredients.
 - likelyTriggers: only for packaged items whose ingredient list is NOT legible. List the FODMAP-relevant ingredients this product very likely contains (e.g. "high-fructose corn syrup", "sorbitol", "inulin", "lactose", "garlic", "onion"), judged from the brand, product type and front-of-pack claims. Zero sugar, diet, sugar free or zero calorie drinks contain no sugar or syrup: list only sweeteners that are actually likely (sucralose and acesulfame potassium are fine, leave them out). If unsure, leave a trigger out. Empty array when none are likely.
+- drinkMl: for non-alcoholic drinks only (water, juice, soda, tea, coffee, milk, sports drinks, vitamin water), the volume in mL being consumed: use the size printed on the container if visible (20 FL OZ = 591 mL, 16.9 FL OZ = 500 mL, 12 FL OZ = 355 mL), otherwise a typical size for the container shown. 0 for food and alcoholic drinks.
 - labelProteinG: grams of protein per container or serving shown on a nutrition label or front panel for what is being consumed; 0 if not visible.
 - mealType: breakfast, lunch, dinner or snack, inferred from the foods.
 - summary: one short sentence describing the meal.
@@ -191,9 +194,10 @@ If there is no food in the photo, return an empty foods array.`,
                   packaged: { type: "boolean" },
                   labelIngredients: { type: "array", items: { type: "string" } },
                   likelyTriggers: { type: "array", items: { type: "string" } },
+                  drinkMl: { type: "number" },
                   labelProteinG: { type: "number" },
                 },
-                required: ["name", "estimatedGrams", "packaged", "labelIngredients", "likelyTriggers", "labelProteinG"],
+                required: ["name", "estimatedGrams", "packaged", "labelIngredients", "likelyTriggers", "drinkMl", "labelProteinG"],
                 additionalProperties: false,
               },
             },
@@ -218,6 +222,7 @@ If there is no food in the photo, return an empty foods array.`,
         grams: typeof f.estimatedGrams === "number" && f.estimatedGrams > 0 ? f.estimatedGrams : 100,
         packaged: f.packaged === true,
         labelIngredients: Array.isArray(f.labelIngredients) ? f.labelIngredients.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim()) : [],
+        drinkMl: typeof f.drinkMl === "number" && f.drinkMl > 0 ? Math.min(5000, Math.round(f.drinkMl)) : 0,
         likelyTriggers: Array.isArray(f.likelyTriggers) ? f.likelyTriggers.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim()) : [],
         labelProteinG: typeof f.labelProteinG === "number" && f.labelProteinG > 0 ? f.labelProteinG : 0,
       })),

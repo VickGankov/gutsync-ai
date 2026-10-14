@@ -406,6 +406,7 @@ export const appRouter = router({
           hiddenIngredients: z.array(z.string()),
           proteinGrams: z.number().min(0).max(500).optional(),
           ingredients: z.array(z.string().max(160)).max(80).optional(),
+          volumeMl: z.number().int().min(0).max(5000).optional(),
         })),
         notes: z.string().optional(),
         photoUrl: z.string().optional(),
@@ -433,6 +434,7 @@ export const appRouter = router({
           hiddenIngredients: z.array(z.string()),
           proteinGrams: z.number().min(0).max(500).optional(),
           ingredients: z.array(z.string().max(160)).max(80).optional(),
+          volumeMl: z.number().int().min(0).max(5000).optional(),
         })).optional(),
         notes: z.string().optional(),
       }))

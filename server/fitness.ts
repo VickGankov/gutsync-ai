@@ -19,6 +19,15 @@ export function mealProteinGrams(foods: MealFood[] | null | undefined): number {
   }, 0);
 }
 
+/** Total volume of non-alcoholic drinks in a meal, in mL (counts toward water). */
+export function mealWaterMl(foods: MealFood[] | null | undefined): number {
+  if (!Array.isArray(foods)) return 0;
+  return foods.reduce((sum, f) => {
+    const v = typeof f.volumeMl === "number" && Number.isFinite(f.volumeMl) ? f.volumeMl : 0;
+    return sum + Math.max(0, v);
+  }, 0);
+}
+
 /** Epley estimated one-rep max. Returns the weight itself for single reps. */
 export function estimatedOneRepMax(weightLb: number, reps: number): number {
   if (reps <= 1) return weightLb;
@@ -61,7 +70,10 @@ export function buildFitnessSummary(params: {
 
   for (const m of params.meals) {
     const d = byDate.get(key(m.loggedAt));
-    if (d) d.proteinG += mealProteinGrams(m.foods);
+    if (d) {
+      d.proteinG += mealProteinGrams(m.foods);
+      d.waterMl += mealWaterMl(m.foods);
+    }
   }
   for (const e of params.intake) {
     const d = byDate.get(key(e.loggedAt));

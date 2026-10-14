@@ -37,6 +37,7 @@ interface AnalyzedFood {
   fodmap: "low" | "moderate" | "high";
   hiddenIngredients: string[];
   proteinGrams?: number;
+  volumeMl?: number;
   packaged?: boolean;
   ingredients?: string[];
   basis?: "label" | "database" | "estimate";
@@ -191,6 +192,11 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, name } : f));
   };
 
+  const handleUpdateVolume = (index: number, value: string) => {
+    const n = value === "" ? 0 : Math.max(0, Math.min(5000, Math.round(Number(value))));
+    setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, volumeMl: Number.isFinite(n) && n > 0 ? n : undefined } : f));
+  };
+
   const handleUpdateProtein = (index: number, value: string) => {
     const n = value === "" ? undefined : Math.max(0, Math.min(500, Number(value)));
     setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, proteinGrams: Number.isFinite(n) ? n : undefined } : f));
@@ -261,6 +267,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           fodmap: f.fodmap,
           hiddenIngredients: f.hiddenIngredients,
           ...(typeof f.proteinGrams === "number" ? { proteinGrams: f.proteinGrams } : {}),
+          ...(f.volumeMl && f.volumeMl > 0 ? { volumeMl: Math.round(f.volumeMl) } : {}),
           ...(f.ingredients?.length ? { ingredients: f.ingredients } : {}),
         })),
         notes: mealSummary || undefined,
@@ -608,6 +615,25 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                           ) : typeof food.proteinGrams === "number" && food.proteinGrams > 0 ? (
                             <p className="mt-1.5 text-xs text-muted-foreground">~{Math.round(food.proteinGrams)} g protein</p>
                           ) : null}
+                          {typeof food.volumeMl === "number" && food.volumeMl > 0 && (
+                            editingIndex === i ? (
+                              <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                                💧 Counts toward water
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={5000}
+                                  value={food.volumeMl}
+                                  onChange={(e) => handleUpdateVolume(i, e.target.value)}
+                                  className="w-20 bg-background border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                />
+                                mL
+                              </label>
+                            ) : (
+                              <p className="mt-1.5 text-xs text-sky-700 dark:text-sky-300">💧 {food.volumeMl} mL counts toward water · tap to adjust</p>
+                            )
+                          )}
                         </div>
 
                         {/* Remove button */}

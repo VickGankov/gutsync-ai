@@ -69,3 +69,21 @@ describe("fitness helpers", () => {
     expect(s.lifts[0].changePct).toBeLessThan(-5);
   });
 });
+
+import { mealWaterMl } from "./fitness";
+describe("mealWaterMl", () => {
+  it("sums drink volumes and ignores foods", () => {
+    const foods: any[] = [{ name: "Water", volumeMl: 500 }, { name: "Rice" }, { name: "Juice", volumeMl: 250 }, { name: "Bad", volumeMl: -5 }];
+    expect(mealWaterMl(foods)).toBe(750);
+    expect(mealWaterMl(undefined)).toBe(0);
+  });
+  it("counts drinks in saved meals toward the day's water", () => {
+    const now = Date.UTC(2026, 9, 14, 20, 0, 0);
+    const s = buildFitnessSummary({
+      now, days: 1, tzOffsetMinutes: 0,
+      meals: [{ foods: [{ name: "Vitamin water", volumeMl: 591 }] as any, loggedAt: now - 1000 }],
+      intake: [{ kind: "water", amount: 250, loggedAt: now - 2000 }], weights: [], lifts: [],
+    });
+    expect(s.today?.waterMl).toBe(841);
+  });
+});

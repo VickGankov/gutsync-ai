@@ -49,6 +49,8 @@ export interface MealFood {
   basis?: 'label' | 'database' | 'estimate';
   /** Full ingredient list when read from a label (display only). */
   ingredients?: string[];
+  /** Non-alcoholic drink volume in mL; counts toward daily water. */
+  volumeMl?: number;
 }
 
 export type Meal = typeof meals.$inferSelect;
