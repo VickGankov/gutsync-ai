@@ -275,7 +275,7 @@ export default function Progress() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={last14} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
               <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 10 }} interval={2} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, (max: number) => Math.ceil((Math.max(max, proteinTarget) * 1.1) / 50) * 50]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v: number) => [`${v} g`, "Protein"]} labelFormatter={shortDate} />
               <ReferenceLine y={proteinTarget} stroke={CORAL} strokeDasharray="4 4" />
               <Bar dataKey="proteinG" fill={PRIMARY} radius={[4, 4, 0, 0]} />
