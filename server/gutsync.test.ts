@@ -386,7 +386,7 @@ describe("GutSync Server Procedures", () => {
   describe("meals.analyzePhoto — free tier limit enforcement", () => {
     it("blocks scan when free limit is reached", async () => {
       vi.mocked(db.isPremium).mockResolvedValue(false);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(3); // at limit
+      vi.mocked(db.getTodayScanCount).mockResolvedValue(10); // at limit
 
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
