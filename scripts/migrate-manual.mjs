@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import mysql from "mysql2/promise";
+import { mysqlOptionsFromUrl } from "../shared/dbConnection.mjs";
 
 const DRIZZLE_DIR = path.resolve(process.argv[2] ?? "drizzle");
 const TABLE = "_manual_migrations";
@@ -55,7 +56,7 @@ async function main() {
   const journalTags = (journal.entries ?? []).map(e => e.tag);
   const files = fs.readdirSync(DRIZZLE_DIR);
 
-  const conn = await mysql.createConnection(url);
+  const conn = await mysql.createConnection(mysqlOptionsFromUrl(url));
   try {
     await conn.query(
       `CREATE TABLE IF NOT EXISTS \`${TABLE}\` (
