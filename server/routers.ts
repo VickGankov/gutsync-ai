@@ -28,6 +28,15 @@ import {
   createReintroChallenge,
   updateReintroCheckIns,
   finishReintroChallenge,
+  getFitnessProfile,
+  upsertFitnessProfile,
+  createWeightLog,
+  deleteWeightLog,
+  createIntakeLog,
+  deleteIntakeLog,
+  createLiftLog,
+  deleteLiftLog,
+  getFitnessDataInRange,
 } from "./db";
 import {
   REINTRO_GROUPS,
@@ -35,6 +44,7 @@ import {
   currentChallengeDay,
   type ReintroCheckIn,
 } from "@shared/reintro";
+import { buildFitnessSummary, DAY_MS } from "./fitness";
 import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
 
@@ -67,10 +77,11 @@ async function analyzeFood(imageUrl: string): Promise<{
         role: "system",
         content: `You are GutSync, a specialized food analysis assistant for people with IBS and gut health issues.
 Analyze the food photo and return a JSON object with:
-- foods: array of food items, each with { name, category, fodmap, hiddenIngredients }
+- foods: array of food items, each with { name, category, fodmap, hiddenIngredients, proteinGrams }
   - category: one of "protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"
   - fodmap: one of "low", "moderate", "high" (based on Monash University FODMAP guidelines)
   - hiddenIngredients: array of likely hidden ingredients (e.g. garlic powder, onion, HFCS, wheat)
+  - proteinGrams: your best estimate of grams of protein in the visible portion (number, 0 if negligible)
 - mealType: one of "breakfast", "lunch", "dinner", "snack" (infer from the food items)
 - summary: a brief 1-sentence description of the meal
 
@@ -116,8 +127,12 @@ Be thorough about hidden ingredients that are common IBS triggers. Consider:
                     items: { type: "string" },
                     description: "Likely hidden ingredients that could trigger IBS",
                   },
+                  proteinGrams: {
+                    type: "number",
+                    description: "Estimated grams of protein in the visible portion",
+                  },
                 },
-                required: ["name", "category", "fodmap", "hiddenIngredients"],
+                required: ["name", "category", "fodmap", "hiddenIngredients", "proteinGrams"],
                 additionalProperties: false,
               },
             },
@@ -332,6 +347,7 @@ export const appRouter = router({
           category: z.enum(["protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"]),
           fodmap: z.enum(["low", "moderate", "high"]),
           hiddenIngredients: z.array(z.string()),
+          proteinGrams: z.number().min(0).max(500).optional(),
         })),
         notes: z.string().optional(),
         photoUrl: z.string().optional(),
@@ -357,6 +373,7 @@ export const appRouter = router({
           category: z.enum(["protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"]),
           fodmap: z.enum(["low", "moderate", "high"]),
           hiddenIngredients: z.array(z.string()),
+          proteinGrams: z.number().min(0).max(500).optional(),
         })).optional(),
         notes: z.string().optional(),
       }))
@@ -386,7 +403,7 @@ export const appRouter = router({
 
     log: protectedProcedure
       .input(z.object({
-        type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"]),
+        type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "acid_reflux", "vomiting", "low_appetite", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"]),
         severity: z.number().min(1).max(5),
         source: z.enum(["manual"]).optional(),
         notes: z.string().optional(),
@@ -480,6 +497,118 @@ export const appRouter = router({
           status: "abandoned", outcome: null, toleratedDay: null, lowConfidence: false, finishedAt: Date.now(),
         });
         return { success: true };
+      }),
+  }),
+
+  fitness: router({
+    profile: protectedProcedure.query(async ({ ctx }) => {
+      const p = await getFitnessProfile(ctx.user.id);
+      return {
+        proteinTargetG: p?.proteinTargetG ?? 150,
+        waterTargetMl: p?.waterTargetMl ?? 3000,
+      };
+    }),
+
+    setProfile: protectedProcedure
+      .input(z.object({
+        proteinTargetG: z.number().int().min(20).max(500),
+        waterTargetMl: z.number().int().min(500).max(10000),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await upsertFitnessProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    logWeight: protectedProcedure
+      .input(z.object({ weightLb: z.number().min(50).max(800) }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createWeightLog(ctx.user.id, Math.round(input.weightLb * 10), Date.now());
+        return { id };
+      }),
+
+    deleteWeight: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteWeightLog(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    logIntake: protectedProcedure
+      .input(z.object({
+        kind: z.enum(["protein", "water"]),
+        amount: z.number().int().min(1).max(5000),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createIntakeLog(ctx.user.id, input.kind, input.amount, Date.now());
+        return { id };
+      }),
+
+    deleteIntake: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteIntakeLog(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    logLift: protectedProcedure
+      .input(z.object({
+        exercise: z.string().trim().min(1).max(100),
+        weightLb: z.number().int().min(0).max(2000),
+        reps: z.number().int().min(1).max(100),
+        sets: z.number().int().min(1).max(20).optional(),
+        notes: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createLiftLog(ctx.user.id, {
+          exercise: input.exercise,
+          weightLb: input.weightLb,
+          reps: input.reps,
+          sets: input.sets ?? 1,
+          notes: input.notes ?? null,
+          loggedAt: Date.now(),
+        });
+        return { id };
+      }),
+
+    deleteLift: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteLiftLog(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    summary: protectedProcedure
+      .input(z.object({
+        days: z.number().int().min(1).max(120).default(28),
+        tzOffsetMinutes: z.number().int().min(-840).max(840).default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        const now = Date.now();
+        const fromTs = now - (input.days + 1) * DAY_MS;
+        const [mealsData, fitnessData, profile] = await Promise.all([
+          getMealsInRange(ctx.user.id, fromTs, now),
+          getFitnessDataInRange(ctx.user.id, fromTs, now),
+          getFitnessProfile(ctx.user.id),
+        ]);
+        const summary = buildFitnessSummary({
+          now,
+          days: input.days,
+          tzOffsetMinutes: input.tzOffsetMinutes,
+          meals: mealsData.map(m => ({ foods: m.foods as MealFood[], loggedAt: m.loggedAt })),
+          intake: fitnessData.intake,
+          weights: fitnessData.weights,
+          lifts: fitnessData.lifts,
+        });
+        return {
+          ...summary,
+          targets: {
+            proteinTargetG: profile?.proteinTargetG ?? 150,
+            waterTargetMl: profile?.waterTargetMl ?? 3000,
+          },
+          recentIntake: fitnessData.intake.slice(0, 10),
+          recentWeights: fitnessData.weights.slice(0, 10).map(w => ({ id: w.id, weightLb: w.weightLb10 / 10, loggedAt: w.loggedAt })),
+          recentLifts: fitnessData.lifts.slice(0, 15),
+        };
       }),
   }),
 

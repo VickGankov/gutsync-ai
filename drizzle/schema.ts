@@ -41,6 +41,8 @@ export interface MealFood {
   category: 'protein' | 'carb' | 'fat' | 'vegetable' | 'fruit' | 'dairy' | 'grain' | 'other';
   fodmap: 'low' | 'moderate' | 'high';
   hiddenIngredients: string[];
+  /** Estimated grams of protein in this item (AI estimate, user-editable). */
+  proteinGrams?: number;
 }
 
 export type Meal = typeof meals.$inferSelect;
@@ -56,6 +58,7 @@ export const symptoms = mysqlTable("symptoms", {
     // Negative symptoms
     "bloating", "abdominal_pain", "gas", "nausea",
     "fatigue", "headache", "diarrhea", "constipation",
+    "acid_reflux", "vomiting", "low_appetite",
     // Positive outcomes
     "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"
   ]).notNull(),
@@ -176,3 +179,62 @@ export const reintroChallenges = mysqlTable("reintro_challenges", {
 });
 
 export type ReintroChallenge = typeof reintroChallenges.$inferSelect;
+
+/**
+ * Per-user fitness targets (protein / water).
+ */
+export const fitnessProfile = mysqlTable("fitness_profile", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  proteinTargetG: int("proteinTargetG").default(150).notNull(),
+  waterTargetMl: int("waterTargetMl").default(3000).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FitnessProfile = typeof fitnessProfile.$inferSelect;
+
+/**
+ * Body-weight entries. One row per weigh-in.
+ */
+export const weightLogs = mysqlTable("weight_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Tenths of a pound (e.g. 1854 = 185.4 lb) to avoid float columns. */
+  weightLb10: int("weightLb10").notNull(),
+  loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WeightLog = typeof weightLogs.$inferSelect;
+
+/**
+ * Quick-add intake entries that aren't photo meals (protein shakes, water).
+ */
+export const intakeLogs = mysqlTable("intake_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  kind: mysqlEnum("kind", ["protein", "water"]).notNull(),
+  amount: int("amount").notNull(), // grams for protein, ml for water
+  loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type IntakeLog = typeof intakeLogs.$inferSelect;
+
+/**
+ * Strength training sets. One row per exercise entry (top set).
+ */
+export const liftLogs = mysqlTable("lift_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  exercise: varchar("exercise", { length: 100 }).notNull(),
+  weightLb: int("weightLb").notNull(),
+  reps: int("reps").notNull(),
+  sets: int("sets").default(1).notNull(),
+  notes: text("notes"),
+  loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LiftLog = typeof liftLogs.$inferSelect;

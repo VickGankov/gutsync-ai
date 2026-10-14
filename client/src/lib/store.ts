@@ -22,7 +22,7 @@ export interface MealEntry {
 export interface SymptomEntry {
   id: number;
   userId: number;
-  type: 'bloating' | 'abdominal_pain' | 'gas' | 'nausea' | 'fatigue' | 'headache' | 'diarrhea' | 'constipation';
+  type: 'bloating' | 'abdominal_pain' | 'gas' | 'nausea' | 'fatigue' | 'headache' | 'diarrhea' | 'constipation' | 'acid_reflux' | 'vomiting' | 'low_appetite';
   severity: number;
   source: 'manual';
   notes: string | null;
@@ -75,6 +75,9 @@ export function getSymptomEmoji(type: string): string {
     headache: '🤕',
     diarrhea: '💧',
     constipation: '🧱',
+    acid_reflux: '🔥',
+    vomiting: '🤮',
+    low_appetite: '🍽️',
   };
   return map[type] || '❓';
 }
@@ -89,6 +92,9 @@ export function getSymptomLabel(type: string): string {
     headache: 'Headache',
     diarrhea: 'Diarrhea',
     constipation: 'Constipation',
+    acid_reflux: 'Acid Reflux',
+    vomiting: 'Vomiting',
+    low_appetite: 'Low Appetite',
   };
   return map[type] || type;
 }
