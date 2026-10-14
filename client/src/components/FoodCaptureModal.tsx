@@ -551,13 +551,13 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                         </button>
                       </div>
 
-                      {food.packaged && (
+                      {(
                         <div className="mt-2 flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                           {food.basis === "label" ? (
                             <span className="text-[11px] font-medium text-sage-dark bg-sage-light/50 px-2 py-0.5 rounded-full">✓ From product label</span>
                           ) : (
                             <>
-                              <span className="text-[11px] text-muted-foreground">Ingredients estimated.</span>
+                              <span className="text-[11px] text-muted-foreground">{food.packaged ? "Ingredients estimated." : "Not right? Scan the label."}</span>
                               <label className="text-[11px] font-semibold text-primary px-2.5 py-1 rounded-full border border-primary/30 cursor-pointer active:scale-95 transition-transform">
                                 {labelBusy === i ? "Reading label…" : "📷 Add ingredient label photo"}
                                 <input

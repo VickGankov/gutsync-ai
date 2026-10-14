@@ -118,7 +118,7 @@ export async function identifyFoods(imageUrl: string): Promise<Identified> {
         content: `You identify foods in meal photos for a gut-health tracker. Return JSON only.
 - foods: every distinct food or drink item visible, including visible sauces and dressings. For each: name, estimatedGrams (grams or mL of that item in the visible portion), packaged, labelIngredients, labelProteinG.
 - For unpackaged food use plain, generic, singular, lowercase names without cooking adjectives: "chicken breast", "white rice", "broccoli", "tomato sauce", "egg".
-- For a packaged or branded product (bottle, can, wrapper, box), set packaged=true and name it exactly as printed on the package: brand plus product name and flavor, e.g. "Kirkland Signature zero sugar vitamin water, lemonade". Read the whole label; if it says zero sugar, diet or sparkling, say so in the name.
+- For a packaged or branded product (bottle, can, wrapper, box), set packaged=true (any bottled or canned drink, snack, bar or boxed item with a brand on it is packaged, even if it looks like plain lemonade or juice) and name it exactly as printed on the package: brand plus product name and flavor, e.g. "Kirkland Signature zero sugar vitamin water, lemonade". Read the whole label; if it says zero sugar, diet or sparkling, say so in the name.
 - labelIngredients: if the product's ingredient list is legible anywhere in the photo, transcribe it exactly as printed, one entry per ingredient. Otherwise an empty array. Never guess ingredients.
 - labelProteinG: grams of protein per container or serving shown on a nutrition label or front panel for what is being consumed; 0 if not visible.
 - mealType: breakfast, lunch, dinner or snack, inferred from the foods.
