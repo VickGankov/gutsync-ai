@@ -113,6 +113,18 @@ describe("analyzeWithCache", () => {
     expect(r.foods[0].hiddenIngredients).toEqual(expect.arrayContaining(["chicory root fiber", "maltitol"]));
   });
 
+  it("uses likely triggers for unlabelled packaged items but never contradicts a zero-sugar claim", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [{ name: "Vitrain Zero lemonade", grams: 591, packaged: true, labelProteinG: 0, labelIngredients: [], likelyTriggers: ["high-fructose corn syrup", "sorbitol"] }],
+        mealType: "snack", summary: "x",
+      }),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods[0].hiddenIngredients).toEqual(["sorbitol"]);
+    expect(r.foods[0]).toMatchObject({ basis: "estimate", fodmap: "high" });
+  });
+
   it("does not invent ingredients for packaged products with no legible label", async () => {
     const d = deps({
       identify: vi.fn().mockResolvedValue({
