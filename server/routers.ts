@@ -390,6 +390,7 @@ export const appRouter = router({
           fodmap: verdict.fodmap,
           hiddenIngredients: verdict.triggers,
           proteinGrams: label.proteinGrams > 0 ? Math.round(label.proteinGrams) : null,
+          allIngredients: label.ingredients,
         };
       }),
 

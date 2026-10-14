@@ -36,7 +36,23 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
     const t1 = Date.now();
     if (!ident.foods.length) return { foods: [], mealType: ident.mealType, summary: ident.summary };
 
-    const items = ident.foods.map(f => ({ ...f, key: normalizeFoodKey(f.name) })).filter(f => f.key);
+    // One entry per product: merge repeats of the same item the model listed twice.
+    const merged = new Map<string, IdentifiedFood & { key: string }>();
+    for (const f of ident.foods) {
+      const key = normalizeFoodKey(f.name);
+      if (!key) continue;
+      const prev = merged.get(key);
+      if (!prev) { merged.set(key, { ...f, key }); continue; }
+      merged.set(key, {
+        ...prev,
+        grams: prev.grams + f.grams,
+        packaged: prev.packaged || f.packaged,
+        labelIngredients: f.labelIngredients.length > prev.labelIngredients.length ? f.labelIngredients : prev.labelIngredients,
+        likelyTriggers: Array.from(new Set([...(prev.likelyTriggers ?? []), ...(f.likelyTriggers ?? [])])),
+        labelProteinG: Math.max(prev.labelProteinG, f.labelProteinG),
+      });
+    }
+    const items = Array.from(merged.values());
 
     // Packaged products are never cached by name (ingredients differ by brand). If the label's
     // ingredient list was legible we classify it directly; otherwise the AI estimates.
@@ -73,7 +89,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
         return {
           name: displayName(i.name), category: "other" as const, fodmap: v.fodmap, hiddenIngredients: v.triggers,
           ...(i.labelProteinG > 0 ? { proteinGrams: Math.round(i.labelProteinG) } : {}),
-          packaged: true, basis: "label" as const,
+          packaged: true, basis: "label" as const, ingredients: i.labelIngredients,
         };
       }
       if (i.packaged) {
@@ -118,6 +134,7 @@ export async function identifyFoods(imageUrl: string): Promise<Identified> {
         role: "system",
         content: `You identify foods in meal photos for a gut-health tracker. Return JSON only.
 - foods: every distinct food or drink item visible, including visible sauces and dressings. For each: name, estimatedGrams (grams or mL of that item in the visible portion), packaged, labelIngredients, likelyTriggers, labelProteinG.
+- One entry per physical item. Never list a package and its contents separately, and never list the same product twice (a bottle and its label are one item).
 - For unpackaged food use plain, generic, singular, lowercase names without cooking adjectives: "chicken breast", "white rice", "broccoli", "tomato sauce", "egg".
 - For a packaged or branded product (bottle, can, wrapper, box), set packaged=true (any bottled or canned drink, snack, bar or boxed item with a brand on it is packaged, even if it looks like plain lemonade or juice) and name it exactly as printed on the package: brand plus product name and flavor, e.g. "Kirkland Signature zero sugar vitamin water, lemonade". Read the whole label; if it says zero sugar, diet or sparkling, say so in the name.
 - labelIngredients: if the product's ingredient list is legible anywhere in the photo, transcribe it exactly as printed, one entry per ingredient. Otherwise an empty array. Never guess ingredients.
@@ -328,5 +345,6 @@ export function applyLabelToFoods(foods: MealFood[], label: { productName: strin
     ...(label.proteinGrams > 0 ? { proteinGrams: Math.round(label.proteinGrams) } : {}),
     packaged: true,
     basis: "label" as const,
+    ingredients: label.ingredients,
   });
 }

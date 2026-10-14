@@ -47,6 +47,8 @@ export interface MealFood {
   packaged?: boolean;
   /** Where the FODMAP/ingredient data came from: the product label, or an AI estimate. */
   basis?: 'label' | 'estimate';
+  /** Full ingredient list when read from a label (display only). */
+  ingredients?: string[];
 }
 
 export type Meal = typeof meals.$inferSelect;

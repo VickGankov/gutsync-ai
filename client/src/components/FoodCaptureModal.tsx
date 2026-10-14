@@ -37,6 +37,7 @@ interface AnalyzedFood {
   hiddenIngredients: string[];
   proteinGrams?: number;
   packaged?: boolean;
+  ingredients?: string[];
   basis?: "label" | "estimate";
 }
 
@@ -206,6 +207,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
         ...(label.productName ? { name: label.productName } : {}),
         packaged: true,
         basis: "label",
+        ingredients: label.allIngredients,
       }));
       await utils.subscription.status.invalidate();
       toast.success("Ingredients read from label", {
@@ -646,6 +648,12 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                         </div>
                       )}
 
+                      {food.packaged && food.hiddenIngredients.length === 0 && (
+                        <p className="mt-2 text-[11px] text-sage-dark">No common FODMAP triggers {food.basis === "label" ? "in the ingredients" : "likely"}.</p>
+                      )}
+                      {food.ingredients && food.ingredients.length > 0 && (
+                        <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">Ingredients: {food.ingredients.join(", ")}</p>
+                      )}
                       {food.hiddenIngredients.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {food.hiddenIngredients.map((h, j) => (

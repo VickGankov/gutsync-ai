@@ -125,6 +125,21 @@ describe("analyzeWithCache", () => {
     expect(r.foods[0]).toMatchObject({ basis: "estimate", fodmap: "high" });
   });
 
+  it("merges the same product listed twice into one item", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [
+          { ...G, name: "Orange Juice", grams: 250, packaged: true, likelyTriggers: ["apple juice"] },
+          { ...G, name: "orange juice", grams: 250, packaged: true },
+        ],
+        mealType: "snack", summary: "x",
+      }),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods).toHaveLength(1);
+    expect(r.foods[0].hiddenIngredients).toEqual(["apple juice"]);
+  });
+
   it("does not invent ingredients for packaged products with no legible label", async () => {
     const d = deps({
       identify: vi.fn().mockResolvedValue({
