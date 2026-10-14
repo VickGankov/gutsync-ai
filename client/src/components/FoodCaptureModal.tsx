@@ -132,7 +132,8 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
         setError("No food detected in this photo. Please try again with a clearer food photo.");
         toast.error("No food detected", { description: "Make sure the photo shows actual food items." });
       } else {
-        setError(msg || "Analysis failed. Please try again.");
+        const transient = /JSON|Failed to fetch|NetworkError|Load failed|502|503|504/i.test(msg);
+        setError(transient ? "The server didn't respond (it may be restarting). Your photo is still here — tap Analyze to try again." : (msg || "Analysis failed. Please try again."));
         toast.error("Analysis failed", { description: "Please try again with a clearer photo." });
       }
       setStep("upload");
