@@ -289,7 +289,8 @@ export const appRouter = router({
         const { url: photoUrl } = await storagePut(fileKey, imageBuffer, input.mimeType || "image/jpeg");
 
         // Run AI analysis
-        const analysis = await analyzeFood(photoUrl);
+        // Send the image inline so the AI provider never has to fetch it from storage.
+        const analysis = await analyzeFood(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`);
 
         // ── Reject if no food detected ──────────────────────────────
         if (!analysis.foods || analysis.foods.length === 0) {

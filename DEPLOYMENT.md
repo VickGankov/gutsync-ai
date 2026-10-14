@@ -28,8 +28,17 @@ Set these environment variables in Render:
 ```bash
 DATABASE_URL=
 JWT_SECRET=
-BUILT_IN_FORGE_API_URL=
-BUILT_IN_FORGE_API_KEY=
+# AI food analysis (any OpenAI-compatible API; defaults to Gemini)
+LLM_API_KEY=
+# LLM_API_URL=https://generativelanguage.googleapis.com/v1beta/openai
+# LLM_MODEL=gemini-2.5-flash
+# Meal photo storage (AWS S3, Cloudflare R2, Backblaze B2, ...)
+S3_BUCKET=
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_REGION=auto
+S3_ENDPOINT=            # e.g. https://<account>.r2.cloudflarestorage.com (leave empty for AWS S3)
+# S3_PUBLIC_URL_BASE=   # optional public/CDN URL; otherwise photos are served via /api/media
 APP_BASE_URL=https://your-render-or-custom-domain
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
@@ -37,7 +46,9 @@ REVENUECAT_SECRET_KEY=
 VITE_REVENUECAT_PUBLIC_KEY=
 ```
 
-`BUILT_IN_FORGE_API_URL` and `BUILT_IN_FORGE_API_KEY` are still required by the current AI and photo-storage code. If those credentials are Manus-only or stop working outside Manus, replace them with standard providers before launch.
+AI and photo storage use your own providers via `LLM_*` and `S3_*`. The bucket can stay private: photos are served through `/api/media/<key>`, which redirects to a one-hour signed URL. Get a Gemini key at Google AI Studio, or point `LLM_API_URL`/`LLM_MODEL` at any OpenAI-compatible provider.
+
+Legacy fallback: if `LLM_API_KEY` / `S3_*` are not set, the app still uses `BUILT_IN_FORGE_API_URL` and `BUILT_IN_FORGE_API_KEY` (Manus proxy). Remove those once the new variables are live. Photos uploaded through Manus keep their old URLs; new uploads go to your bucket.
 
 ## First Deploy
 

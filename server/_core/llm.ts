@@ -209,15 +209,31 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
-
-const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+/**
+ * Direct provider when LLM_API_KEY is set (any OpenAI-compatible endpoint,
+ * default Gemini); otherwise the legacy Manus Forge proxy so existing deploys
+ * keep working until the new variables are configured.
+ */
+const resolveProvider = () => {
+  if (ENV.llmApiKey) {
+    return {
+      url: `${ENV.llmApiUrl.replace(/\/$/, "")}/chat/completions`,
+      apiKey: ENV.llmApiKey,
+      model: ENV.llmModel,
+      direct: true,
+    };
   }
+  if (ENV.forgeApiKey) {
+    return {
+      url: ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
+        ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
+        : "https://forge.manus.im/v1/chat/completions",
+      apiKey: ENV.forgeApiKey,
+      model: "gemini-2.5-flash",
+      direct: false,
+    };
+  }
+  throw new Error("AI provider is not configured: set LLM_API_KEY (and optionally LLM_API_URL / LLM_MODEL)");
 };
 
 const normalizeResponseFormat = ({
@@ -266,7 +282,7 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  const provider = resolveProvider();
 
   const {
     messages,
@@ -280,7 +296,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: provider.model,
     messages: messages.map(normalizeMessage),
   };
 
@@ -296,9 +312,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  if (provider.direct) {
+    // Standard OpenAI-compatible fields. Food analysis needs little reasoning.
+    payload.max_tokens = 8192;
+    const effort = process.env.LLM_REASONING_EFFORT ?? (provider.model.startsWith("gemini") ? "low" : "");
+    if (effort) payload.reasoning_effort = effort;
+  } else {
+    // Manus Forge proxy-specific fields.
+    payload.max_tokens = 32768;
+    payload.thinking = { budget_tokens: 128 };
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -312,11 +334,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(provider.url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${provider.apiKey}`,
     },
     body: JSON.stringify(payload),
   });

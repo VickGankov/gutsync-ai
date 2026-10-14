@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { MEDIA_ROUTE, isValidMediaKey, presignedGetUrl, storageMode } from "../storage";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -35,6 +36,21 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback (disabled for email-only auth)
   // registerOAuthRoutes(app);
+  // Meal photos stored in a private bucket: redirect to a short-lived signed URL.
+  app.get(`${MEDIA_ROUTE}/*`, async (req, res) => {
+    const key = decodeURIComponent(req.path.slice(MEDIA_ROUTE.length + 1));
+    if (storageMode() !== "s3" || !isValidMediaKey(key)) {
+      res.status(404).end();
+      return;
+    }
+    try {
+      res.set("Cache-Control", "private, max-age=3000");
+      res.redirect(302, await presignedGetUrl(key));
+    } catch (error) {
+      console.error("[Media] Failed to sign URL", error);
+      res.status(500).end();
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",
