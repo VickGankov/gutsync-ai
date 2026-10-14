@@ -306,3 +306,23 @@ export function ensureFoodSeed(saveFacts: (f: FoodFact[]) => Promise<void>): Pro
   if (!seeded) seeded = saveFacts(FOOD_SEED).catch(() => { seeded = null; });
   return seeded;
 }
+
+/** Merge a label read into the analysed foods: the best-matching packaged item (else the first) takes the label's facts. */
+export function applyLabelToFoods(foods: MealFood[], label: { productName: string; ingredients: string[]; proteinGrams: number }): MealFood[] {
+  if (!foods.length || label.ingredients.length < 2) return foods;
+  const words = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2));
+  const lw = words(label.productName);
+  const score = (f: MealFood) => (f.packaged ? 100 : 0) + Array.from(words(f.name)).filter(w => lw.has(w)).length;
+  let best = 0;
+  foods.forEach((f, i) => { if (score(f) > score(foods[best])) best = i; });
+  const v = classifyIngredients(label.ingredients);
+  return foods.map((f, i) => i !== best ? f : {
+    ...f,
+    name: label.productName || f.name,
+    fodmap: v.fodmap,
+    hiddenIngredients: v.triggers,
+    ...(label.proteinGrams > 0 ? { proteinGrams: Math.round(label.proteinGrams) } : {}),
+    packaged: true,
+    basis: "label" as const,
+  });
+}

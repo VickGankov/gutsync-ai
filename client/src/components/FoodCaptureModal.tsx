@@ -56,6 +56,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
   const [scanSeconds, setScanSeconds] = useState<string | null>(null);
   const [labelBusy, setLabelBusy] = useState<number | null>(null);
+  const [foodFile, setFoodFile] = useState<File | null>(null);
+  const [labelFile, setLabelFile] = useState<File | null>(null);
+  const [foodThumb, setFoodThumb] = useState<string | null>(null);
+  const [labelThumb, setLabelThumb] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallScansUsed, setPaywallScansUsed] = useState(10);
   // Refs removed - using inline <label>+<input> pattern for better mobile compatibility
@@ -67,7 +71,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
-  const runAnalysis = useCallback(async (file: File) => {
+  const runAnalysis = useCallback(async (file: File, label?: File | null) => {
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setStep("analyzing");
@@ -82,11 +86,19 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     }, 800);
 
     try {
-      const prepared = await prepareImageForUpload(file);
+      const [prepared, preparedLabel] = await Promise.all([
+        prepareImageForUpload(file),
+        label ? prepareImageForUpload(label) : Promise.resolve(null),
+      ]);
       const result = await analyzePhoto.mutateAsync({
         imageBase64: prepared.base64,
         mimeType: prepared.mimeType,
+        ...(preparedLabel ? { labelBase64: preparedLabel.base64, labelMimeType: preparedLabel.mimeType } : {}),
       });
+      if (preparedLabel) {
+        if (result.labelRead) toast.success("Ingredients read from label");
+        else toast("Couldn't read the label", { description: "Ingredients are estimated. Try a sharper, closer label photo." });
+      }
 
       clearInterval(stepInterval);
       setAnalysisStep(ANALYSIS_STEPS.length);
@@ -139,7 +151,25 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     const file = e.target.files?.[0];
     if (!file) return;
     processedFileRef.current = file;
-    runAnalysis(file);
+    e.target.value = "";
+    if (foodThumb) URL.revokeObjectURL(foodThumb);
+    setFoodFile(file);
+    setFoodThumb(URL.createObjectURL(file));
+  };
+
+  const handleLabelSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (labelThumb) URL.revokeObjectURL(labelThumb);
+    setLabelFile(file);
+    setLabelThumb(URL.createObjectURL(file));
+  };
+
+  const clearStaged = () => {
+    if (foodThumb) URL.revokeObjectURL(foodThumb);
+    if (labelThumb) URL.revokeObjectURL(labelThumb);
+    setFoodFile(null); setLabelFile(null); setFoodThumb(null); setLabelThumb(null);
   };
 
   // ─── Food editing functions ───
@@ -255,7 +285,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setPreviewUrl(null);
     setAnalysisStep(0);
     setAnalyzedFoods([]);
-    setScanSeconds(null);
+    setScanSeconds(null); clearStaged();
     setMealSummary("");
     setDetectedMealType("snack");
     setError(null);
@@ -327,6 +357,43 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                     We'll help identify foods and hidden ingredients — you confirm what you ate
                   </p>
                 </div>
+                {foodFile && foodThumb ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative rounded-2xl overflow-hidden aspect-square bg-muted">
+                        <img src={foodThumb} alt="Food" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-1.5 left-1.5 text-[11px] font-semibold bg-black/60 text-white px-2 py-0.5 rounded-full">Food</span>
+                      </div>
+                      {labelFile && labelThumb ? (
+                        <div className="relative rounded-2xl overflow-hidden aspect-square bg-muted">
+                          <img src={labelThumb} alt="Label" className="w-full h-full object-cover" />
+                          <span className="absolute bottom-1.5 left-1.5 text-[11px] font-semibold bg-black/60 text-white px-2 py-0.5 rounded-full">Label</span>
+                          <button
+                            type="button"
+                            onClick={() => { if (labelThumb) URL.revokeObjectURL(labelThumb); setLabelFile(null); setLabelThumb(null); }}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white text-xs"
+                            aria-label="Remove label photo"
+                          >✕</button>
+                        </div>
+                      ) : (
+                        <label className="border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all aspect-square text-center p-3">
+                          <Camera className="w-6 h-6 text-primary" />
+                          <p className="font-medium text-foreground text-sm">Add label photo</p>
+                          <p className="text-[11px] text-muted-foreground">Optional. Ingredients on the back of packaged items.</p>
+                          <input type="file" accept="image/*" capture="environment" onChange={handleLabelSelect} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => runAnalysis(foodFile, labelFile)}
+                      className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold active:scale-[0.98] transition-transform"
+                    >
+                      Analyze{labelFile ? " food + label" : ""}
+                    </button>
+                    <button type="button" onClick={clearStaged} className="w-full text-sm text-muted-foreground py-1">Choose a different photo</button>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <label
                     className="border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
@@ -358,6 +425,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                     />
                   </label>
                 </div>
+                )}
                 {error && (
                   <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-3 text-sm text-coral">
                     {error}

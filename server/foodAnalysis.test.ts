@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { analyzeWithCache, type Deps } from "./foodAnalysis";
+import { analyzeWithCache, applyLabelToFoods, type Deps } from "./foodAnalysis";
 import { FOOD_SEED, parseSeed } from "./foodSeed";
 import { normalizeFoodKey, proteinForPortion } from "../shared/foodCache";
 
@@ -137,5 +137,25 @@ describe("analyzeWithCache", () => {
     const r = await analyzeWithCache("img", d, quiet);
     expect(r.foods).toHaveLength(2);
     expect(d.legacy).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyLabelToFoods", () => {
+  const label = { productName: "Kirkland zero sugar vitamin water", ingredients: ["water", "sucralose", "acesulfame potassium"], proteinGrams: 0 };
+  it("applies the label to the packaged item and leaves others alone", () => {
+    const foods = [
+      { name: "Apple", category: "fruit" as const, fodmap: "high" as const, hiddenIngredients: [] },
+      { name: "Lemonade", category: "other" as const, fodmap: "high" as const, hiddenIngredients: ["high-fructose corn syrup"], packaged: true, basis: "estimate" as const },
+    ];
+    const out = applyLabelToFoods(foods, label);
+    expect(out[0]).toEqual(foods[0]);
+    expect(out[1].name).toBe(label.productName);
+    expect(out[1].fodmap).toBe("low");
+    expect(out[1].hiddenIngredients).toEqual([]);
+    expect(out[1].basis).toBe("label");
+  });
+  it("ignores an unreadable label", () => {
+    const foods = [{ name: "Bar", category: "other" as const, fodmap: "low" as const, hiddenIngredients: [] }];
+    expect(applyLabelToFoods(foods, { ...label, ingredients: ["x"] })).toBe(foods);
   });
 });

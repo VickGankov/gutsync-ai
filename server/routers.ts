@@ -49,7 +49,7 @@ import {
   type ReintroCheckIn,
 } from "@shared/reintro";
 import { buildFitnessSummary, DAY_MS } from "./fitness";
-import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage } from "./foodAnalysis";
+import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
@@ -325,7 +325,13 @@ export const appRouter = router({
       }),
 
     analyzePhoto: protectedProcedure
-      .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
+      .input(z.object({
+        imageBase64: z.string(),
+        mimeType: z.string().optional(),
+        /** Optional photo of the ingredient label, analysed together with the food photo as one scan. */
+        labelBase64: z.string().optional(),
+        labelMimeType: z.string().optional(),
+      }))
       .mutation(async ({ ctx, input }) => {
         const premium = await enforceScanLimit(ctx.user.id);
 
@@ -333,10 +339,16 @@ export const appRouter = router({
         // The image is sent inline so the AI provider never has to fetch it from storage.
         const fileKey = `meals/${ctx.user.id}/${nanoid()}.jpg`;
         const imageBuffer = Buffer.from(input.imageBase64, "base64");
-        const [{ url: photoUrl }, analysis] = await Promise.all([
+        const labelPromise = input.labelBase64
+          ? readLabelImage(`data:${input.labelMimeType || "image/jpeg"};base64,${input.labelBase64}`).catch(() => null)
+          : Promise.resolve(null);
+        const [{ url: photoUrl }, analysis, label] = await Promise.all([
           storagePut(fileKey, imageBuffer, input.mimeType || "image/jpeg"),
           analyzeMeal(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`),
+          labelPromise,
         ]);
+        const labelUsed = !!label && label.ingredients.length >= 2;
+        if (label && analysis.foods?.length) analysis.foods = applyLabelToFoods(analysis.foods, label);
 
         // ── Reject if no food detected ──────────────────────────────
         if (!analysis.foods || analysis.foods.length === 0) {
@@ -357,6 +369,7 @@ export const appRouter = router({
           foods: analysis.foods,
           summary: analysis.summary,
           timings: analysis.timings ?? null,
+          labelRead: input.labelBase64 ? labelUsed : null,
         };
       }),
 
