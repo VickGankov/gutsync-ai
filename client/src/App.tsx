@@ -3,12 +3,12 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { useEffect, useMemo, useState } from "react";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch, Redirect, useLocation } from "wouter";
 import BottomNav from "./components/BottomNav";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import EmailAuth from "./pages/EmailAuth";
-import FoodLog from "./pages/FoodLog";
+import Log from "./pages/Log";
 import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
@@ -18,10 +18,9 @@ import Reintro from "./pages/Reintro";
 import Progress from "./pages/Progress";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
-import Symptoms from "./pages/Symptoms";
 
 const AUTH_ROUTE = "/auth";
-const PROTECTED_PATHS = new Set(["/", "/food", "/symptoms", "/insights", "/reintro", "/progress", "/profile"]);
+const PROTECTED_PATHS = new Set(["/", "/log", "/insights", "/reintro", "/progress", "/profile"]);
 const PUBLIC_INFO_PATHS = new Set(["/privacy"]);
 
 function buildAuthPath(pathname: string) {
@@ -82,8 +81,9 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/" component={Home} />
-        <Route path="/food" component={FoodLog} />
-        <Route path="/symptoms" component={Symptoms} />
+        <Route path="/log" component={Log} />
+        <Route path="/food">{() => <Redirect to="/log" />}</Route>
+        <Route path="/symptoms">{() => <Redirect to="/log" />}</Route>
         <Route path="/insights" component={Insights} />
         <Route path="/reintro" component={Reintro} />
         <Route path="/progress" component={Progress} />

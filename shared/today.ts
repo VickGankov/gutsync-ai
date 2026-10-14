@@ -11,8 +11,8 @@ export const POSITIVE_SYMPTOM_TYPES = new Set([
 
 export type TodayNudge =
   | { kind: "reintro"; href: "/reintro" }
-  | { kind: "meal"; href: "/food" }
-  | { kind: "feeling"; href: "/symptoms" }
+  | { kind: "meal"; href: "/log" }
+  | { kind: "feeling"; href: "/log" }
   | { kind: "protein"; href: "/progress"; remainingG: number }
   | { kind: "done"; href: null };
 
@@ -57,9 +57,9 @@ export function summarizeToday(p: {
   if (p.reintroCheckInPending) {
     nudge = { kind: "reintro", href: "/reintro" };
   } else if (mealsToday.length === 0 && p.hour >= 11) {
-    nudge = { kind: "meal", href: "/food" };
+    nudge = { kind: "meal", href: "/log" };
   } else if (negativeToday.length === 0 && lastMealAt !== null && lastMealAt >= p.startOfDay && p.now - lastMealAt >= 2 * HOUR) {
-    nudge = { kind: "feeling", href: "/symptoms" };
+    nudge = { kind: "feeling", href: "/log" };
   } else if (p.proteinG !== null && p.proteinTargetG && p.hour >= 17 && p.proteinG < p.proteinTargetG * 0.8) {
     nudge = { kind: "protein", href: "/progress", remainingG: Math.round(p.proteinTargetG - p.proteinG) };
   } else {

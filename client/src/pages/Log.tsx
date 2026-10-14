@@ -1,4 +1,4 @@
-// Symptoms & Positive Outcomes Tracking
+// Log: meals and symptoms together in one day-by-day timeline.
 // Wired to real tRPC backend
 
 import { invalidateToday } from "@/lib/invalidateToday";
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import SeverityBubble from "@/components/SeverityBubble";
+import MealTile from "@/components/MealTile";
+import type { FoodItem } from "@/lib/store";
 import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
 type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog";
@@ -46,14 +48,35 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-export default function Symptoms() {
+type Entry =
+  | { kind: "meal"; at: number; meal: { id: number; photoUrl: string | null; mealType: "breakfast" | "lunch" | "dinner" | "snack"; foods: FoodItem[]; loggedAt: number; notes: string | null } }
+  | { kind: "symptom"; at: number; symptom: { id: number; type: string; severity: number; loggedAt: number } };
+
+/** Newest first, grouped under Today / Yesterday / weekday headings. */
+function groupTimeline(entries: Entry[]): Array<[string, Entry[]]> {
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const yesterdayStr = new Date(now.getTime() - 86400000).toDateString();
+  const groups = new Map<string, Entry[]>();
+  [...entries].sort((a, b) => b.at - a.at).forEach(e => {
+    const d = new Date(e.at);
+    const key = d.toDateString();
+    const label = key === todayStr ? "Today" : key === yesterdayStr ? "Yesterday"
+      : d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    groups.set(label, [...(groups.get(label) ?? []), e]);
+  });
+  return Array.from(groups.entries());
+}
+
+export default function Log() {
   const { isAuthenticated } = useAuth();
   const [showLogger, setShowLogger] = useState(false);
   const [logMode, setLogMode] = useState<'negative' | 'positive'>('negative');
   const [selectedType, setSelectedType] = useState<SymptomType | null>(null);
   const [severity, setSeverity] = useState(3);
 
-  const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 20 }, { enabled: isAuthenticated });
+  const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 50 }, { enabled: isAuthenticated });
+  const mealsQuery = trpc.meals.list.useQuery({ limit: 30 }, { enabled: isAuthenticated });
 
   const logSymptom = trpc.symptoms.log.useMutation({
     onSuccess: () => {
@@ -79,6 +102,17 @@ export default function Symptoms() {
     onError: () => toast.error("Failed to delete"),
   });
 
+
+  const meals = (mealsQuery.data ?? []) as Array<{
+    id: number; photoUrl: string | null; mealType: "breakfast" | "lunch" | "dinner" | "snack";
+    foods: FoodItem[]; loggedAt: number; notes: string | null;
+  }>;
+  const days = groupTimeline(
+    [
+      ...meals.map(meal => ({ kind: "meal" as const, at: meal.loggedAt, meal })),
+      ...symptoms.map(symptom => ({ kind: "symptom" as const, at: symptom.loggedAt, symptom })),
+    ],
+  );
 
   const handleLogSymptom = () => {
     if (!selectedType) return;
@@ -111,8 +145,8 @@ export default function Symptoms() {
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl tracking-tight">How You Feel</h1>
-          <p className="text-sm text-muted-foreground mt-1">Log symptoms and positive outcomes</p>
+          <h1 className="text-2xl tracking-tight">Log</h1>
+          <p className="text-sm text-muted-foreground mt-1">Meals and how you felt, day by day</p>
         </div>
         <Button
           onClick={() => setShowLogger(!showLogger)}
@@ -120,7 +154,7 @@ export default function Symptoms() {
           size="sm"
         >
           <Plus className="w-4 h-4" />
-          Log
+          Symptom
         </Button>
       </motion.div>
 
@@ -233,42 +267,50 @@ export default function Symptoms() {
 
 
       {/* Loading */}
-      {symptomsQuery.isLoading && (
+      {(symptomsQuery.isLoading || mealsQuery.isLoading) && (
         <div className="flex justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       )}
 
       {/* Empty state */}
-      {!symptomsQuery.isLoading && symptoms.length === 0 && (
+      {!symptomsQuery.isLoading && !mealsQuery.isLoading && days.length === 0 && (
         <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
-          <h3 className="font-display text-lg mb-1">No entries yet</h3>
+          <h3 className="font-display text-lg mb-1">Nothing logged yet</h3>
           <p className="text-sm text-muted-foreground">
-            Tap "Log" above to track symptoms or positive outcomes. GutSync will correlate them with your meals.
+            Tap the camera to log a meal, or "Symptom" above to track how you feel. GutSync will connect the two.
           </p>
         </motion.div>
       )}
 
-      {/* History */}
-      {symptoms.length > 0 && (
-        <motion.div variants={item}>
-          <h2 className="text-lg mb-3">Your History</h2>
+      {/* Timeline */}
+      {days.map(([day, entries]) => (
+        <motion.div key={day} variants={item} className="mb-5">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">{day}</h2>
           <div className="space-y-2.5">
-            {symptoms.map((sym, idx) => {
-              const isPositive = sym.type.includes('energy') || sym.type.includes('better') || sym.type.includes('improved') || sym.type.includes('clearer') || sym.type.includes('reduced');
+            {entries.map((entry) => {
+              if (entry.kind === "meal") {
+                return (
+                  <MealTile
+                    key={`meal-${entry.meal.id}`}
+                    meal={entry.meal}
+                    onSaved={() => invalidateToday(utils)}
+                    onDeleted={() => invalidateToday(utils)}
+                  />
+                );
+              }
+              const sym = entry.symptom;
+              const isPositive = POSITIVE_OUTCOMES.some(o => o.type === sym.type);
               return (
                 <motion.div
-                  key={`${sym.id}-${idx}`}
-                  variants={item}
+                  key={`sym-${sym.id}`}
                   onClick={() => setEditingId(sym.id)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === "Enter" && setEditingId(sym.id)}
                   className={`rounded-xl p-4 border shadow-sm cursor-pointer active:scale-[0.99] transition-transform ${
-                    isPositive
-                      ? 'bg-sage-light/20 border-sage/30'
-                      : 'bg-card border-border/50'
+                    isPositive ? 'bg-sage-light/20 border-sage/30' : 'bg-card border-border/50'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -276,16 +318,15 @@ export default function Symptoms() {
                       <span className="text-2xl">{getSymptomEmoji(sym.type)}</span>
                       <div>
                         <p className="font-medium text-foreground">{getSymptomLabel(sym.type)}</p>
-                        <p className="text-xs text-muted-foreground">{formatTimeAgo(sym.loggedAt)}{" · tap to edit"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(sym.loggedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}{" · tap to edit"}
+                        </p>
                       </div>
                     </div>
                     {!isPositive && (
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((level) => (
-                          <div
-                            key={level}
-                            className={`w-2 h-2 rounded-full ${level <= sym.severity ? 'bg-coral' : 'bg-muted'}`}
-                          />
+                          <div key={level} className={`w-2 h-2 rounded-full ${level <= sym.severity ? 'bg-coral' : 'bg-muted'}`} />
                         ))}
                       </div>
                     )}
@@ -295,7 +336,7 @@ export default function Symptoms() {
             })}
           </div>
         </motion.div>
-      )}
+      ))}
 
       <SeverityBubble
         open={!!editing}
