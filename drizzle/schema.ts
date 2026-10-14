@@ -43,6 +43,10 @@ export interface MealFood {
   hiddenIngredients: string[];
   /** Estimated grams of protein in this item (AI estimate, user-editable). */
   proteinGrams?: number;
+  /** Packaged/branded product (identified by its printed name). */
+  packaged?: boolean;
+  /** Where the FODMAP/ingredient data came from: the product label, or an AI estimate. */
+  basis?: 'label' | 'estimate';
 }
 
 export type Meal = typeof meals.$inferSelect;

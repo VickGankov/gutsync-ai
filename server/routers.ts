@@ -49,7 +49,8 @@ import {
   type ReintroCheckIn,
 } from "@shared/reintro";
 import { buildFitnessSummary, DAY_MS } from "./fitness";
-import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed } from "./foodAnalysis";
+import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage } from "./foodAnalysis";
+import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
 
@@ -259,6 +260,18 @@ Return a JSON array of discovered correlations. Be conservative — only report 
   }
 }
 
+/** Throws FREE_LIMIT_REACHED for free users at their daily limit. Returns whether the user is premium. */
+async function enforceScanLimit(userId: number): Promise<boolean> {
+  const premium = await isPremium(userId);
+  if (!premium) {
+    const todayCount = await getTodayScanCount(userId);
+    if (todayCount >= FREE_DAILY_SCAN_LIMIT) {
+      throw new TRPCError({ code: 'FORBIDDEN', message: `FREE_LIMIT_REACHED:${todayCount}` });
+    }
+  }
+  return premium;
+}
+
 // ─── Router ───
 
 export const appRouter = router({
@@ -314,17 +327,7 @@ export const appRouter = router({
     analyzePhoto: protectedProcedure
       .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
-        // ── Enforce free-tier scan limit ──────────────────────────────
-        const premium = await isPremium(ctx.user.id);
-        if (!premium) {
-          const todayCount = await getTodayScanCount(ctx.user.id);
-          if (todayCount >= FREE_DAILY_SCAN_LIMIT) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: `FREE_LIMIT_REACHED:${todayCount}`,
-            });
-          }
-        }
+        const premium = await enforceScanLimit(ctx.user.id);
 
         // Upload the photo and run the AI analysis at the same time.
         // The image is sent inline so the AI provider never has to fetch it from storage.
@@ -353,6 +356,27 @@ export const appRouter = router({
           mealType: analysis.mealType,
           foods: analysis.foods,
           summary: analysis.summary,
+          timings: analysis.timings ?? null,
+        };
+      }),
+
+    /** Read an ingredient label from a photo and classify its FODMAP triggers. Counts as one scan. */
+    readLabel: protectedProcedure
+      .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const premium = await enforceScanLimit(ctx.user.id);
+        const label = await readLabelImage(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`);
+        if (label.ingredients.length < 2) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'LABEL_NOT_READABLE' });
+        }
+        if (!premium) await incrementScanCount(ctx.user.id);
+        const verdict = classifyIngredients(label.ingredients);
+        return {
+          productName: label.productName || null,
+          ingredients: label.ingredients,
+          fodmap: verdict.fodmap,
+          hiddenIngredients: verdict.triggers,
+          proteinGrams: label.proteinGrams > 0 ? Math.round(label.proteinGrams) : null,
         };
       }),
 

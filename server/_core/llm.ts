@@ -62,6 +62,8 @@ export type InvokeParams = {
   tool_choice?: ToolChoice;
   maxTokens?: number;
   max_tokens?: number;
+  /** Per-call override of reasoning effort (e.g. "none" for simple extraction). Direct providers only. */
+  reasoningEffort?: string;
   outputSchema?: OutputSchema;
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
@@ -295,6 +297,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     response_format,
   } = params;
 
+  let usedOverride = false;
   const payload: Record<string, unknown> = {
     model: provider.model,
     messages: messages.map(normalizeMessage),
@@ -315,8 +318,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   if (provider.direct) {
     // Standard OpenAI-compatible fields. Food analysis needs little reasoning.
     payload.max_tokens = params.maxTokens ?? params.max_tokens ?? 8192;
-    const effort = process.env.LLM_REASONING_EFFORT ?? (provider.model.startsWith("gemini") ? "low" : "");
+    const defaultEffort = process.env.LLM_REASONING_EFFORT ?? (provider.model.startsWith("gemini") ? "low" : "");
+    // "none" (no thinking) is only supported by Gemini 2.5 Flash models; ignore the override elsewhere.
+    const override = params.reasoningEffort === "none" && !/gemini-2\.5-flash/.test(provider.model) ? undefined : params.reasoningEffort;
+    const effort = override ?? defaultEffort;
     if (effort) payload.reasoning_effort = effort;
+    usedOverride = override !== undefined && override !== defaultEffort;
   } else {
     // Manus Forge proxy-specific fields.
     payload.max_tokens = 32768;
@@ -334,14 +341,25 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(provider.url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${provider.apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const send = () =>
+    fetch(provider.url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+  let response = await send();
+
+  // If the provider rejects our reasoning override, retry once with the default setting.
+  if (response.status === 400 && usedOverride) {
+    const defaultEffort = process.env.LLM_REASONING_EFFORT ?? (provider.model.startsWith("gemini") ? "low" : "");
+    if (defaultEffort) payload.reasoning_effort = defaultEffort;
+    else delete payload.reasoning_effort;
+    response = await send();
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

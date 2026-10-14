@@ -36,6 +36,8 @@ interface AnalyzedFood {
   fodmap: "low" | "moderate" | "high";
   hiddenIngredients: string[];
   proteinGrams?: number;
+  packaged?: boolean;
+  basis?: "label" | "estimate";
 }
 
 export default function FoodCaptureModal({ open, onClose, initialMode = "camera", uploadedFile }: FoodCaptureModalProps) {
@@ -52,6 +54,8 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [newFoodName, setNewFoodName] = useState("");
   const [newFoodCategory, setNewFoodCategory] = useState<string>("other");
   const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
+  const [scanSeconds, setScanSeconds] = useState<string | null>(null);
+  const [labelBusy, setLabelBusy] = useState<number | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallScansUsed, setPaywallScansUsed] = useState(10);
   // Refs removed - using inline <label>+<input> pattern for better mobile compatibility
@@ -59,6 +63,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
+  const readLabel = trpc.meals.readLabel.useMutation();
   const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
@@ -86,6 +91,11 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       clearInterval(stepInterval);
       setAnalysisStep(ANALYSIS_STEPS.length);
       setAnalyzedFoods(result.foods);
+      if (result.timings) {
+        const t = result.timings;
+        console.log("[scan timings]", t);
+        setScanSeconds(`${(t.totalMs / 1000).toFixed(1)} s (${t.path}${t.path === "fast" ? `, ${t.cacheHits}/${t.foods} foods known` : ""})`);
+      }
       setMealSummary(result.summary);
       setDetectedMealType(result.mealType || "snack");
       setSavedPhotoUrl(result.photoUrl || null);
@@ -153,6 +163,38 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, proteinGrams: Number.isFinite(n) ? n : undefined } : f));
   };
 
+  const handleLabelPhoto = async (index: number, file: File) => {
+    setLabelBusy(index);
+    try {
+      const prepared = await prepareImageForUpload(file);
+      const label = await readLabel.mutateAsync({ imageBase64: prepared.base64, mimeType: prepared.mimeType });
+      setAnalyzedFoods(prev => prev.map((f, i) => i !== index ? f : {
+        ...f,
+        fodmap: label.fodmap,
+        hiddenIngredients: label.hiddenIngredients,
+        ...(label.proteinGrams ? { proteinGrams: label.proteinGrams } : {}),
+        ...(label.productName ? { name: label.productName } : {}),
+        packaged: true,
+        basis: "label",
+      }));
+      await utils.subscription.status.invalidate();
+      toast.success("Ingredients read from label", {
+        description: label.hiddenIngredients.length ? `Flagged: ${label.hiddenIngredients.join(", ")}` : "No common FODMAP triggers found",
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("FREE_LIMIT_REACHED")) {
+        setShowPaywall(true);
+      } else if (msg.includes("LABEL_NOT_READABLE")) {
+        toast.error("Couldn't read the ingredient list", { description: "Try a closer, sharper photo of the ingredients." });
+      } else {
+        toast.error("Label scan failed", { description: "Please try again." });
+      }
+    } finally {
+      setLabelBusy(null);
+    }
+  };
+
   const handleAddFood = () => {
     if (!newFoodName.trim()) return;
     setAnalyzedFoods(prev => [
@@ -213,6 +255,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setPreviewUrl(null);
     setAnalysisStep(0);
     setAnalyzedFoods([]);
+    setScanSeconds(null);
     setMealSummary("");
     setDetectedMealType("snack");
     setError(null);
@@ -385,6 +428,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                 {mealSummary && (
                   <p className="text-sm text-muted-foreground italic">{mealSummary}</p>
                 )}
+                {scanSeconds && <p className="text-[10px] text-muted-foreground/70">Scanned in {scanSeconds}</p>}
 
                 <div className="rounded-2xl border border-border/50 bg-muted/30 p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -506,6 +550,33 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                           <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-coral transition-colors" />
                         </button>
                       </div>
+
+                      {food.packaged && (
+                        <div className="mt-2 flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          {food.basis === "label" ? (
+                            <span className="text-[11px] font-medium text-sage-dark bg-sage-light/50 px-2 py-0.5 rounded-full">✓ From product label</span>
+                          ) : (
+                            <>
+                              <span className="text-[11px] text-muted-foreground">Ingredients estimated.</span>
+                              <label className="text-[11px] font-semibold text-primary px-2.5 py-1 rounded-full border border-primary/30 cursor-pointer active:scale-95 transition-transform">
+                                {labelBusy === i ? "Reading label…" : "📷 Add ingredient label photo"}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  className="hidden"
+                                  disabled={labelBusy !== null}
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    e.target.value = "";
+                                    if (f) handleLabelPhoto(i, f);
+                                  }}
+                                />
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      )}
 
                       {food.hiddenIngredients.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">

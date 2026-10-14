@@ -11,7 +11,7 @@ const base = (foodKey: string) => ({
 
 function deps(over: Partial<Deps> = {}): Deps {
   return {
-    identify: vi.fn().mockResolvedValue({ foods: [{ name: "Chicken Breasts", grams: 150 }, { name: "garlic bread", grams: 60 }], mealType: "dinner", summary: "Dinner" }),
+    identify: vi.fn().mockResolvedValue({ foods: [{ name: "Chicken Breasts", grams: 150, ...G }, { name: "garlic bread", grams: 60, ...G }], mealType: "dinner", summary: "Dinner" }),
     lookup: vi.fn().mockResolvedValue([fact("garlic bread", { category: "grain", fodmap: "high", hiddenIngredients: ["garlic"], proteinPer100gTenths: 90, source: "ai" })]),
     getFacts: vi.fn().mockResolvedValue([fact("chicken breast")]),
     saveFacts: vi.fn().mockResolvedValue(undefined),
@@ -20,6 +20,7 @@ function deps(over: Partial<Deps> = {}): Deps {
   };
 }
 const quiet = () => {};
+const G = { packaged: false, labelIngredients: [] as string[], labelProteinG: 0 };
 
 describe("normalizeFoodKey", () => {
   it("lowercases, strips punctuation and singularizes", () => {
@@ -56,7 +57,7 @@ describe("food seed", () => {
 
 describe("analyzeWithCache", () => {
   it("skips the AI lookup entirely when every food is cached", async () => {
-    const d = deps({ identify: vi.fn().mockResolvedValue({ foods: [{ name: "chicken breast", grams: 100 }], mealType: "lunch", summary: "x" }) });
+    const d = deps({ identify: vi.fn().mockResolvedValue({ foods: [{ name: "chicken breast", grams: 100, ...G }], mealType: "lunch", summary: "x" }) });
     const r = await analyzeWithCache("img", d, quiet);
     expect(d.lookup).not.toHaveBeenCalled();
     expect(d.legacy).not.toHaveBeenCalled();
@@ -84,6 +85,51 @@ describe("analyzeWithCache", () => {
     expect((await analyzeWithCache("img", a, quiet)).summary).toBe("legacy");
     const b = deps({ lookup: vi.fn().mockResolvedValue([]) });
     expect((await analyzeWithCache("img", b, quiet)).summary).toBe("legacy");
+  });
+
+  it("reads packaged products from their label, without cache or AI lookup", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [{ name: "Kirkland zero sugar vitamin water, lemonade", grams: 591, packaged: true, labelProteinG: 0,
+          labelIngredients: ["Purified Water", "Citric Acid", "Natural Flavor", "Sucralose", "Acesulfame Potassium"] }],
+        mealType: "snack", summary: "x",
+      }),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(d.getFacts).not.toHaveBeenCalled();
+    expect(d.lookup).not.toHaveBeenCalled();
+    expect(r.foods[0]).toMatchObject({ name: "Kirkland zero sugar vitamin water, lemonade", fodmap: "low", hiddenIngredients: [], packaged: true, basis: "label" });
+  });
+
+  it("flags triggers found on a packaged product's label", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [{ name: "Protein bar", grams: 60, packaged: true, labelProteinG: 20, labelIngredients: ["Whey Protein Isolate", "Chicory Root Fiber", "Maltitol"] }],
+        mealType: "snack", summary: "x",
+      }),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods[0]).toMatchObject({ fodmap: "high", proteinGrams: 20, basis: "label" });
+    expect(r.foods[0].hiddenIngredients).toEqual(expect.arrayContaining(["chicory root fiber", "maltitol"]));
+  });
+
+  it("estimates packaged products with no legible label, but never caches them", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({
+        foods: [{ name: "Brand X cola", grams: 355, packaged: true, labelProteinG: 0, labelIngredients: [] }],
+        mealType: "snack", summary: "x",
+      }),
+      lookup: vi.fn().mockResolvedValue([fact("pkg brand x cola", { category: "other", proteinPer100gTenths: 0, source: "ai", hiddenIngredients: ["high-fructose corn syrup"], fodmap: "high" })]),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(d.lookup).toHaveBeenCalledWith([{ key: "pkg brand x cola", name: "Brand X cola" }]);
+    expect(d.saveFacts).not.toHaveBeenCalled();
+    expect(r.foods[0]).toMatchObject({ packaged: true, basis: "estimate", fodmap: "high" });
+  });
+
+  it("reports timings and cache hits", async () => {
+    const r = await analyzeWithCache("img", deps(), quiet);
+    expect(r.timings).toMatchObject({ path: "fast", foods: 2, cacheHits: 1 });
   });
 
   it("still works if the cache table is unavailable", async () => {
