@@ -334,8 +334,8 @@ describe("GutSync Server Procedures", () => {
       expect(result.tier).toBe("free");
       expect(result.isPremium).toBe(false);
       expect(result.todayScans).toBe(1);
-      expect(result.dailyLimit).toBe(3);
-      expect(result.scansRemaining).toBe(2);
+      expect(result.dailyLimit).toBe(10);
+      expect(result.scansRemaining).toBe(9);
     });
 
     it("returns premium status with null scansRemaining", async () => {
@@ -414,7 +414,7 @@ describe("GutSync Server Procedures", () => {
 
     it("increments scan count for free-tier users after successful scan", async () => {
       vi.mocked(db.isPremium).mockResolvedValue(false);
-      vi.mocked(db.getTodayScanCount).mockResolvedValue(1); // 1 of 3 used
+      vi.mocked(db.getTodayScanCount).mockResolvedValue(1); // 1 of 10 used
       vi.mocked(db.createMeal).mockResolvedValue(9);
 
       const ctx = createAuthContext();

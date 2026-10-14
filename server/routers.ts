@@ -51,7 +51,7 @@ import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
 
 // Free tier: 3 AI scans per day
-const FREE_DAILY_SCAN_LIMIT = 3;
+const FREE_DAILY_SCAN_LIMIT = 10;
 
 function getRequestBaseUrl(req: { protocol?: string; headers?: Record<string, string | string[] | undefined>; get?: (name: string) => string | undefined }) {
   const origin = req.get?.('origin') || req.headers?.origin;

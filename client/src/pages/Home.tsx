@@ -543,7 +543,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                   <p className="text-xs text-muted-foreground">
                     {subStatus.data?.isPremium
                       ? "Unlimited meal tracking · Advanced insights"
-                      : `${subStatus.data?.scansRemaining ?? 3} scans remaining today`}
+                      : `${subStatus.data?.scansRemaining ?? 10} scans remaining today`}
                   </p>
                 </div>
                 {!subStatus.data?.isPremium && (

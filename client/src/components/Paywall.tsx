@@ -43,7 +43,7 @@ const PREMIUM_FEATURES = [
   { icon: Sparkles, label: "Priority processing" },
 ];
 
-export default function Paywall({ isOpen, onClose, onSuccess, scansUsed = 3, dailyLimit = 3 }: PaywallProps) {
+export default function Paywall({ isOpen, onClose, onSuccess, scansUsed = 10, dailyLimit = 10 }: PaywallProps) {
   const [offerings, setOfferings] = useState<RCOffering | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<RCPackage | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);

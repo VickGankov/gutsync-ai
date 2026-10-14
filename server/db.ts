@@ -1,3 +1,4 @@
+import { isEmailInList } from "./access";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2";
@@ -203,6 +204,10 @@ export async function getSubscription(userId: number) {
 
 /** Returns true if the user has an active premium subscription. */
 export async function isPremium(userId: number): Promise<boolean> {
+  if (ENV.unlimitedEmails) {
+    const user = await getUserById(userId);
+    if (isEmailInList(user?.email, ENV.unlimitedEmails)) return true;
+  }
   const sub = await getSubscription(userId);
   if (!sub || sub.tier !== 'premium') return false;
   if (sub.expiresAt && sub.expiresAt < Date.now()) return false;

@@ -52,7 +52,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [newFoodCategory, setNewFoodCategory] = useState<string>("other");
   const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
   const [showPaywall, setShowPaywall] = useState(false);
-  const [paywallScansUsed, setPaywallScansUsed] = useState(3);
+  const [paywallScansUsed, setPaywallScansUsed] = useState(10);
   // Refs removed - using inline <label>+<input> pattern for better mobile compatibility
   const processedFileRef = useRef<File | null>(null);
 
