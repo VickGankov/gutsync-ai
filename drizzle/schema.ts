@@ -238,3 +238,23 @@ export const liftLogs = mysqlTable("lift_logs", {
 });
 
 export type LiftLog = typeof liftLogs.$inferSelect;
+
+/**
+ * Shared cache of per-food facts so the AI only has to identify foods in a photo.
+ * Keyed by a normalized food name (see shared/foodCache.ts).
+ */
+export const foodCache = mysqlTable("food_cache", {
+  id: int("id").autoincrement().primaryKey(),
+  foodKey: varchar("foodKey", { length: 120 }).notNull().unique(),
+  name: varchar("name", { length: 120 }).notNull(),
+  category: mysqlEnum("category", ["protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"]).notNull(),
+  fodmap: mysqlEnum("fodmap", ["low", "moderate", "high"]).notNull(),
+  hiddenIngredients: json("hiddenIngredients").$type<string[]>().notNull(),
+  /** Protein grams per 100 g of food, in tenths (e.g. 310 = 31.0 g). */
+  proteinPer100gTenths: int("proteinPer100gTenths").default(0).notNull(),
+  source: mysqlEnum("source", ["seed", "ai"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FoodFactRow = typeof foodCache.$inferSelect;
+export type InsertFoodFact = typeof foodCache.$inferInsert;

@@ -1,5 +1,5 @@
 import { isEmailInList } from "./access";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2";
 import { mysqlOptionsFromUrl } from "../shared/dbConnection.mjs";
@@ -11,6 +11,7 @@ import {
   subscriptions, type InsertSubscription,
   scanUsage,
   reintroChallenges,
+  foodCache,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
@@ -395,4 +396,19 @@ export async function getFitnessDataInRange(userId: number, fromTs: number, toTs
       .orderBy(desc(liftLogs.loggedAt)),
   ]);
   return { intake, weights, lifts };
+}
+
+// ─── Food facts cache ───
+
+export async function getFoodFactsByKeys(keys: string[]) {
+  const db = await getDb();
+  if (!db || keys.length === 0) return [];
+  return db.select().from(foodCache).where(inArray(foodCache.foodKey, keys));
+}
+
+/** Insert foods; rows whose key already exists are left untouched. */
+export async function saveFoodFacts(facts: Array<typeof foodCache.$inferInsert>) {
+  const db = await getDb();
+  if (!db || facts.length === 0) return;
+  await db.insert(foodCache).ignore().values(facts);
 }

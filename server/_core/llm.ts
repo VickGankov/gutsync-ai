@@ -314,7 +314,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (provider.direct) {
     // Standard OpenAI-compatible fields. Food analysis needs little reasoning.
-    payload.max_tokens = 8192;
+    payload.max_tokens = params.maxTokens ?? params.max_tokens ?? 8192;
     const effort = process.env.LLM_REASONING_EFFORT ?? (provider.model.startsWith("gemini") ? "low" : "");
     if (effort) payload.reasoning_effort = effort;
   } else {

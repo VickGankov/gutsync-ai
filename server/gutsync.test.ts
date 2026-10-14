@@ -13,6 +13,8 @@ vi.mock("./db", () => ({
   getSymptomsByUser: vi.fn().mockResolvedValue([]),
   updateSymptomSeverity: vi.fn().mockResolvedValue(undefined),
   deleteSymptom: vi.fn().mockResolvedValue(undefined),
+  getFoodFactsByKeys: vi.fn().mockResolvedValue([]),
+  saveFoodFacts: vi.fn().mockResolvedValue(undefined),
   upsertCorrelation: vi.fn(),
   getCorrelationsByUser: vi.fn().mockResolvedValue([]),
   // Subscription mocks (default: free tier, 0 scans used)

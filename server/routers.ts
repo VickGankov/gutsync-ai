@@ -16,6 +16,8 @@ import {
   getSymptomsByUser,
   updateSymptomSeverity,
   deleteSymptom,
+  getFoodFactsByKeys,
+  saveFoodFacts,
   upsertCorrelation,
   getCorrelationsByUser,
 
@@ -47,6 +49,7 @@ import {
   type ReintroCheckIn,
 } from "@shared/reintro";
 import { buildFitnessSummary, DAY_MS } from "./fitness";
+import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed } from "./foodAnalysis";
 import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
 
@@ -98,7 +101,7 @@ Be thorough about hidden ingredients that are common IBS triggers. Consider:
         role: "user",
         content: [
           { type: "text", text: "Analyze this meal photo for gut health tracking. Identify all foods, their FODMAP levels, and any likely hidden ingredients." },
-          { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+          { type: "image_url", image_url: { url: imageUrl, detail: "auto" } },
         ],
       },
     ],
@@ -156,6 +159,18 @@ Be thorough about hidden ingredients that are common IBS triggers. Consider:
     throw new Error("AI analysis returned empty response");
   }
   return JSON.parse(content);
+}
+
+/** Fast path: identify foods, read facts from the shared cache, ask the AI only about new foods. */
+async function analyzeMeal(imageUrl: string) {
+  await ensureFoodSeed(saveFoodFacts);
+  return analyzeWithCache(imageUrl, {
+    identify: identifyFoods,
+    lookup: lookupFoodFacts,
+    getFacts: getFoodFactsByKeys,
+    saveFacts: saveFoodFacts,
+    legacy: analyzeFood,
+  });
 }
 
 // ─── Correlation Analysis ───
@@ -311,14 +326,14 @@ export const appRouter = router({
           }
         }
 
-        // Upload image to S3
+        // Upload the photo and run the AI analysis at the same time.
+        // The image is sent inline so the AI provider never has to fetch it from storage.
         const fileKey = `meals/${ctx.user.id}/${nanoid()}.jpg`;
         const imageBuffer = Buffer.from(input.imageBase64, "base64");
-        const { url: photoUrl } = await storagePut(fileKey, imageBuffer, input.mimeType || "image/jpeg");
-
-        // Run AI analysis
-        // Send the image inline so the AI provider never has to fetch it from storage.
-        const analysis = await analyzeFood(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`);
+        const [{ url: photoUrl }, analysis] = await Promise.all([
+          storagePut(fileKey, imageBuffer, input.mimeType || "image/jpeg"),
+          analyzeMeal(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`),
+        ]);
 
         // ── Reject if no food detected ──────────────────────────────
         if (!analysis.foods || analysis.foods.length === 0) {

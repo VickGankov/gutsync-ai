@@ -1,6 +1,7 @@
 // GutSync — Food Capture Modal
 // Supports camera capture and gallery upload, with editable AI results
 
+import { prepareImageForUpload } from "@/lib/image";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Camera, Sparkles, Check, AlertTriangle, Save, Plus, Trash2, ChevronDown, Lock } from "lucide-react";
@@ -61,19 +62,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const runAnalysis = useCallback(async (file: File) => {
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
@@ -89,10 +77,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     }, 800);
 
     try {
-      const base64 = await fileToBase64(file);
+      const prepared = await prepareImageForUpload(file);
       const result = await analyzePhoto.mutateAsync({
-        imageBase64: base64,
-        mimeType: file.type || "image/jpeg",
+        imageBase64: prepared.base64,
+        mimeType: prepared.mimeType,
       });
 
       clearInterval(stepInterval);
