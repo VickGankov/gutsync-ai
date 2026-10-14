@@ -195,7 +195,7 @@ export const fitnessProfile = mysqlTable("fitness_profile", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
   proteinTargetG: int("proteinTargetG").default(150).notNull(),
-  waterTargetMl: int("waterTargetMl").default(3000).notNull(),
+  waterTargetMl: int("waterTargetMl").default(3785).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
