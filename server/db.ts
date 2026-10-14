@@ -7,7 +7,9 @@ import {
   InsertCorrelation, correlations,
   subscriptions, type InsertSubscription,
   scanUsage,
+  reintroChallenges,
 } from "../drizzle/schema";
+import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -249,4 +251,52 @@ export async function incrementScanCount(userId: number): Promise<number> {
     .from(scanUsage)
     .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
   return Number(result[0]?.total ?? 1);
+}
+
+// ─── Reintroduction Challenges ───
+
+export async function getReintroChallenges(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(reintroChallenges)
+    .where(eq(reintroChallenges.userId, userId))
+    .orderBy(desc(reintroChallenges.startedAt));
+}
+
+export async function getActiveReintroChallenge(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(reintroChallenges)
+    .where(and(eq(reintroChallenges.userId, userId), eq(reintroChallenges.status, "active")))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function createReintroChallenge(data: {
+  userId: number; foodGroup: string; testFood: string; doses: [string, string, string]; startedAt: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(reintroChallenges).values({ ...data, checkIns: [], status: "active" });
+  return result[0].insertId;
+}
+
+export async function updateReintroCheckIns(userId: number, id: number, checkIns: ReintroCheckIn[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(reintroChallenges)
+    .set({ checkIns })
+    .where(and(eq(reintroChallenges.id, id), eq(reintroChallenges.userId, userId)));
+}
+
+export async function finishReintroChallenge(
+  userId: number,
+  id: number,
+  data: { status: "completed" | "abandoned"; outcome: ReintroOutcome | null; toleratedDay: number | null; lowConfidence: boolean; finishedAt: number }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(reintroChallenges)
+    .set({ ...data, lowConfidence: data.lowConfidence ? 1 : 0 })
+    .where(and(eq(reintroChallenges.id, id), eq(reintroChallenges.userId, userId)));
 }

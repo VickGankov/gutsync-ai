@@ -14,12 +14,13 @@ import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
+import Reintro from "./pages/Reintro";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
 import Symptoms from "./pages/Symptoms";
 
 const AUTH_ROUTE = "/auth";
-const PROTECTED_PATHS = new Set(["/", "/food", "/symptoms", "/insights", "/profile"]);
+const PROTECTED_PATHS = new Set(["/", "/food", "/symptoms", "/insights", "/reintro", "/profile"]);
 const PUBLIC_INFO_PATHS = new Set(["/privacy"]);
 
 function buildAuthPath(pathname: string) {
@@ -83,6 +84,7 @@ function Router() {
         <Route path="/food" component={FoodLog} />
         <Route path="/symptoms" component={Symptoms} />
         <Route path="/insights" component={Insights} />
+        <Route path="/reintro" component={Reintro} />
         <Route path="/profile" component={Profile} />
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/404" component={NotFound} />

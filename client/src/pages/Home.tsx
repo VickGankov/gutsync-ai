@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
+import { REINTRO_GROUP_INFO, currentChallengeDay, type ReintroGroup } from "@shared/reintro";
 
 const HERO_IMG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-hero-Pvw9osKZy8TFVwjYfuzJB7.webp";
@@ -583,6 +584,7 @@ export default function Home() {
   const [showInAppWarning, setShowInAppWarning] = useState(false);
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
 
+  const reintroQuery = trpc.reintro.list.useQuery(undefined, { enabled: isAuthenticated });
   const dashboard = trpc.insights.dashboard.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -706,6 +708,28 @@ export default function Home() {
             <Leaf className="w-5 h-5 text-sage-dark" />
           </button>
         </motion.div>
+
+        {(() => {
+          const active = reintroQuery.data?.find(c => c.status === "active");
+          if (!active) return null;
+          const info = REINTRO_GROUP_INFO[active.foodGroup as ReintroGroup];
+          const day = Math.min(3, currentChallengeDay(active.startedAt, Date.now(), new Date().getTimezoneOffset()));
+          const doses = active.doses as string[];
+          const pending = (active.checkIns ?? []).length < day;
+          return (
+            <motion.div variants={item} className="mb-4">
+              <Link href="/reintro">
+                <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Reintroduction · Day {day} of 3</p>
+                    <p className="text-sm font-medium">{info?.emoji} {doses[day - 1]} {active.testFood}</p>
+                  </div>
+                  <span className="text-xs font-semibold text-primary">{pending ? "Check in →" : "View →"}</span>
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })()}
 
         {/* Hero */}
         <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">

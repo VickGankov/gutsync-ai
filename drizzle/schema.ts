@@ -1,4 +1,5 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex } from "drizzle-orm/mysql-core";
+import type { ReintroCheckIn } from "../shared/reintro";
 
 /**
  * Core user table backing auth flow.
@@ -151,3 +152,27 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+/**
+ * FODMAP reintroduction challenges: one FODMAP group tested over 3 days
+ * with increasing amounts. Check-ins are stored as JSON on the row.
+ */
+export const reintroChallenges = mysqlTable("reintro_challenges", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  foodGroup: varchar("foodGroup", { length: 32 }).notNull(),
+  testFood: varchar("testFood", { length: 100 }).notNull(),
+  /** Amounts for day 1–3 as entered/confirmed by the user. */
+  doses: json("doses").$type<[string, string, string]>().notNull(),
+  checkIns: json("checkIns").$type<ReintroCheckIn[]>().notNull(),
+  status: mysqlEnum("status", ["active", "completed", "abandoned"]).default("active").notNull(),
+  outcome: mysqlEnum("outcome", ["tolerated", "limit", "avoid"]),
+  /** Tolerated day (0–3) at completion; 0 = none. */
+  toleratedDay: int("toleratedDay"),
+  lowConfidence: int("lowConfidence").default(0).notNull(),
+  startedAt: bigint("startedAt", { mode: "number" }).notNull(),
+  finishedAt: bigint("finishedAt", { mode: "number" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ReintroChallenge = typeof reintroChallenges.$inferSelect;
