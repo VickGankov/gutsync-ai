@@ -1,6 +1,7 @@
 // Symptoms & Positive Outcomes Tracking
 // Wired to real tRPC backend
 
+import { invalidateToday } from "@/lib/invalidateToday";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Watch, Plus, Heart, Moon, Brain, Activity, Loader2, Leaf, Smile, Zap } from "lucide-react";
@@ -67,7 +68,7 @@ export default function Symptoms() {
 
   const refreshAll = () => {
     symptomsQuery.refetch();
-    utils.insights.dashboard.invalidate();
+    invalidateToday(utils);
   };
   const updateSymptom = trpc.symptoms.update.useMutation({
     onSuccess: () => { refreshAll(); setEditingId(null); toast.success("Updated"); },

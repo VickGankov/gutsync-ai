@@ -1,6 +1,7 @@
 // GutSync — Food Capture Modal
 // Supports camera capture and gallery upload, with editable AI results
 
+import { invalidateToday } from "@/lib/invalidateToday";
 import { prepareImageForUpload } from "@/lib/image";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -270,8 +271,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           toast.success("Meal logged successfully", {
             description: `${analyzedFoods.length} items saved with sensitivity analysis`,
           });
-          utils.meals.list.invalidate();
-          utils.insights.dashboard.invalidate();
+          invalidateToday(utils);
           utils.subscription.status.invalidate();
           handleClose();
         },

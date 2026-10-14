@@ -1,6 +1,7 @@
 // GutSync — Home Dashboard
 // Minimalistic design: tap meal tile to expand, clean edit/delete
 
+import { invalidateToday } from "@/lib/invalidateToday";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, Sparkles, ChevronRight, Leaf, Clock, LogIn,
@@ -87,8 +88,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
 
   const updateMealMut = trpc.meals.update.useMutation({
     onSuccess: () => {
-      utils.insights.dashboard.invalidate();
-      utils.meals.list.invalidate();
+      invalidateToday(utils);
       setEditing(false);
       setExpanded(false);
       toast.success("Meal updated");
@@ -99,8 +99,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
 
   const deleteMealMut = trpc.meals.delete.useMutation({
     onSuccess: () => {
-      utils.insights.dashboard.invalidate();
-      utils.meals.list.invalidate();
+      invalidateToday(utils);
       onDeleted(meal.id);
     },
     onError: () => toast.error("Failed to delete meal"),
@@ -414,8 +413,7 @@ function QuickSymptomLog({ onLogged }: { onLogged: () => void }) {
 
   const logSymptom = trpc.symptoms.log.useMutation({
     onSuccess: (_, vars) => {
-      utils.insights.dashboard.invalidate();
-      utils.symptoms.list.invalidate();
+      invalidateToday(utils);
       toast.success(`${getSymptomLabel(vars.type)} logged · severity ${vars.severity}/5`);
       setTapped(null);
       onLogged();
