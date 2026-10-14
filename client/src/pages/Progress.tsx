@@ -2,7 +2,7 @@
 // Protein / water targets, weigh-ins, and lift tracking.
 
 import { motion } from "framer-motion";
-import { formatGal, galInputValue, galToMl, mlToOz, ozToMl } from "@/lib/units";
+import { formatGal, formatGalTarget, galInputValue, galToMl, mlToOz, ozToMl } from "@/lib/units";
 import { useMemo, useState } from "react";
 import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ export default function Progress() {
   const data = summaryQuery.data;
   const today = data?.today;
   const proteinTarget = data?.targets.proteinTargetG ?? 150;
-  const waterTarget = data?.targets.waterTargetMl ?? 3000;
+  const waterTarget = data?.targets.waterTargetMl ?? 3785;
 
   const last14 = useMemo(() => (data?.days ?? []).slice(-14), [data]);
   const weightSeries = useMemo(
@@ -245,7 +245,7 @@ export default function Progress() {
               <Droplets className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold">Water</span>
             </div>
-            <span className="text-sm font-semibold">{formatGal(today?.waterMl ?? 0)}<span className="text-muted-foreground font-normal"> / {formatGal(waterTarget)} gal</span></span>
+            <span className="text-sm font-semibold">{formatGal(today?.waterMl ?? 0)}<span className="text-muted-foreground font-normal"> / {formatGalTarget(waterTarget)} gal</span></span>
           </div>
           <ProgressBar value={today?.waterMl ?? 0} target={waterTarget} color="oklch(0.6 0.1 230)" />
           <div className="flex gap-2 mt-3">

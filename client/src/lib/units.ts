@@ -13,3 +13,6 @@ export const formatGal = (ml: number) => (ml / ML_PER_GAL).toFixed(2);
 export const galInputValue = (ml: number) => String(Math.round((ml / ML_PER_GAL) * 100) / 100);
 
 export const galToMl = (gal: number) => Math.round(gal * ML_PER_GAL);
+
+/** Target in gallons without trailing zeros: 3785 ml -> "1", 3000 ml -> "0.79". */
+export const formatGalTarget = (ml: number) => String(Number(formatGal(ml)));

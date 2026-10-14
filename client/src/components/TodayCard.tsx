@@ -6,7 +6,7 @@ import { Activity, ArrowRight, Check, Droplets, Dumbbell, UtensilsCrossed } from
 import { trpc } from "@/lib/trpc";
 import { formatTimeAgo, getSymptomLabel } from "@/lib/store";
 import { summarizeToday } from "@shared/today";
-import { formatGal } from "@/lib/units";
+import { formatGal, formatGalTarget } from "@/lib/units";
 
 interface Props {
   meals: Array<{ loggedAt: number }>;
@@ -93,7 +93,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
           icon={<Droplets className="w-3 h-3" />}
           label="Water"
           unit="gal"
-          value={waterMl === null ? "–" : waterTargetMl ? `${formatGal(waterMl)} / ${formatGal(waterTargetMl)}` : formatGal(waterMl)}
+          value={waterMl === null ? "–" : waterTargetMl ? `${formatGal(waterMl)} / ${formatGalTarget(waterTargetMl)}` : formatGal(waterMl)}
           progress={waterMl !== null && waterTargetMl ? waterMl / waterTargetMl : undefined}
         />
       </div>

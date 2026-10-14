@@ -580,7 +580,7 @@ export const appRouter = router({
       const p = await getFitnessProfile(ctx.user.id);
       return {
         proteinTargetG: p?.proteinTargetG ?? 150,
-        waterTargetMl: p?.waterTargetMl ?? 3000,
+        waterTargetMl: p?.waterTargetMl ?? 3785,
       };
     }),
 
@@ -678,7 +678,7 @@ export const appRouter = router({
           ...summary,
           targets: {
             proteinTargetG: profile?.proteinTargetG ?? 150,
-            waterTargetMl: profile?.waterTargetMl ?? 3000,
+            waterTargetMl: profile?.waterTargetMl ?? 3785,
           },
           recentIntake: fitnessData.intake.slice(0, 10),
           recentWeights: fitnessData.weights.slice(0, 10).map(w => ({ id: w.id, weightLb: w.weightLb10 / 10, loggedAt: w.loggedAt })),
