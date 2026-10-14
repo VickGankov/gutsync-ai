@@ -12,6 +12,7 @@ export default function EmailAuth() {
   const [error, setError] = useState('');
   const [, setLocation] = useLocation();
 
+  const utils = trpc.useUtils();
   const register = trpc.auth.registerEmail.useMutation();
   const login = trpc.auth.loginEmail.useMutation();
 
@@ -20,12 +21,16 @@ export default function EmailAuth() {
     setError('');
 
     try {
-      if (mode === 'signup') {
-        await register.mutateAsync({ email, password, name });
-      } else {
-        await login.mutateAsync({ email, password });
-      }
-      setLocation('/');
+      const result =
+        mode === 'signup'
+          ? await register.mutateAsync({ email, password, name })
+          : await login.mutateAsync({ email, password });
+      // Refresh the cached "who am I" before navigating; otherwise the app
+      // still thinks we're logged out and bounces back to the sign-in page.
+      utils.auth.me.setData(undefined, result.user as any);
+      await utils.auth.me.invalidate();
+      const next = new URLSearchParams(window.location.search).get('next');
+      setLocation(next || '/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auth failed');
     }
