@@ -10,7 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
-type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog";
+type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog";
 
 const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] = [
   { type: 'bloating', emoji: '🫧', label: 'Bloating' },
@@ -21,6 +21,9 @@ const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] =
   { type: 'headache', emoji: '🤕', label: 'Headache' },
   { type: 'diarrhea', emoji: '💧', label: 'Diarrhea' },
   { type: 'constipation', emoji: '🧱', label: 'Constipation' },
+  { type: 'acid_reflux', emoji: '🔥', label: 'Reflux' },
+  { type: 'vomiting', emoji: '🤮', label: 'Vomiting' },
+  { type: 'low_appetite', emoji: '🍽️', label: 'Low Appetite' },
 ];
 
 const POSITIVE_OUTCOMES: { type: SymptomType; emoji: string; label: string }[] = [
@@ -66,7 +69,7 @@ export default function Symptoms() {
       {
         onSuccess: () => {
           const label = getSymptomLabel(selectedType);
-          const isPositive = selectedType.includes('_') && !['abdominal_pain', 'brain_fog'].includes(selectedType);
+          const isPositive = POSITIVE_OUTCOMES.some((o) => o.type === selectedType);
           toast.success(`${label} logged`, {
             description: isPositive 
               ? `Great! We'll track which foods contribute to this.`

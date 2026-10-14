@@ -7,6 +7,7 @@ import {
   InsertCorrelation, correlations,
   subscriptions, type InsertSubscription,
   scanUsage,
+  fitnessProfile, weightLogs, intakeLogs, liftLogs,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -249,4 +250,80 @@ export async function incrementScanCount(userId: number): Promise<number> {
     .from(scanUsage)
     .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
   return Number(result[0]?.total ?? 1);
+}
+
+// ─── Fitness Queries ───
+
+export async function getFitnessProfile(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(fitnessProfile).where(eq(fitnessProfile.userId, userId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function upsertFitnessProfile(userId: number, data: { proteinTargetG: number; waterTargetMl: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(fitnessProfile)
+    .values({ userId, ...data })
+    .onDuplicateKeyUpdate({ set: data });
+}
+
+export async function createWeightLog(userId: number, weightLb10: number, loggedAt: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(weightLogs).values({ userId, weightLb10, loggedAt });
+  return result[0].insertId;
+}
+
+export async function createIntakeLog(userId: number, kind: "protein" | "water", amount: number, loggedAt: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(intakeLogs).values({ userId, kind, amount, loggedAt });
+  return result[0].insertId;
+}
+
+export async function deleteIntakeLog(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(intakeLogs).where(and(eq(intakeLogs.id, id), eq(intakeLogs.userId, userId)));
+}
+
+export async function createLiftLog(
+  userId: number,
+  data: { exercise: string; weightLb: number; reps: number; sets: number; notes: string | null; loggedAt: number }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(liftLogs).values({ userId, ...data });
+  return result[0].insertId;
+}
+
+export async function deleteLiftLog(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(liftLogs).where(and(eq(liftLogs.id, id), eq(liftLogs.userId, userId)));
+}
+
+export async function deleteWeightLog(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(weightLogs).where(and(eq(weightLogs.id, id), eq(weightLogs.userId, userId)));
+}
+
+export async function getFitnessDataInRange(userId: number, fromTs: number, toTs: number) {
+  const db = await getDb();
+  if (!db) return { intake: [], weights: [], lifts: [] };
+  const [intake, weights, lifts] = await Promise.all([
+    db.select().from(intakeLogs)
+      .where(and(eq(intakeLogs.userId, userId), gte(intakeLogs.loggedAt, fromTs), lte(intakeLogs.loggedAt, toTs)))
+      .orderBy(desc(intakeLogs.loggedAt)),
+    db.select().from(weightLogs)
+      .where(and(eq(weightLogs.userId, userId), gte(weightLogs.loggedAt, fromTs), lte(weightLogs.loggedAt, toTs)))
+      .orderBy(desc(weightLogs.loggedAt)),
+    db.select().from(liftLogs)
+      .where(and(eq(liftLogs.userId, userId), gte(liftLogs.loggedAt, fromTs), lte(liftLogs.loggedAt, toTs)))
+      .orderBy(desc(liftLogs.loggedAt)),
+  ]);
+  return { intake, weights, lifts };
 }

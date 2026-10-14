@@ -34,6 +34,7 @@ interface AnalyzedFood {
   category: string;
   fodmap: "low" | "moderate" | "high";
   hiddenIngredients: string[];
+  proteinGrams?: number;
 }
 
 export default function FoodCaptureModal({ open, onClose, initialMode = "camera", uploadedFile }: FoodCaptureModalProps) {
@@ -159,6 +160,11 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, name } : f));
   };
 
+  const handleUpdateProtein = (index: number, value: string) => {
+    const n = value === "" ? undefined : Math.max(0, Math.min(500, Number(value)));
+    setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, proteinGrams: Number.isFinite(n) ? n : undefined } : f));
+  };
+
   const handleAddFood = () => {
     if (!newFoodName.trim()) return;
     setAnalyzedFoods(prev => [
@@ -190,6 +196,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           category: f.category as "protein" | "carb" | "fat" | "vegetable" | "fruit" | "dairy" | "grain" | "other",
           fodmap: f.fodmap,
           hiddenIngredients: f.hiddenIngredients,
+          ...(typeof f.proteinGrams === "number" ? { proteinGrams: f.proteinGrams } : {}),
         })),
         notes: mealSummary || undefined,
         photoUrl: savedPhotoUrl || undefined,
@@ -419,6 +426,14 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   <span>Tap an item to edit. Swipe or tap <Trash2 className="w-3 h-3 inline" /> to remove.</span>
                 </div>
 
+                {analyzedFoods.some(f => typeof f.proteinGrams === "number") && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Estimated protein: <span className="font-semibold text-foreground">
+                      {Math.round(analyzedFoods.reduce((sum, f) => sum + (f.proteinGrams ?? 0), 0))} g
+                    </span> · tap an item to adjust
+                  </p>
+                )}
+
                 {/* Food items list */}
                 <div className="space-y-2.5">
                   {analyzedFoods.map((food, i) => (
@@ -471,6 +486,24 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                           ) : (
                             fodmapBadge(food.fodmap)
                           )}
+
+                          {editingIndex === i ? (
+                            <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                              Protein
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min={0}
+                                max={500}
+                                value={food.proteinGrams ?? ""}
+                                onChange={(e) => handleUpdateProtein(i, e.target.value)}
+                                className="w-20 bg-background border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              />
+                              g
+                            </label>
+                          ) : typeof food.proteinGrams === "number" && food.proteinGrams > 0 ? (
+                            <p className="mt-1.5 text-xs text-muted-foreground">~{Math.round(food.proteinGrams)} g protein</p>
+                          ) : null}
                         </div>
 
                         {/* Remove button */}

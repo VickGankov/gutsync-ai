@@ -2,7 +2,7 @@
 // Centered scan FAB with long-press to upload from gallery
 
 import { useLocation, Link } from "wouter";
-import { Home, UtensilsCrossed, Activity, BarChart3, Camera, Upload } from "lucide-react";
+import { Home, UtensilsCrossed, Activity, BarChart3, Camera, Upload, Dumbbell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useCallback } from "react";
 import FoodCaptureModal from "./FoodCaptureModal";
@@ -10,6 +10,7 @@ import FoodCaptureModal from "./FoodCaptureModal";
 const leftItems = [
   { path: "/", icon: Home, label: "Home" },
   { path: "/food", icon: UtensilsCrossed, label: "Food" },
+  { path: "/progress", icon: Dumbbell, label: "Progress" },
 ];
 
 const rightItems = [
@@ -23,7 +24,7 @@ function NavItem({ path, icon: Icon, label, isActive }: {
   return (
     <Link href={path}>
       <motion.div
-        className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors min-w-[52px]"
+        className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors min-w-[48px]"
         whileTap={{ scale: 0.95 }}
       >
         <Icon
