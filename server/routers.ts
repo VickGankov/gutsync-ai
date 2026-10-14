@@ -405,6 +405,7 @@ export const appRouter = router({
           fodmap: z.enum(["low", "moderate", "high"]),
           hiddenIngredients: z.array(z.string()),
           proteinGrams: z.number().min(0).max(500).optional(),
+          ingredients: z.array(z.string().max(160)).max(80).optional(),
         })),
         notes: z.string().optional(),
         photoUrl: z.string().optional(),
@@ -431,6 +432,7 @@ export const appRouter = router({
           fodmap: z.enum(["low", "moderate", "high"]),
           hiddenIngredients: z.array(z.string()),
           proteinGrams: z.number().min(0).max(500).optional(),
+          ingredients: z.array(z.string().max(160)).max(80).optional(),
         })).optional(),
         notes: z.string().optional(),
       }))

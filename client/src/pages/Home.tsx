@@ -84,6 +84,7 @@ function MealTile({ meal, onSaved, onDeleted }: {
       category: (f.category ?? "other") as FoodItem["category"],
       fodmap: f.fodmap as FoodItem["fodmap"],
       hiddenIngredients: f.hiddenIngredients ?? [],
+      ...(f.ingredients?.length ? { ingredients: f.ingredients } : {}),
     }));
     updateMealMut.mutate({ id: meal.id, mealType, foods: sanitizedFoods, notes });
   }, [foods, meal.id, mealType, notes, updateMealMut]);
@@ -235,6 +236,9 @@ function MealTile({ meal, onSaved, onDeleted }: {
                         </button>
                       </div>
                     </div>
+                    {f.ingredients && f.ingredients.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground mt-1 ml-0.5 leading-snug">Ingredients: {f.ingredients.join(", ")}</p>
+                    )}
                     {showExplanation === f.name && (
                       <p className="text-[11px] text-muted-foreground mt-1 ml-0.5 leading-relaxed bg-muted/50 rounded-lg px-2.5 py-1.5">
                         {getFODMAPExplanation(f.name, f.fodmap as "low" | "moderate" | "high")}
@@ -330,7 +334,12 @@ function MealTile({ meal, onSaved, onDeleted }: {
                 <div className="space-y-1.5">
                   {foods.map((f, idx) => (
                     <div key={`food-${idx}`} className="flex items-center gap-2">
-                      <span className="flex-1 text-sm truncate">{f.name}</span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm truncate">{f.name}</span>
+                        {f.ingredients && f.ingredients.length > 0 && (
+                          <span className="block text-[11px] text-muted-foreground leading-snug">{f.ingredients.join(", ")}</span>
+                        )}
+                      </span>
                       <button
                         type="button"
                         onClick={() => cycleFodmap(idx)}

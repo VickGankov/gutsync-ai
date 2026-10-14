@@ -6,6 +6,8 @@ export interface FoodItem {
   category: 'protein' | 'carb' | 'fat' | 'vegetable' | 'fruit' | 'dairy' | 'grain' | 'other';
   fodmap: 'low' | 'moderate' | 'high';
   hiddenIngredients: string[];
+  /** Full ingredient list when known (label or product database). */
+  ingredients?: string[];
 }
 
 export interface MealEntry {

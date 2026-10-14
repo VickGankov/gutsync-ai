@@ -260,6 +260,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           fodmap: f.fodmap,
           hiddenIngredients: f.hiddenIngredients,
           ...(typeof f.proteinGrams === "number" ? { proteinGrams: f.proteinGrams } : {}),
+          ...(f.ingredients?.length ? { ingredients: f.ingredients } : {}),
         })),
         notes: mealSummary || undefined,
         photoUrl: savedPhotoUrl || undefined,
