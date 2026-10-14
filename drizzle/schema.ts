@@ -276,3 +276,21 @@ export const productCache = mysqlTable("product_cache", {
   found: boolean("found").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/** Cached AI write-up for a detected trigger; regenerated when the underlying counts change. */
+export const triggerExplanations = mysqlTable("trigger_explanations", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  triggerKey: varchar("triggerKey", { length: 255 }).notNull(),
+  statsHash: varchar("statsHash", { length: 40 }).notNull(),
+  explanation: json("explanation").$type<TriggerExplanation>().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({ userKey: uniqueIndex("trigger_explanations_user_key").on(t.userId, t.triggerKey) }));
+
+export interface TriggerExplanation {
+  shows: string;
+  why: string;
+  confidence: string;
+  nextStep: string;
+  seeProfessional: string;
+}

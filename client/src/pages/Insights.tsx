@@ -1,23 +1,19 @@
 // GutSync — Insights Page
-// Wired to real tRPC backend
+// Triggers are found by counting (shared/triggers.ts). The AI only explains a pattern, on demand.
 
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, BarChart3, Loader2, Leaf, RefreshCw } from "lucide-react";
+import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, BarChart3, Loader2, Leaf, Eye, Stethoscope, FlaskConical, ShieldQuestion } from "lucide-react";
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getSymptomLabel } from "@/lib/store";
+import { getSymptomLabel, getSymptomEmoji } from "@/lib/store";
 import type { FoodItem } from "@/lib/store";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell,
   PieChart, Pie,
 } from "recharts";
-import { toast } from "sonner";
 import { Link } from "wouter";
-import { FlaskConical } from "lucide-react";
-
-const INSIGHTS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-insights-am9czTKGxiACTgufFfNQec.webp";
+import { ofMeals, pct, MIN_EXPOSURES } from "@shared/triggers";
 
 const barColors = ['oklch(0.7 0.12 25)', 'oklch(0.55 0.1 155)', 'oklch(0.75 0.04 80)', 'oklch(0.65 0.08 80)'];
 
@@ -30,73 +26,137 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-interface CorrelationData {
-  id: number;
-  trigger: string;
+interface TriggerData {
+  key: string;
+  names: string[];
   symptom: string;
-  confidence: number;
-  occurrences: number;
-  description: string;
-  recommendation: string;
-  discoveredAt: number;
+  exposures: number;
+  hits: number;
+  otherMeals: number;
+  otherHits: number;
+  rate: number;
+  otherRate: number;
+  avgSeverity: number;
+  status: "trigger" | "watching";
 }
 
-function CorrelationCard({ correlation }: { correlation: CorrelationData }) {
-  const [expanded, setExpanded] = useState(false);
+type Explanation = { shows: string; why: string; confidence: string; nextStep: string; seeProfessional: string };
 
-  const confidenceColor =
-    correlation.confidence >= 80 ? 'text-coral' :
-    correlation.confidence >= 60 ? 'text-sand-dark' : 'text-sage-dark';
+/** A pattern we are only watching: too few meals to call it a trigger. Smaller and quieter on purpose. */
+function WatchingRow({ t }: { t: TriggerData }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3 py-2">
+      <Eye className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+      <p className="text-xs text-foreground min-w-0 flex-1">
+        <span className="font-medium">{t.names.join(" + ")}</span>
+        <span className="text-muted-foreground"> → {getSymptomLabel(t.symptom).toLowerCase()}</span>
+      </p>
+      <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t.exposures}/{MIN_EXPOSURES} meals</span>
+    </div>
+  );
+}
 
-  const confidenceBg =
-    correlation.confidence >= 80 ? 'bg-coral-light/40' :
-    correlation.confidence >= 60 ? 'bg-sand/60' : 'bg-sage-light/40';
+function TriggerCard({ t }: { t: TriggerData }) {
+  const [open, setOpen] = useState(false);
+  const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const explain = trpc.insights.explain.useMutation({ onSuccess: setExplanation });
+
+  const tone = t.rate >= 0.75 ? { bg: "bg-coral-light/50", text: "text-coral" }
+    : t.rate >= 0.5 ? { bg: "bg-sand/60", text: "text-sand-dark" }
+    : { bg: "bg-sage-light/40", text: "text-sage-dark" };
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !explanation && !explain.isPending) explain.mutate({ key: t.key });
+  };
 
   return (
-    <motion.div
-      variants={item}
-      className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden"
-    >
+    <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <div className={`w-10 h-10 rounded-xl ${confidenceBg} flex items-center justify-center shrink-0`}>
-            <span className={`text-sm font-bold font-mono ${confidenceColor}`}>{correlation.confidence}%</span>
+          <div className={`w-14 h-14 rounded-2xl ${tone.bg} flex flex-col items-center justify-center shrink-0`}>
+            <span className={`text-base font-bold font-mono leading-none ${tone.text}`}>{pct(t.rate)}</span>
+            <span className="text-[9px] text-muted-foreground mt-1">of meals</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-foreground">{correlation.trigger}</span>
+              <span className="text-sm font-semibold text-foreground">{t.names.join(" + ")}</span>
               <ArrowRight className="w-3 h-3 text-muted-foreground" />
-              <span className="text-sm font-medium text-coral">{correlation.symptom}</span>
+              <span className="text-sm font-medium text-coral">{getSymptomEmoji(t.symptom)} {getSymptomLabel(t.symptom)}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {correlation.occurrences} occurrences detected
+            <p className="text-xs text-foreground mt-1">
+              Followed {ofMeals(t.hits, t.exposures)}, within 6 h
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {t.otherMeals > 0 ? `vs ${pct(t.otherRate)} after other meals` : "no other meals to compare yet"}
+              {t.hits > 0 && ` · avg severity ${t.avgSeverity}/5`}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="mt-3 text-xs text-primary font-medium hover:underline"
-        >
-          {expanded ? 'Show less' : 'See details & recommendation'}
+        {t.names.length > 1 && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            These always show up together, so your data can't tell which one it is.
+          </p>
+        )}
+
+        <button onClick={toggle} className="mt-3 text-xs text-primary font-medium hover:underline">
+          {open ? "Hide" : "What this means & what to do"}
         </button>
 
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-3 space-y-3"
-          >
-            <div className="bg-muted/50 rounded-xl p-3">
-              <p className="text-xs text-foreground leading-relaxed">{correlation.description}</p>
-            </div>
-            <div className="bg-primary/5 border border-primary/15 rounded-xl p-3 flex gap-2">
-              <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-primary mb-1">Recommendation</p>
-                <p className="text-xs text-foreground leading-relaxed">{correlation.recommendation}</p>
+        {open && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 space-y-2.5">
+            {explain.isPending && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing this up from your numbers…
               </div>
-            </div>
+            )}
+            {explain.isError && (
+              <div className="bg-muted/50 rounded-xl p-3">
+                <p className="text-xs text-foreground">
+                  Couldn't write the explanation right now. The counts above are still accurate.
+                </p>
+                <button onClick={() => explain.mutate({ key: t.key })} className="mt-1.5 text-xs text-primary font-medium hover:underline">
+                  Try again
+                </button>
+              </div>
+            )}
+            {explanation && (
+              <>
+                <div className="bg-muted/50 rounded-xl p-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">What your data shows</p>
+                  <p className="text-xs text-foreground leading-relaxed">{explanation.shows}</p>
+                </div>
+                <div className="bg-muted/50 rounded-xl p-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Why it might happen</p>
+                  <p className="text-xs text-foreground leading-relaxed">{explanation.why}</p>
+                </div>
+                <div className="rounded-xl p-3 flex gap-2 border border-border/60">
+                  <ShieldQuestion className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">How sure we are</p>
+                    <p className="text-xs text-foreground leading-relaxed">{explanation.confidence}</p>
+                  </div>
+                </div>
+                <div className="bg-primary/5 border border-primary/15 rounded-xl p-3 flex gap-2">
+                  <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-primary mb-1">Next step</p>
+                    <p className="text-xs text-foreground leading-relaxed">{explanation.nextStep}</p>
+                    <Link href="/reintro" className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-primary font-medium hover:underline">
+                      <FlaskConical className="w-3 h-3" /> Test it in the Reintroduction challenge
+                    </Link>
+                  </div>
+                </div>
+                {explanation.seeProfessional && (
+                  <div className="bg-coral-light/30 rounded-xl p-3 flex gap-2">
+                    <Stethoscope className="w-4 h-4 text-coral shrink-0 mt-0.5" />
+                    <p className="text-xs text-foreground leading-relaxed">{explanation.seeProfessional}</p>
+                  </div>
+                )}
+              </>
+            )}
           </motion.div>
         )}
       </div>
@@ -106,22 +166,13 @@ function CorrelationCard({ correlation }: { correlation: CorrelationData }) {
 
 export default function Insights() {
   const { isAuthenticated } = useAuth();
-  const correlationsQuery = trpc.insights.correlations.useQuery(undefined, { enabled: isAuthenticated });
+  const triggersQuery = trpc.insights.triggers.useQuery(undefined, { enabled: isAuthenticated });
   const mealsQuery = trpc.meals.list.useQuery({ limit: 50 }, { enabled: isAuthenticated });
   const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 50 }, { enabled: isAuthenticated });
-  const runAnalysis = trpc.insights.runAnalysis.useMutation({
-    onSuccess: (result) => {
-      correlationsQuery.refetch();
-      toast.success(`Analysis complete`, {
-        description: `Found ${result.correlationsFound} correlation${result.correlationsFound === 1 ? '' : 's'}`,
-      });
-    },
-    onError: () => {
-      toast.error("Analysis failed. Try again after logging more meals and symptoms.");
-    },
-  });
 
-  const correlations = (correlationsQuery.data ?? []) as CorrelationData[];
+  const allPatterns = (triggersQuery.data?.triggers ?? []) as TriggerData[];
+  const triggers = allPatterns.filter(t => t.status === "trigger");
+  const watching = allPatterns.filter(t => t.status === "watching").slice(0, 6);
   const meals = mealsQuery.data ?? [];
   const symptoms = symptomsQuery.data ?? [];
 
@@ -154,41 +205,15 @@ export default function Insights() {
     return { fodmapData: data, fodmapCounts: counts };
   }, [meals]);
 
-  const isLoading = correlationsQuery.isLoading || mealsQuery.isLoading || symptomsQuery.isLoading;
+  const isLoading = triggersQuery.isLoading || mealsQuery.isLoading || symptomsQuery.isLoading;
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-28 max-w-lg mx-auto">
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl tracking-tight">Insights</h1>
-          <p className="text-sm text-muted-foreground mt-1">Correlations discovered from your data</p>
-        </div>
-        <Button
-          onClick={(e) => { e.stopPropagation(); runAnalysis.mutate(); }}
-          disabled={runAnalysis.isPending || !isAuthenticated}
-          className="rounded-xl h-10 gap-2 bg-primary hover:bg-primary/90 relative z-10"
-          size="sm"
-        >
-          {runAnalysis.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
-          {runAnalysis.isPending ? "Analyzing…" : "Analyze"}
-        </Button>
-      </motion.div>
-
-      {/* Insights Hero */}
-      <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-        <img src={INSIGHTS_IMG} alt="Insights visualization" className="w-full h-32 object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex items-center">
-          <div className="px-5">
-            <p className="text-white text-sm font-medium">Pattern Recognition</p>
-            <p className="text-white/70 text-xs mt-1">
-              Analyzing {meals.length} meals and {symptoms.length} symptoms
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground mt-1">Patterns found by counting your own meals and symptoms</p>
         </div>
       </motion.div>
 
@@ -221,21 +246,31 @@ export default function Insights() {
           <motion.div variants={item} className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="text-lg">Discovered Triggers</h2>
+              <h2 className="text-lg">Likely Triggers</h2>
             </div>
-            {correlations.length > 0 ? (
+            {triggers.length > 0 ? (
               <div className="space-y-3">
-                {correlations.map((c: CorrelationData) => (
-                  <CorrelationCard key={c.id} correlation={c} />
-                ))}
+                {triggers.map(t => <TriggerCard key={t.key} t={t} />)}
               </div>
             ) : (
               <div className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
                 <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
-                <h3 className="font-display text-lg mb-1">No patterns yet</h3>
+                <h3 className="font-display text-lg mb-1">No clear triggers yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  Log at least 3 meals and 2 symptoms, then tap "Analyze" to discover food-symptom correlations.
+                  A food needs to show up in at least {MIN_EXPOSURES} meals, with a symptom after it more often than after your other meals, before it counts. Keep logging.
                 </p>
+              </div>
+            )}
+            {watching.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Still watching</h3>
+                </div>
+                <div className="space-y-1.5">
+                  {watching.map(t => <WatchingRow key={t.key} t={t} />)}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">Too few meals to say anything yet. These are not triggers.</p>
               </div>
             )}
           </motion.div>
@@ -323,9 +358,9 @@ export default function Insights() {
               </div>
               <p className="text-sm text-foreground leading-relaxed">
                 You've logged <strong>{meals.length} meals</strong> and <strong>{symptoms.length} symptoms</strong>.
-                {correlations.length > 0
-                  ? ` GutSync has found ${correlations.length} trigger pattern${correlations.length === 1 ? '' : 's'}. Review the recommendations above to improve your gut health.`
-                  : ' Keep logging to discover food-symptom patterns.'}
+                {triggers.length > 0
+                  ? ` ${triggers.length} likely trigger${triggers.length === 1 ? '' : 's'} so far. Open one to see what it means.`
+                  : ' Keep logging to see which foods stand out.'}
               </p>
             </motion.div>
           )}

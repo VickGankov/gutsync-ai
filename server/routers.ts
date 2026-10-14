@@ -50,6 +50,8 @@ import {
 } from "@shared/reintro";
 import { buildFitnessSummary, DAY_MS } from "./fitness";
 import { findProduct } from "./productLookup";
+import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
+import { ofMeals, pct } from "../shared/triggers";
 import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
@@ -174,92 +176,6 @@ async function analyzeMeal(imageUrl: string) {
     findProduct: name => findProduct(name, { get: getProductCache, save: saveProductCache }),
     legacy: analyzeFood,
   });
-}
-
-// ─── Correlation Analysis ───
-
-async function analyzeCorrelations(
-  mealsData: Array<{ foods: MealFood[]; loggedAt: number }>,
-  symptomsData: Array<{ type: string; severity: number; loggedAt: number }>
-): Promise<Array<{
-  trigger: string;
-  symptom: string;
-  confidence: number;
-  occurrences: number;
-  description: string;
-  recommendation: string;
-}>> {
-  if (mealsData.length < 3 || symptomsData.length < 2) {
-    return [];
-  }
-
-  const result = await invokeLLM({
-    messages: [
-      {
-        role: "system",
-        content: `You are GutSync's correlation engine. Analyze the food and symptom data to find patterns.
-Look for:
-- Foods that consistently appear 2-48 hours before symptoms
-- Combinations of foods that trigger symptoms together
-- Hidden ingredients (garlic, onion, lactose) that appear across multiple meals before symptoms
-- Time-of-day patterns
-
-Return a JSON array of discovered correlations. Be conservative — only report patterns with reasonable confidence.`,
-      },
-      {
-        role: "user",
-        content: JSON.stringify({
-          meals: mealsData.map(m => ({
-            foods: m.foods.map(f => f.name),
-            allIngredients: m.foods.flatMap(f => [f.name, ...f.hiddenIngredients]),
-            fodmapLevels: m.foods.map(f => ({ name: f.name, fodmap: f.fodmap })),
-            timestamp: m.loggedAt,
-          })),
-          symptoms: symptomsData,
-        }),
-      },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "correlation_analysis",
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            correlations: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  trigger: { type: "string" },
-                  symptom: { type: "string" },
-                  confidence: { type: "integer", description: "0-100" },
-                  occurrences: { type: "integer" },
-                  description: { type: "string" },
-                  recommendation: { type: "string" },
-                },
-                required: ["trigger", "symptom", "confidence", "occurrences", "description", "recommendation"],
-                additionalProperties: false,
-              },
-            },
-          },
-          required: ["correlations"],
-          additionalProperties: false,
-        },
-      },
-    },
-  });
-
-  const content = result.choices[0]?.message?.content;
-  if (!content || typeof content !== "string") return [];
-  try {
-    const parsed = JSON.parse(content);
-    return parsed.correlations || [];
-  } catch {
-    console.error("[analyzeCorrelations] Failed to parse LLM response:", content.slice(0, 200));
-    return [];
-  }
 }
 
 /** Throws FREE_LIMIT_REACHED for free users at their daily limit. Returns whether the user is premium. */
@@ -692,53 +608,39 @@ export const appRouter = router({
       return getCorrelationsByUser(ctx.user.id);
     }),
 
-    runAnalysis: protectedProcedure.mutation(async ({ ctx }) => {
-      // Get last 7 days of data
-      const now = Date.now();
-      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-      const [mealsData, symptomsData] = await Promise.all([
-        getMealsInRange(ctx.user.id, sevenDaysAgo, now),
-        getSymptomsByUser(ctx.user.id, 50),
-      ]);
-
-      // Filter symptoms to last 7 days
-      const recentSymptoms = symptomsData.filter(s => s.loggedAt >= sevenDaysAgo);
-
-      // Run AI correlation analysis
-      const newCorrelations = await analyzeCorrelations(
-        mealsData.map(m => ({ foods: m.foods as MealFood[], loggedAt: m.loggedAt })),
-        recentSymptoms.map(s => ({ type: s.type, severity: s.severity, loggedAt: s.loggedAt }))
-      );
-
-      // Save correlations
-      for (const corr of newCorrelations) {
-        await upsertCorrelation({
-          userId: ctx.user.id,
-          trigger: corr.trigger,
-          symptom: corr.symptom,
-          confidence: corr.confidence,
-          occurrences: corr.occurrences,
-          description: corr.description,
-          recommendation: corr.recommendation,
-          discoveredAt: Date.now(),
-        });
-      }
-
-      return { correlationsFound: newCorrelations.length, correlations: newCorrelations };
+    /** Triggers found by counting (no AI): see shared/triggers.ts. */
+    triggers: protectedProcedure.query(async ({ ctx }) => {
+      const { triggers, mealCount, symptomCount } = await loadTriggers(ctx.user.id);
+      return { mealCount, symptomCount, triggers: triggers.map(t => ({ ...t, key: triggerKey(t) })) };
     }),
+
+    /** AI write-up for one trigger, built from the counts and cached until they change. */
+    explain: protectedProcedure
+      .input(z.object({ key: z.string().min(1).max(255) }))
+      .mutation(async ({ ctx, input }) => {
+        const { triggers } = await loadTriggers(ctx.user.id);
+        const stat = triggers.find(t => triggerKey(t) === input.key);
+        if (!stat) throw new TRPCError({ code: "NOT_FOUND", message: "That pattern is no longer in your data" });
+        try {
+          return await getOrCreateExplanation(ctx.user.id, stat);
+        } catch (err) {
+          console.error("[insights.explain] failed:", err instanceof Error ? err.message : err);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not write the explanation right now" });
+        }
+      }),
 
     dashboard: protectedProcedure.query(async ({ ctx }) => {
       const now = Date.now();
       const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
       const fortyEightHoursAgo = now - 48 * 60 * 60 * 1000;
 
-      const [allMeals, recentMeals, allSymptoms, correlationsData] = await Promise.all([
+      const [allMeals, recentMeals, allSymptoms, found] = await Promise.all([
         getMealsByUser(ctx.user.id, 50),
         getMealsInRange(ctx.user.id, fortyEightHoursAgo, now),
         getSymptomsByUser(ctx.user.id, 50),
-        getCorrelationsByUser(ctx.user.id),
+        loadTriggers(ctx.user.id),
       ]);
+      const top = found.triggers.find(t => t.status === "trigger");
 
       // Calculate gut health score (simple heuristic)
       const recentSymptoms = allSymptoms.filter(s => s.loggedAt >= sevenDaysAgo);
@@ -757,7 +659,12 @@ export const appRouter = router({
         totalSymptoms: allSymptoms.length,
         recentMeals: recentMeals.slice(0, 5),
         recentSymptoms: allSymptoms.slice(0, 5),
-        topCorrelation: correlationsData[0] ?? null,
+        topCorrelation: top ? {
+          trigger: top.names.join(" + "),
+          symptom: top.symptom.replace(/_/g, " "),
+          discoveredAt: top.lastHitAt,
+          recommendation: `${ofMeals(top.hits, top.exposures)} with this were followed by ${top.symptom.replace(/_/g, " ")} (${pct(top.rate)}, vs ${pct(top.otherRate)} otherwise).`,
+        } : null,
 
       };
     }),

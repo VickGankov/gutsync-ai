@@ -12,6 +12,7 @@ import {
   scanUsage,
   reintroChallenges,
   foodCache, productCache,
+  triggerExplanations, type TriggerExplanation,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
@@ -425,5 +426,23 @@ export async function saveProductCache(row: typeof productCache.$inferInsert) {
   if (!db) return;
   await db.insert(productCache).values(row).onDuplicateKeyUpdate({
     set: { name: row.name, ingredients: row.ingredients, found: row.found, createdAt: new Date() },
+  });
+}
+
+// ─── Trigger explanations (cached AI write-ups) ───
+
+export async function getTriggerExplanation(userId: number, triggerKey: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(triggerExplanations)
+    .where(and(eq(triggerExplanations.userId, userId), eq(triggerExplanations.triggerKey, triggerKey))).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function saveTriggerExplanation(userId: number, triggerKey: string, statsHash: string, explanation: TriggerExplanation) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(triggerExplanations).values({ userId, triggerKey, statsHash, explanation }).onDuplicateKeyUpdate({
+    set: { statsHash, explanation, createdAt: new Date() },
   });
 }
