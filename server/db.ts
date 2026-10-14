@@ -164,6 +164,18 @@ export async function getSymptomsByUser(userId: number, limit = 20) {
   return db.select().from(symptoms).where(eq(symptoms.userId, userId)).orderBy(desc(symptoms.loggedAt)).limit(limit);
 }
 
+export async function updateSymptomSeverity(userId: number, id: number, severity: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(symptoms).set({ severity }).where(and(eq(symptoms.id, id), eq(symptoms.userId, userId)));
+}
+
+export async function deleteSymptom(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(symptoms).where(and(eq(symptoms.id, id), eq(symptoms.userId, userId)));
+}
+
 // ─── Correlation Queries ───
 
 export async function upsertCorrelation(corr: InsertCorrelation) {

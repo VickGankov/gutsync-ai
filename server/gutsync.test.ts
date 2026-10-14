@@ -11,6 +11,8 @@ vi.mock("./db", () => ({
   getMealsInRange: vi.fn().mockResolvedValue([]),
   createSymptom: vi.fn().mockResolvedValue(1),
   getSymptomsByUser: vi.fn().mockResolvedValue([]),
+  updateSymptomSeverity: vi.fn().mockResolvedValue(undefined),
+  deleteSymptom: vi.fn().mockResolvedValue(undefined),
   upsertCorrelation: vi.fn(),
   getCorrelationsByUser: vi.fn().mockResolvedValue([]),
   // Subscription mocks (default: free tier, 0 scans used)
@@ -422,5 +424,17 @@ describe("GutSync Server Procedures", () => {
       await caller.meals.analyzePhoto({ imageBase64: fakeBase64, mimeType: "image/jpeg" });
       expect(db.incrementScanCount).toHaveBeenCalledWith(1);
     });
+  });
+});
+
+describe("symptoms.update / delete", () => {
+  it("scopes update and delete to the signed-in user", async () => {
+    const db = await import("./db");
+    const caller = appRouter.createCaller(createAuthContext());
+    await caller.symptoms.update({ id: 7, severity: 4 });
+    expect(db.updateSymptomSeverity).toHaveBeenCalledWith(1, 7, 4);
+    await caller.symptoms.delete({ id: 7 });
+    expect(db.deleteSymptom).toHaveBeenCalledWith(1, 7);
+    await expect(caller.symptoms.update({ id: 7, severity: 6 })).rejects.toThrow();
   });
 });

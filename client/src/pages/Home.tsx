@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
+import SeverityBubble from "@/components/SeverityBubble";
 import { REINTRO_GROUP_INFO, currentChallengeDay, type ReintroGroup } from "@shared/reintro";
 
 const HERO_IMG =
@@ -428,8 +429,8 @@ function QuickSymptomLog({ onLogged }: { onLogged: () => void }) {
     onSuccess: (_, vars) => {
       utils.insights.dashboard.invalidate();
       utils.symptoms.list.invalidate();
-      toast.success(`${getSymptomLabel(vars.type)} logged`);
-      setTimeout(() => setTapped(null), 600);
+      toast.success(`${getSymptomLabel(vars.type)} logged · severity ${vars.severity}/5`);
+      setTapped(null);
       onLogged();
     },
     onError: () => {
@@ -438,10 +439,16 @@ function QuickSymptomLog({ onLogged }: { onLogged: () => void }) {
     },
   });
 
+  const picking = QUICK_SYMPTOMS.find(s => s.type === tapped) ?? null;
+
   const handleTap = (type: typeof QUICK_SYMPTOMS[0]["type"]) => {
     if (logSymptom.isPending) return;
     setTapped(type);
-    logSymptom.mutate({ type, severity: 3, source: "manual" });
+  };
+
+  const handleSelect = (severity: number) => {
+    if (!tapped || logSymptom.isPending) return;
+    logSymptom.mutate({ type: tapped as typeof QUICK_SYMPTOMS[0]["type"], severity, source: "manual" });
   };
 
   return (
@@ -465,19 +472,20 @@ function QuickSymptomLog({ onLogged }: { onLogged: () => void }) {
           >
             <span className="text-xl leading-none">{emoji}</span>
             <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
-            {tapped === type && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="w-1.5 h-1.5 rounded-full bg-primary"
-              />
-            )}
           </motion.button>
         ))}
       </div>
       <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
-        Tap to log at severity 3 · Adjust in Symptoms tab
+        Tap a symptom, then pick how severe · Edit entries in the Symptoms tab
       </p>
+      <SeverityBubble
+        open={!!picking}
+        emoji={picking?.emoji ?? ""}
+        label={picking?.label ?? ""}
+        busy={logSymptom.isPending}
+        onSelect={handleSelect}
+        onClose={() => setTapped(null)}
+      />
     </div>
   );
 }

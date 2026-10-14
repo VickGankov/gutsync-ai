@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import SeverityBubble from "@/components/SeverityBubble";
 import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
 type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog";
@@ -60,6 +61,22 @@ export default function Symptoms() {
   });
 
   const symptoms = symptomsQuery.data ?? [];
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const editing = symptoms.find(s => s.id === editingId) ?? null;
+  const utils = trpc.useUtils();
+
+  const refreshAll = () => {
+    symptomsQuery.refetch();
+    utils.insights.dashboard.invalidate();
+  };
+  const updateSymptom = trpc.symptoms.update.useMutation({
+    onSuccess: () => { refreshAll(); setEditingId(null); toast.success("Updated"); },
+    onError: () => toast.error("Failed to update"),
+  });
+  const deleteSymptom = trpc.symptoms.delete.useMutation({
+    onSuccess: () => { refreshAll(); setEditingId(null); toast.success("Deleted"); },
+    onError: () => toast.error("Failed to delete"),
+  });
 
 
   const handleLogSymptom = () => {
@@ -243,7 +260,11 @@ export default function Symptoms() {
                 <motion.div
                   key={`${sym.id}-${idx}`}
                   variants={item}
-                  className={`rounded-xl p-4 border shadow-sm ${
+                  onClick={() => setEditingId(sym.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setEditingId(sym.id)}
+                  className={`rounded-xl p-4 border shadow-sm cursor-pointer active:scale-[0.99] transition-transform ${
                     isPositive
                       ? 'bg-sage-light/20 border-sage/30'
                       : 'bg-card border-border/50'
@@ -254,7 +275,7 @@ export default function Symptoms() {
                       <span className="text-2xl">{getSymptomEmoji(sym.type)}</span>
                       <div>
                         <p className="font-medium text-foreground">{getSymptomLabel(sym.type)}</p>
-                        <p className="text-xs text-muted-foreground">{formatTimeAgo(sym.loggedAt)}</p>
+                        <p className="text-xs text-muted-foreground">{formatTimeAgo(sym.loggedAt)}{" · tap to edit"}</p>
                       </div>
                     </div>
                     {!isPositive && (
@@ -274,6 +295,18 @@ export default function Symptoms() {
           </div>
         </motion.div>
       )}
+
+      <SeverityBubble
+        open={!!editing}
+        emoji={editing ? getSymptomEmoji(editing.type) : ""}
+        label={editing ? getSymptomLabel(editing.type) : ""}
+        current={editing?.severity}
+        hideScale={!!editing && POSITIVE_OUTCOMES.some(o => o.type === editing.type)}
+        busy={updateSymptom.isPending || deleteSymptom.isPending}
+        onSelect={(level) => editing && updateSymptom.mutate({ id: editing.id, severity: level })}
+        onDelete={() => editing && deleteSymptom.mutate({ id: editing.id })}
+        onClose={() => setEditingId(null)}
+      />
     </motion.div>
   );
 }

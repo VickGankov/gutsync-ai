@@ -14,6 +14,8 @@ import {
   getMealsInRange,
   createSymptom,
   getSymptomsByUser,
+  updateSymptomSeverity,
+  deleteSymptom,
   upsertCorrelation,
   getCorrelationsByUser,
 
@@ -418,6 +420,20 @@ export const appRouter = router({
           loggedAt: Date.now(),
         });
         return { id: symptomId };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({ id: z.number().int(), severity: z.number().int().min(1).max(5) }))
+      .mutation(async ({ ctx, input }) => {
+        await updateSymptomSeverity(ctx.user.id, input.id, input.severity);
+        return { success: true } as const;
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteSymptom(ctx.user.id, input.id);
+        return { success: true } as const;
       }),
   }),
 
