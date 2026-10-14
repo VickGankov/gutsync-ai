@@ -2,6 +2,7 @@
 // Supports camera capture and gallery upload, with editable AI results
 
 import { invalidateToday } from "@/lib/invalidateToday";
+import { mlToOz, ozToMl } from "@/lib/units";
 import { prepareImageForUpload } from "@/lib/image";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -193,7 +194,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   };
 
   const handleUpdateVolume = (index: number, value: string) => {
-    const n = value === "" ? 0 : Math.max(0, Math.min(5000, Math.round(Number(value))));
+    const n = value === "" ? 0 : Math.max(0, Math.min(5000, ozToMl(Number(value))));
     setAnalyzedFoods(prev => prev.map((f, i) => i === index ? { ...f, volumeMl: Number.isFinite(n) && n > 0 ? n : undefined } : f));
   };
 
@@ -623,15 +624,15 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                                   type="number"
                                   inputMode="numeric"
                                   min={0}
-                                  max={5000}
-                                  value={food.volumeMl}
+                                  max={mlToOz(5000)}
+                                  value={mlToOz(food.volumeMl)}
                                   onChange={(e) => handleUpdateVolume(i, e.target.value)}
                                   className="w-20 bg-background border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                                 />
-                                mL
+                                oz
                               </label>
                             ) : (
-                              <p className="mt-1.5 text-xs text-sky-700 dark:text-sky-300">💧 {food.volumeMl} mL counts toward water · tap to adjust</p>
+                              <p className="mt-1.5 text-xs text-sky-700 dark:text-sky-300">💧 {mlToOz(food.volumeMl)} oz counts toward water · tap to adjust</p>
                             )
                           )}
                         </div>

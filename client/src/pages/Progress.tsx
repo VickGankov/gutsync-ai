@@ -2,6 +2,7 @@
 // Protein / water targets, weigh-ins, and lift tracking.
 
 import { motion } from "framer-motion";
+import { formatGal, galInputValue, galToMl, mlToOz, ozToMl } from "@/lib/units";
 import { useMemo, useState } from "react";
 import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -112,7 +113,7 @@ export default function Progress() {
     logIntake.mutate(
       { kind, amount: Math.round(amount) },
       {
-        onSuccess: () => toast.success(kind === "protein" ? `+${Math.round(amount)} g protein` : `+${Math.round(amount)} ml water`),
+        onSuccess: () => toast.success(kind === "protein" ? `+${Math.round(amount)} g protein` : `+${mlToOz(amount)} oz water`),
         onError: (e) => toast.error(e.message),
       },
     );
@@ -154,7 +155,9 @@ export default function Progress() {
 
   const saveTargets = () => {
     const proteinTargetG = Number(targets.protein || proteinTarget);
-    const waterTargetMl = Number(targets.water || waterTarget);
+    const waterGal = Number(targets.water);
+    const waterTargetMl = Number.isFinite(waterGal) && waterGal > 0 ? galToMl(waterGal) : waterTarget;
+    if (waterTargetMl < 500 || waterTargetMl > 10000) return toast.error("Water target must be between 0.15 and 2.6 gal");
     setProfile.mutate(
       { proteinTargetG: Math.round(proteinTargetG), waterTargetMl: Math.round(waterTargetMl) },
       {
@@ -187,7 +190,7 @@ export default function Progress() {
         </div>
         <button
           onClick={() => {
-            setTargets({ protein: String(proteinTarget), water: String(waterTarget) });
+            setTargets({ protein: String(proteinTarget), water: galInputValue(waterTarget) });
             setShowTargets(v => !v);
           }}
           className="p-2 rounded-xl hover:bg-muted transition-colors"
@@ -207,8 +210,8 @@ export default function Progress() {
                 onChange={e => setTargets(t => ({ ...t, protein: e.target.value }))} />
             </label>
             <label className="text-xs text-muted-foreground">
-              Water (ml)
-              <input className={`${inputCls} mt-1`} type="number" inputMode="numeric" value={targets.water}
+              Water (gal)
+              <input className={`${inputCls} mt-1`} type="number" inputMode="decimal" step="0.05" value={targets.water}
                 onChange={e => setTargets(t => ({ ...t, water: e.target.value }))} />
             </label>
           </div>
@@ -242,13 +245,13 @@ export default function Progress() {
               <Droplets className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold">Water</span>
             </div>
-            <span className="text-sm font-semibold">{((today?.waterMl ?? 0) / 1000).toFixed(1)}<span className="text-muted-foreground font-normal"> / {(waterTarget / 1000).toFixed(1)} L</span></span>
+            <span className="text-sm font-semibold">{formatGal(today?.waterMl ?? 0)}<span className="text-muted-foreground font-normal"> / {formatGal(waterTarget)} gal</span></span>
           </div>
           <ProgressBar value={today?.waterMl ?? 0} target={waterTarget} color="oklch(0.6 0.1 230)" />
           <div className="flex gap-2 mt-3">
-            {[250, 500, 750].map(ml => (
-              <Button key={ml} variant="outline" size="sm" className="flex-1" onClick={() => addIntake("water", ml)} disabled={logIntake.isPending}>
-                +{ml} ml
+            {[8, 16, 24].map(oz => (
+              <Button key={oz} variant="outline" size="sm" className="flex-1" onClick={() => addIntake("water", ozToMl(oz))} disabled={logIntake.isPending}>
+                +{oz} oz
               </Button>
             ))}
           </div>
@@ -258,7 +261,7 @@ export default function Progress() {
           <div className="mt-4 border-t border-border/60 pt-3 space-y-1.5">
             {data!.recentIntake.slice(0, 4).map(e => (
               <div key={e.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{e.kind === "protein" ? `${e.amount} g protein` : `${e.amount} ml water`} · {new Date(e.loggedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+                <span>{e.kind === "protein" ? `${e.amount} g protein` : `${mlToOz(e.amount)} oz water`} · {new Date(e.loggedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
                 <button onClick={() => deleteIntake.mutate({ id: e.id })} title="Undo"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}

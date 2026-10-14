@@ -97,7 +97,7 @@ function QuickSymptomLog({ onLogged }: { onLogged: () => void }) {
         ))}
       </div>
       <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
-        Tap a symptom, then pick how severe · Edit entries in the Symptoms tab
+        Tap a symptom, then pick how severe · Edit entries in the Log tab
       </p>
       <SeverityBubble
         open={!!picking}
