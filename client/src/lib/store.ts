@@ -81,6 +81,12 @@ export function getSymptomEmoji(type: string): string {
     acid_reflux: '🔥',
     vomiting: '🤮',
     low_appetite: '🍽️',
+    energy_boost: '⚡',
+    better_digestion: '✨',
+    improved_mood: '😊',
+    better_sleep: '😴',
+    clearer_skin: '🌟',
+    reduced_brain_fog: '🧠',
   };
   return map[type] || '❓';
 }
@@ -98,6 +104,12 @@ export function getSymptomLabel(type: string): string {
     acid_reflux: 'Acid Reflux',
     vomiting: 'Vomiting',
     low_appetite: 'Low Appetite',
+    energy_boost: 'Energy Boost',
+    better_digestion: 'Better Digestion',
+    improved_mood: 'Improved Mood',
+    better_sleep: 'Better Sleep',
+    clearer_skin: 'Clearer Skin',
+    reduced_brain_fog: 'Reduced Brain Fog',
   };
   return map[type] || type;
 }

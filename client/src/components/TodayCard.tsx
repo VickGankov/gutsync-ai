@@ -78,8 +78,8 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
       </p>
 
       <div className="grid grid-cols-2 gap-2 mt-4 relative">
-        <Tile href="/log" icon={<UtensilsCrossed className="w-3 h-3" />} label="Meals" value={String(s.mealsToday)} />
-        <Tile href="/log" icon={<Activity className="w-3 h-3" />} label="Symptoms" value={String(s.symptomsToday)} />
+        <Tile href="/log?tab=food" icon={<UtensilsCrossed className="w-3 h-3" />} label="Meals" value={String(s.mealsToday)} />
+        <Tile href="/log?tab=symptoms" icon={<Activity className="w-3 h-3" />} label="Symptoms" value={String(s.symptomsToday)} />
         <Tile
           href="/progress"
           icon={<Dumbbell className="w-3 h-3" />}

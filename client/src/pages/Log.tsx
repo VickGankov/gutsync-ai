@@ -1,10 +1,12 @@
-// Log: meals and symptoms together in one day-by-day timeline.
-// Wired to real tRPC backend
+// Log: Food and Symptoms tabs, day by day. Each meal shows the symptoms that followed it,
+// and each symptom shows the meal it followed (see shared/timeline.ts).
 
 import { invalidateToday } from "@/lib/invalidateToday";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { Watch, Plus, Heart, Moon, Brain, Activity, Loader2, Leaf, Smile, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSearch } from "wouter";
+import { attributeSymptoms, formatGap } from "@shared/timeline";
+import { Plus, Loader2, Leaf, UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -68,8 +70,44 @@ function groupTimeline(entries: Entry[]): Array<[string, Entry[]]> {
   return Array.from(groups.entries());
 }
 
+type Tab = "food" | "symptoms";
+const TAB_KEY = "gutsync_log_tab";
+
+function readTab(search: string): Tab {
+  const fromUrl = new URLSearchParams(search).get("tab");
+  if (fromUrl === "food" || fromUrl === "symptoms") return fromUrl;
+  try {
+    const saved = localStorage.getItem(TAB_KEY);
+    if (saved === "food" || saved === "symptoms") return saved;
+  } catch { /* storage unavailable */ }
+  return "food";
+}
+
+/** Symptom chip under a meal. Bigger and warmer the more severe it was, so the strip isn't uniform. */
+function FollowUpChip({ type, severity, afterMs, positive }: { type: string; severity: number; afterMs: number; positive: boolean }) {
+  const size = positive || severity <= 2 ? "text-[10px] px-2 py-0.5" : severity === 3 ? "text-[11px] px-2.5 py-1" : "text-xs px-3 py-1.5 font-medium";
+  const tone = positive ? "bg-sage-light/50 text-sage-dark"
+    : severity <= 2 ? "bg-muted text-muted-foreground"
+    : severity === 3 ? "bg-sand/60 text-foreground"
+    : "bg-coral-light/50 text-coral";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full ${size} ${tone}`}>
+      <span>{getSymptomEmoji(type)}</span>
+      <span>{getSymptomLabel(type)}{!positive && ` ${severity}/5`}</span>
+      <span className="opacity-60">· {formatGap(afterMs, "later")}</span>
+    </span>
+  );
+}
+
 export default function Log() {
   const { isAuthenticated } = useAuth();
+  const search = useSearch();
+  const [tab, setTab] = useState<Tab>(() => readTab(search));
+  useEffect(() => { setTab(readTab(search)); }, [search]);
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    try { localStorage.setItem(TAB_KEY, t); } catch { /* ignore */ }
+  };
   const [showLogger, setShowLogger] = useState(false);
   const [logMode, setLogMode] = useState<'negative' | 'positive'>('negative');
   const [selectedType, setSelectedType] = useState<SymptomType | null>(null);
@@ -107,11 +145,11 @@ export default function Log() {
     id: number; photoUrl: string | null; mealType: "breakfast" | "lunch" | "dinner" | "snack";
     foods: FoodItem[]; loggedAt: number; notes: string | null;
   }>;
+  const { byMeal, bySymptom } = attributeSymptoms(meals, symptoms);
   const days = groupTimeline(
-    [
-      ...meals.map(meal => ({ kind: "meal" as const, at: meal.loggedAt, meal })),
-      ...symptoms.map(symptom => ({ kind: "symptom" as const, at: symptom.loggedAt, symptom })),
-    ],
+    tab === "food"
+      ? meals.map(meal => ({ kind: "meal" as const, at: meal.loggedAt, meal }))
+      : symptoms.map(symptom => ({ kind: "symptom" as const, at: symptom.loggedAt, symptom })),
   );
 
   const handleLogSymptom = () => {
@@ -141,12 +179,12 @@ export default function Log() {
   const isPositiveOutcome = selectedType && (selectedType.includes('energy') || selectedType.includes('better') || selectedType.includes('improved') || selectedType.includes('clearer') || selectedType.includes('reduced'));
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-28 max-w-lg mx-auto">
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl tracking-tight">Log</h1>
-          <p className="text-sm text-muted-foreground mt-1">Meals and how you felt, day by day</p>
+          <p className="text-sm text-muted-foreground mt-1">{tab === "food" ? "What you ate, and how you felt after" : "How you felt, and what came before"}</p>
         </div>
         <Button
           onClick={() => setShowLogger(!showLogger)}
@@ -156,6 +194,22 @@ export default function Log() {
           <Plus className="w-4 h-4" />
           Symptom
         </Button>
+      </motion.div>
+
+      {/* Food / Symptoms switch */}
+      <motion.div variants={item} className="flex p-1 mb-5 rounded-2xl bg-muted/70">
+        {([["food", "Food"], ["symptoms", "Symptoms"]] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => switchTab(key)}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
+              tab === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </motion.div>
 
       {/* Quick Log Panel */}
@@ -277,9 +331,11 @@ export default function Log() {
       {!symptomsQuery.isLoading && !mealsQuery.isLoading && days.length === 0 && (
         <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
-          <h3 className="font-display text-lg mb-1">Nothing logged yet</h3>
+          <h3 className="font-display text-lg mb-1">{tab === "food" ? "No meals logged yet" : "No symptoms logged yet"}</h3>
           <p className="text-sm text-muted-foreground">
-            Tap the camera to log a meal, or "Symptom" above to track how you feel. GutSync will connect the two.
+            {tab === "food"
+              ? "Tap the camera to log a meal. Symptoms you log afterwards will show up under it."
+              : 'Tap "Symptom" above to track how you feel. Each one will show the meal that came before it.'}
           </p>
         </motion.div>
       )}
@@ -291,20 +347,36 @@ export default function Log() {
           <div className="space-y-2.5">
             {entries.map((entry) => {
               if (entry.kind === "meal") {
+                const followUps = byMeal.get(entry.meal.id) ?? [];
                 return (
-                  <MealTile
-                    key={`meal-${entry.meal.id}`}
-                    meal={entry.meal}
-                    onSaved={() => invalidateToday(utils)}
-                    onDeleted={() => invalidateToday(utils)}
-                  />
+                  <div key={`meal-${entry.meal.id}`}>
+                    <MealTile
+                      meal={entry.meal}
+                      onSaved={() => invalidateToday(utils)}
+                      onDeleted={() => invalidateToday(utils)}
+                    />
+                    {followUps.length > 0 && (
+                      <div className="ml-6 mt-1.5 pl-3 border-l-2 border-coral/25 flex flex-wrap items-center gap-1.5">
+                        {followUps.map(({ symptom, afterMs }) => (
+                          <FollowUpChip
+                            key={symptom.id}
+                            type={symptom.type}
+                            severity={symptom.severity}
+                            afterMs={afterMs}
+                            positive={POSITIVE_OUTCOMES.some(o => o.type === symptom.type)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               }
               const sym = entry.symptom;
               const isPositive = POSITIVE_OUTCOMES.some(o => o.type === sym.type);
+              const before = bySymptom.get(sym.id);
               return (
+                <div key={`sym-${sym.id}`}>
                 <motion.div
-                  key={`sym-${sym.id}`}
                   onClick={() => setEditingId(sym.id)}
                   role="button"
                   tabIndex={0}
@@ -332,6 +404,17 @@ export default function Log() {
                     )}
                   </div>
                 </motion.div>
+                {before && (
+                  <div className="ml-6 mt-1.5 pl-3 border-l-2 border-sage/30">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sage-light/40 text-sage-dark text-[10px] px-2 py-0.5">
+                      <UtensilsCrossed className="w-2.5 h-2.5" />
+                      <span className="capitalize">{before.meal.mealType}</span>
+                      <span className="opacity-70 truncate max-w-[11rem]">· {before.meal.foods.map(f => f.name).join(", ")}</span>
+                      <span className="opacity-60">· {formatGap(before.afterMs, "earlier")}</span>
+                    </span>
+                  </div>
+                )}
+                </div>
               );
             })}
           </div>
