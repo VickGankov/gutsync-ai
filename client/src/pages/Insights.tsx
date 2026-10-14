@@ -14,6 +14,8 @@ import {
   PieChart, Pie,
 } from "recharts";
 import { toast } from "sonner";
+import { Link } from "wouter";
+import { FlaskConical } from "lucide-react";
 
 const INSIGHTS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-insights-am9czTKGxiACTgufFfNQec.webp";
 
@@ -188,6 +190,22 @@ export default function Insights() {
             </p>
           </div>
         </div>
+      </motion.div>
+
+      {/* Reintroduction challenge entry */}
+      <motion.div variants={item} className="mb-6">
+        <Link href="/reintro">
+          <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <FlaskConical className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Reintroduction challenge</p>
+              <p className="text-xs text-muted-foreground">Test FODMAP groups one at a time and build your tolerance map</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </Link>
       </motion.div>
 
       {/* Loading */}

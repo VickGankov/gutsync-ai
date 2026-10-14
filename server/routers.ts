@@ -23,7 +23,18 @@ import {
   cancelSubscription,
   getTodayScanCount,
   incrementScanCount,
+  getReintroChallenges,
+  getActiveReintroChallenge,
+  createReintroChallenge,
+  updateReintroCheckIns,
+  finishReintroChallenge,
 } from "./db";
+import {
+  REINTRO_GROUPS,
+  assessChallenge,
+  currentChallengeDay,
+  type ReintroCheckIn,
+} from "@shared/reintro";
 import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
 
@@ -389,6 +400,85 @@ export const appRouter = router({
           loggedAt: Date.now(),
         });
         return { id: symptomId };
+      }),
+  }),
+
+  reintro: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return getReintroChallenges(ctx.user.id);
+    }),
+
+    start: protectedProcedure
+      .input(z.object({
+        foodGroup: z.enum(REINTRO_GROUPS),
+        testFood: z.string().trim().min(1).max(100),
+        doses: z.tuple([z.string().trim().min(1).max(40), z.string().trim().min(1).max(40), z.string().trim().min(1).max(40)]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const active = await getActiveReintroChallenge(ctx.user.id);
+        if (active) {
+          throw new TRPCError({ code: "CONFLICT", message: "Finish or stop your current challenge before starting another." });
+        }
+        const id = await createReintroChallenge({ userId: ctx.user.id, ...input, startedAt: Date.now() });
+        return { id };
+      }),
+
+    checkIn: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        day: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+        severity: z.number().int().min(0).max(5),
+        stressed: z.boolean(),
+        poorSleep: z.boolean(),
+        ateDose: z.boolean(),
+        note: z.string().max(500).optional(),
+        tzOffsetMinutes: z.number().int().min(-840).max(840).default(0),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const challenge = await getActiveReintroChallenge(ctx.user.id);
+        if (!challenge || challenge.id !== input.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "No active challenge with that id." });
+        }
+        const now = Date.now();
+        const dueDay = currentChallengeDay(challenge.startedAt, now, input.tzOffsetMinutes);
+        if (input.day > dueDay) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Day ${input.day} hasn't started yet.` });
+        }
+        const checkIn: ReintroCheckIn = {
+          day: input.day,
+          severity: input.severity,
+          stressed: input.stressed,
+          poorSleep: input.poorSleep,
+          ateDose: input.ateDose,
+          ...(input.note ? { note: input.note } : {}),
+          loggedAt: now,
+        };
+        const checkIns = [...(challenge.checkIns ?? []).filter(c => c.day !== input.day), checkIn]
+          .sort((a, b) => a.day - b.day);
+        await updateReintroCheckIns(ctx.user.id, challenge.id, checkIns);
+
+        // assessChallenge returns a result once all 3 days are in, or early on a reaction
+        // (the dose is never increased after symptoms).
+        const assessment = assessChallenge(checkIns);
+        if (assessment) {
+          await finishReintroChallenge(ctx.user.id, challenge.id, {
+            status: "completed",
+            outcome: assessment.outcome,
+            toleratedDay: assessment.toleratedDay,
+            lowConfidence: assessment.lowConfidence,
+            finishedAt: now,
+          });
+        }
+        return { assessment };
+      }),
+
+    abandon: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await finishReintroChallenge(ctx.user.id, input.id, {
+          status: "abandoned", outcome: null, toleratedDay: null, lowConfidence: false, finishedAt: Date.now(),
+        });
+        return { success: true };
       }),
   }),
 
