@@ -211,19 +211,17 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
-      if (
-        !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
-        !isNonEmptyString(name)
-      ) {
-        console.warn("[Auth] Session payload missing required fields");
+      // The JWT is signed with our secret, so the user id is what matters.
+      // Email sign-ups have no name (and appId may be unset), so those are optional.
+      if (!isNonEmptyString(openId)) {
+        console.warn("[Auth] Session payload missing user id");
         return null;
       }
 
       return {
         openId,
-        appId,
-        name,
+        appId: typeof appId === "string" ? appId : "",
+        name: typeof name === "string" ? name : "",
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
