@@ -20,10 +20,8 @@ import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 import SeverityBubble from "@/components/SeverityBubble";
+import TodayCard from "@/components/TodayCard";
 import { REINTRO_GROUP_INFO, currentChallengeDay, type ReintroGroup } from "@shared/reintro";
-
-const HERO_IMG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-hero-Pvw9osKZy8TFVwjYfuzJB7.webp";
 
 const container = {
   hidden: { opacity: 0 },
@@ -618,11 +616,10 @@ export default function Home() {
       <>
         <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
           <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-            <img src={HERO_IMG} alt="GutSync" className="w-full h-48 object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4">
-              <h1 className="text-white text-xl font-display">GutSync</h1>
-              <p className="text-white/80 text-sm">Discover your personal food triggers</p>
+            <div className="h-48 bg-gradient-to-br from-sage-light via-sage-light/60 to-sand/50 flex flex-col items-center justify-center text-center px-6">
+              <Leaf className="w-10 h-10 text-sage-dark mb-3" />
+              <h1 className="text-foreground text-2xl font-display">GutSync</h1>
+              <p className="text-muted-foreground text-sm mt-1">Discover your personal food triggers</p>
             </div>
           </motion.div>
           <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
@@ -739,13 +736,17 @@ export default function Home() {
           );
         })()}
 
-        {/* Hero */}
-        <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-          <img src={HERO_IMG} alt="GutSync" className="w-full h-40 object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          <div className="absolute bottom-3 left-4 right-4">
-            <p className="text-white/90 text-xs font-medium">Discover your personal food triggers</p>
-          </div>
+        <motion.div variants={item}>
+          <TodayCard
+            meals={allRecentMeals.filter((m) => !deletedIds.has(m.id))}
+            symptoms={recentSymptoms}
+            reintroCheckInPending={(() => {
+              const active = reintroQuery.data?.find(c => c.status === "active");
+              if (!active) return false;
+              const day = Math.min(3, currentChallengeDay(active.startedAt, Date.now(), new Date().getTimezoneOffset()));
+              return (active.checkIns ?? []).length < day;
+            })()}
+          />
         </motion.div>
 
         {/* Gut Health Score */}
