@@ -7,6 +7,7 @@ vi.mock("./db", () => ({
   getMealsInRange: vi.fn(),
   getSymptomsByUser: vi.fn(),
   getDosesByUser: vi.fn(),
+  getDoseSchedules: vi.fn(),
   getTriggerExplanation: vi.fn(async (_u: number, key: string) => store.get(key) ?? null),
   saveTriggerExplanation: vi.fn(async (_u: number, key: string, statsHash: string, explanation: unknown) => {
     store.set(key, { statsHash, explanation });

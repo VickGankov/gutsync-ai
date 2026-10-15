@@ -12,6 +12,7 @@ vi.mock("./db", () => ({
   createSymptom: vi.fn().mockResolvedValue(1),
   getSymptomsByUser: vi.fn().mockResolvedValue([]),
   getDosesByUser: vi.fn().mockResolvedValue([]),
+  getDoseSchedules: vi.fn().mockResolvedValue([]),
   updateSymptomSeverity: vi.fn().mockResolvedValue(undefined),
   deleteSymptom: vi.fn().mockResolvedValue(undefined),
   getFoodFactsByKeys: vi.fn().mockResolvedValue([]),

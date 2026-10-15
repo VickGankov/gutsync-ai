@@ -46,6 +46,66 @@ export function doseStatus(doses: DoseRow[], intervalDays: number, now: number =
   };
 }
 
+export const compoundKey = (name: string) => name.toLowerCase().replace(/\s+/g, " ").trim();
+
+export interface Interval { name: string; days: number; explicit: boolean }
+
+/**
+ * Days between doses for each compound: the schedule the user set, otherwise the median gap
+ * between their own logged doses of that compound, otherwise 7.
+ */
+export function intervalsByCompound(
+  doses: DoseRow[],
+  schedules: Array<{ compound: string; intervalDays: number }> = [],
+): Map<string, Interval> {
+  const out = new Map<string, Interval>();
+  const byKey = new Map<string, DoseRow[]>();
+  for (const d of doses) {
+    const k = compoundKey(d.compound);
+    byKey.set(k, [...(byKey.get(k) ?? []), d]);
+  }
+  const explicit = new Map(schedules.map(x => [compoundKey(x.compound), x.intervalDays]));
+  byKey.forEach((list, k) => {
+    const sorted = [...list].sort((a, b) => a.loggedAt - b.loggedAt);
+    const name = sorted[sorted.length - 1].compound;
+    if (explicit.has(k)) { out.set(k, { name, days: explicit.get(k)!, explicit: true }); return; }
+    const gaps = sorted.slice(1).map((d, i) => (d.loggedAt - sorted[i].loggedAt) / DAY_MS).sort((a, b) => a - b);
+    const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 7;
+    out.set(k, { name, days: Math.max(1, Math.round(median)), explicit: false });
+  });
+  return out;
+}
+
+/** One status per compound, most recently dosed first. */
+export function statusByCompound(
+  doses: DoseRow[],
+  intervals: Map<string, Interval>,
+  now: number = Date.now(),
+) {
+  const keys = Array.from(intervals.keys());
+  return keys
+    .map(k => {
+      const list = doses.filter(d => compoundKey(d.compound) === k);
+      const iv = intervals.get(k)!;
+      return { key: k, name: iv.name, interval: iv, ...doseStatus(list, iv.days, now) };
+    })
+    .sort((a, b) => (b.latest?.loggedAt ?? 0) - (a.latest?.loggedAt ?? 0));
+}
+
+/** Compounds taken less often than daily, so "day N after a dose" means something. */
+export const isSpaced = (iv: Interval | undefined) => !!iv && iv.days >= 2;
+
+/** For one symptom time: the latest dose of each spaced compound that is within `maxDays`. */
+export function dosesBefore(doses: DoseRow[], intervals: Map<string, Interval>, at: number, maxDays = 7) {
+  const out: Array<{ dose: DoseRow; day: number }> = [];
+  intervals.forEach((iv, k) => {
+    if (!isSpaced(iv)) return;
+    const hit = dayAfterDose(doses.filter(d => compoundKey(d.compound) === k), at, maxDays);
+    if (hit) out.push(hit);
+  });
+  return out.sort((a, b) => a.day - b.day);
+}
+
 /** The most recent dose at or before `at`, if within `maxDays`, and how many whole days after it. */
 export function dayAfterDose(doses: DoseRow[], at: number, maxDays = 7): { dose: DoseRow; day: number } | null {
   let best: DoseRow | null = null;

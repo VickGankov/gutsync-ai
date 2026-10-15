@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { getSymptomLabel } from "@/lib/store";
 import {
-  COMPOUND_PRESETS, SITES, SITE_LABEL, doseStatus, fmtMg, mgToMcg, nextSite, sideEffectsByDay, type Site,
+  COMPOUND_PRESETS, SITES, SITE_LABEL, compoundKey, fmtMg, intervalsByCompound, isSpaced, mgToMcg, nextSite,
+  sideEffectsByDay, statusByCompound, type Site,
 } from "@shared/dose";
 
 const inputCls =
@@ -32,7 +33,7 @@ export default function ProtocolCard() {
   const doseQuery = trpc.dose.list.useQuery();
   const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 50 });
   const doses = doseQuery.data?.doses ?? [];
-  const intervalDays = doseQuery.data?.intervalDays ?? 7;
+  const schedules = doseQuery.data?.schedules ?? [];
   const symptoms = symptomsQuery.data ?? [];
 
   const latest = doses[0];
@@ -45,7 +46,8 @@ export default function ProtocolCard() {
   const [notes, setNotes] = useState("");
   const [when, setWhen] = useState("");
   const [showHistory, setShowHistory] = useState(false);
-  const [editInterval, setEditInterval] = useState(false);
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [focusKey, setFocusKey] = useState<string | null>(null);
 
   // Defaults come from the last dose: same compound and amount, next site in the rotation.
   const compoundValue = compound ?? latest?.compound ?? "Retatrutide";
@@ -64,12 +66,18 @@ export default function ProtocolCard() {
   });
   const deleteDose = trpc.dose.delete.useMutation({ onSuccess: refresh, onError: (e) => toast.error(e.message) });
   const saveInterval = trpc.dose.setInterval.useMutation({
-    onSuccess: () => { refresh(); setEditInterval(false); },
+    onSuccess: () => { refresh(); setEditKey(null); },
     onError: (e) => toast.error(e.message),
   });
 
-  const status = useMemo(() => doseStatus(doses, intervalDays), [doses, intervalDays]);
-  const effects = useMemo(() => sideEffectsByDay(doses, symptoms, 7), [doses, symptoms]);
+  const intervals = useMemo(() => intervalsByCompound(doses, schedules), [doses, schedules]);
+  const statuses = useMemo(() => statusByCompound(doses, intervals), [doses, intervals]);
+
+  // The chart follows one compound at a time. Daily compounds have no meaningful "day after dose".
+  const spaced = statuses.filter(x => isSpaced(x.interval));
+  const focus = statuses.find(x => x.key === focusKey) ?? spaced[0] ?? statuses[0];
+  const focusDoses = useMemo(() => (focus ? doses.filter(d => compoundKey(d.compound) === focus.key) : []), [doses, focus]);
+  const effects = useMemo(() => sideEffectsByDay(focusDoses, symptoms, 7), [focusDoses, symptoms]);
 
   const submit = () => {
     const name = (isPreset ? compoundValue : other || compoundValue).trim();
@@ -80,13 +88,12 @@ export default function ProtocolCard() {
     logDose.mutate({ compound: name, doseMcg: unit === "mg" ? mgToMcg(amount) : Math.round(amount), site: siteValue, ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
   };
 
-  const dueText =
-    status.state === "none" ? null
-    : status.state === "due" ? "Next dose due today"
-    : status.state === "overdue" ? `Next dose was due ${Math.abs(status.daysUntil)} day${Math.abs(status.daysUntil) === 1 ? "" : "s"} ago`
-    : `Next dose in ${status.daysUntil} day${status.daysUntil === 1 ? "" : "s"}`;
+  const dueText = (st: (typeof statuses)[number]) =>
+    st.state === "due" ? "Next dose due today"
+    : st.state === "overdue" ? `Next dose was due ${Math.abs(st.daysUntil)} day${Math.abs(st.daysUntil) === 1 ? "" : "s"} ago`
+    : `Next dose in ${st.daysUntil} day${st.daysUntil === 1 ? "" : "s"}`;
 
-  const chartData = [...doses].reverse().slice(-12).map(d => ({
+  const chartData = [...focusDoses].reverse().slice(-12).map(d => ({
     label: new Date(d.loggedAt).toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
     mg: d.doseMcg / 1000,
   }));
@@ -103,18 +110,36 @@ export default function ProtocolCard() {
         </Button>
       </div>
 
-      {/* Status */}
-      {latest ? (
-        <div className="rounded-xl bg-sage-light/30 px-3.5 py-3 mb-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="font-display text-lg leading-tight">{latest.compound} · {fmtMg(latest.doseMcg)}</p>
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Day {status.dayNumber}</span>
-          </div>
-          <p className={`text-xs mt-1 ${status.state === "overdue" ? "text-coral font-medium" : "text-muted-foreground"}`}>
-            Last dose {new Date(latest.loggedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-            {latest.site && ` · ${SITE_LABEL[latest.site as Site] ?? latest.site}`}
-          </p>
-          {dueText && <p className="text-xs text-foreground mt-0.5">{dueText}</p>}
+      {/* Status, one row per compound */}
+      {statuses.length > 0 ? (
+        <div className="space-y-2 mb-3">
+          {statuses.map(st => (
+            <div key={st.key} className="rounded-xl bg-sage-light/30 px-3.5 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="font-display text-lg leading-tight">{st.name} · {fmtMg(st.latest!.doseMcg)}</p>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Day {st.dayNumber}</span>
+              </div>
+              <p className={`text-xs mt-1 ${st.state === "overdue" ? "text-coral font-medium" : "text-muted-foreground"}`}>
+                Last dose {new Date(st.latest!.loggedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                {st.latest!.site && ` · ${SITE_LABEL[st.latest!.site as Site] ?? st.latest!.site}`}
+              </p>
+              <p className="text-xs text-foreground mt-0.5">{dueText(st)}</p>
+              <div className="mt-1.5 text-[11px] text-muted-foreground">
+                {editKey === st.key ? (
+                  <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); const v = Number((e.currentTarget.elements.namedItem("days") as HTMLInputElement).value); if (v >= 1) saveInterval.mutate({ compound: st.name, days: Math.round(v) }); }}>
+                    Every
+                    <input name="days" type="number" min={1} max={60} defaultValue={st.interval.days} className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-foreground" />
+                    days
+                    <Button type="submit" size="sm" className="h-7">Save</Button>
+                  </form>
+                ) : (
+                  <button onClick={() => setEditKey(st.key)} className="inline-flex items-center gap-1">
+                    <Settings2 className="w-3 h-3" /> Every {st.interval.days} day{st.interval.days === 1 ? "" : "s"}{st.interval.explicit ? "" : " (from your doses)"} · change
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         !open && <p className="text-sm text-muted-foreground mb-3">No doses logged yet. Log your first dose to start tracking day count, injection sites and side effects.</p>
@@ -170,13 +195,22 @@ export default function ProtocolCard() {
       )}
 
       {/* Side effects */}
-      {latest && (
+      {latest && focus && (
         <div className="mb-3">
+          {statuses.length > 1 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {statuses.map(st => (
+                <button key={st.key} type="button" className={chip(focus.key === st.key)} onClick={() => setFocusKey(st.key)}>{st.name}</button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-semibold">Side effects by day after a dose</p>
             <Link href="/log?tab=symptoms" className="text-xs text-primary font-medium">Log how you feel →</Link>
           </div>
-          {effects.total >= 3 ? (
+          {!isSpaced(focus.interval) ? (
+            <p className="text-xs text-muted-foreground">{focus.name} is taken daily, so a day-after-dose pattern wouldn't tell you anything. Spaced doses (every 2+ days) get this chart.</p>
+          ) : effects.total >= 3 ? (
             <>
               <div className="h-28">
                 <ResponsiveContainer width="100%" height="100%">
@@ -238,23 +272,7 @@ export default function ProtocolCard() {
         </div>
       )}
 
-      {/* Interval */}
-      <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
-        {editInterval ? (
-          <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); const v = Number((e.currentTarget.elements.namedItem("days") as HTMLInputElement).value); if (v >= 1) saveInterval.mutate({ days: Math.round(v) }); }}>
-            Every
-            <input name="days" type="number" min={1} max={60} defaultValue={intervalDays} className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-foreground" />
-            days
-            <Button type="submit" size="sm" className="h-7">Save</Button>
-          </form>
-        ) : (
-          <>
-            <span>Dose every {intervalDays} day{intervalDays === 1 ? "" : "s"}</span>
-            <button onClick={() => setEditInterval(true)} className="flex items-center gap-1"><Settings2 className="w-3 h-3" /> Change</button>
-          </>
-        )}
-      </div>
-      <p className="text-[10px] text-muted-foreground mt-2 leading-snug">A personal log, not medical advice. Tell your doctor what you take; seek care for severe or persistent vomiting or abdominal pain.</p>
+      <p className="text-[10px] text-muted-foreground mt-3 leading-snug">A personal log, not medical advice. Tell your doctor what you take; seek care for severe or persistent vomiting or abdominal pain.</p>
     </section>
   );
 }

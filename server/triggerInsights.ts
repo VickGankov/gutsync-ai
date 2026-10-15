@@ -2,7 +2,8 @@
 
 import { createHash } from "crypto";
 import { invokeLLM } from "./_core/llm";
-import { getMealsInRange, getSymptomsByUser, getDosesByUser, getTriggerExplanation, saveTriggerExplanation } from "./db";
+import { getMealsInRange, getSymptomsByUser, getDosesByUser, getDoseSchedules, getTriggerExplanation, saveTriggerExplanation } from "./db";
+import { intervalsByCompound, isSpaced, compoundKey } from "../shared/dose";
 import { computeTriggers, ofMeals, pct, type TriggerStat } from "../shared/triggers";
 import type { MealFood, TriggerExplanation } from "../drizzle/schema";
 
@@ -17,18 +18,25 @@ export const statsHash = (t: TriggerStat) =>
     .digest("hex");
 
 export async function loadTriggers(userId: number, now = Date.now()) {
-  const [meals, symptoms, doses] = await Promise.all([
+  const [meals, symptoms, doses, schedules] = await Promise.all([
     getMealsInRange(userId, now - LOOKBACK_DAYS * DAY_MS, now),
     getSymptomsByUser(userId, 500),
     getDosesByUser(userId, 200),
+    getDoseSchedules(userId),
   ]);
+  // Daily compounds would put every symptom "near a dose", so only spaced ones count.
+  const intervals = intervalsByCompound(
+    doses.map(d => ({ id: d.id, compound: d.compound, doseMcg: d.doseMcg, site: d.site, loggedAt: d.loggedAt })),
+    schedules.map(s => ({ compound: s.compoundKey, intervalDays: s.intervalDays })),
+  );
+  const spacedDoseTimes = doses.filter(d => isSpaced(intervals.get(compoundKey(d.compound)))).map(d => d.loggedAt);
   const recentSymptoms = symptoms.filter(s => s.loggedAt >= now - LOOKBACK_DAYS * DAY_MS);
   const triggers = computeTriggers(
     meals.map(m => ({ id: m.id, loggedAt: m.loggedAt, foods: m.foods as MealFood[] })),
     recentSymptoms.map(s => ({ type: s.type, severity: s.severity, loggedAt: s.loggedAt })),
     now,
     undefined,
-    doses.map(d => d.loggedAt),
+    spacedDoseTimes,
   );
   return { triggers, mealCount: meals.length, symptomCount: recentSymptoms.length };
 }

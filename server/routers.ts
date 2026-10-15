@@ -41,7 +41,7 @@ import {
   createLiftLog,
   deleteLiftLog,
   getFitnessDataInRange,
-  createDose, getDosesByUser, deleteDose, setDoseInterval,
+  createDose, getDosesByUser, deleteDose, getDoseSchedules, setDoseSchedule,
 } from "./db";
 import {
   REINTRO_GROUPS,
@@ -53,7 +53,7 @@ import { buildFitnessSummary, DAY_MS } from "./fitness";
 import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
-import { SITES } from "../shared/dose";
+import { SITES, compoundKey } from "../shared/dose";
 import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
@@ -495,8 +495,11 @@ export const appRouter = router({
 
   dose: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      const [doses, profile] = await Promise.all([getDosesByUser(ctx.user.id, 100), getFitnessProfile(ctx.user.id)]);
-      return { doses, intervalDays: profile?.doseIntervalDays ?? 7 };
+      const [doses, schedules] = await Promise.all([getDosesByUser(ctx.user.id, 200), getDoseSchedules(ctx.user.id)]);
+      return {
+        doses,
+        schedules: schedules.map(s => ({ compound: s.compoundKey, intervalDays: s.intervalDays })),
+      };
     }),
 
     log: protectedProcedure
@@ -532,9 +535,9 @@ export const appRouter = router({
       }),
 
     setInterval: protectedProcedure
-      .input(z.object({ days: z.number().int().min(1).max(60) }))
+      .input(z.object({ compound: z.string().trim().min(1).max(80), days: z.number().int().min(1).max(60) }))
       .mutation(async ({ ctx, input }) => {
-        await setDoseInterval(ctx.user.id, input.days);
+        await setDoseSchedule(ctx.user.id, compoundKey(input.compound).slice(0, 80), input.days);
         return { success: true } as const;
       }),
   }),

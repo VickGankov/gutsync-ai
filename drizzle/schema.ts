@@ -198,8 +198,6 @@ export const fitnessProfile = mysqlTable("fitness_profile", {
   userId: int("userId").notNull().unique(),
   proteinTargetG: int("proteinTargetG").default(150).notNull(),
   waterTargetMl: int("waterTargetMl").default(3785).notNull(),
-  /** Days between doses, used for the "next dose due" line. */
-  doseIntervalDays: int("doseIntervalDays").default(7).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -310,3 +308,12 @@ export const doseLogs = mysqlTable("dose_logs", {
   loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/** User-set days between doses, per compound (key = lower-cased name). Otherwise inferred from their own history. */
+export const doseSchedules = mysqlTable("dose_schedules", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  compoundKey: varchar("compoundKey", { length: 80 }).notNull(),
+  intervalDays: int("intervalDays").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({ userCompound: uniqueIndex("dose_schedules_user_compound").on(t.userId, t.compoundKey) }));

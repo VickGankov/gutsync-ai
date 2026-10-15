@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useSearch } from "wouter";
 import { attributeSymptoms, formatGap } from "@shared/timeline";
-import { dayAfterDose, fmtMg } from "@shared/dose";
+import { dosesBefore, fmtMg, intervalsByCompound } from "@shared/dose";
 import { Plus, Loader2, Leaf, UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -121,6 +121,7 @@ export default function Log() {
   const mealsQuery = trpc.meals.list.useQuery({ limit: 30 }, { enabled: isAuthenticated });
   const dosesQuery = trpc.dose.list.useQuery(undefined, { enabled: isAuthenticated });
   const doses = dosesQuery.data?.doses ?? [];
+  const doseIntervals = intervalsByCompound(doses, dosesQuery.data?.schedules ?? []);
 
   const logSymptom = trpc.symptoms.log.useMutation({
     onSuccess: () => {
@@ -410,16 +411,13 @@ export default function Log() {
                     )}
                   </div>
                 </motion.div>
-                {(before || dayAfterDose(doses, sym.loggedAt, 7)) && (
+                {(before || dosesBefore(doses, doseIntervals, sym.loggedAt).length > 0) && (
                   <div className="ml-6 mt-1.5 pl-3 border-l-2 border-sage/30 flex flex-wrap gap-1.5">
-                    {(() => {
-                      const afterDose = dayAfterDose(doses, sym.loggedAt, 7);
-                      return afterDose ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-sand/60 text-foreground text-[10px] px-2 py-0.5">
-                          💉 Day {afterDose.day + 1} after {fmtMg(afterDose.dose.doseMcg)} {afterDose.dose.compound}
-                        </span>
-                      ) : null;
-                    })()}
+                    {dosesBefore(doses, doseIntervals, sym.loggedAt).map(({ dose, day }) => (
+                      <span key={dose.id} className="inline-flex items-center gap-1 rounded-full bg-sand/60 text-foreground text-[10px] px-2 py-0.5">
+                        💉 Day {day + 1} after {fmtMg(dose.doseMcg)} {dose.compound}
+                      </span>
+                    ))}
                     {before && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-sage-light/40 text-sage-dark text-[10px] px-2 py-0.5">
                       <UtensilsCrossed className="w-2.5 h-2.5" />

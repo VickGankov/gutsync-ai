@@ -13,7 +13,7 @@ import {
   reintroChallenges,
   foodCache, productCache,
   triggerExplanations, type TriggerExplanation,
-  doseLogs,
+  doseLogs, doseSchedules,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
@@ -469,8 +469,14 @@ export async function deleteDose(userId: number, id: number) {
   await db.delete(doseLogs).where(and(eq(doseLogs.id, id), eq(doseLogs.userId, userId)));
 }
 
-export async function setDoseInterval(userId: number, doseIntervalDays: number) {
+export async function getDoseSchedules(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(doseSchedules).where(eq(doseSchedules.userId, userId));
+}
+
+export async function setDoseSchedule(userId: number, compoundKey: string, intervalDays: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(fitnessProfile).values({ userId, doseIntervalDays }).onDuplicateKeyUpdate({ set: { doseIntervalDays } });
+  await db.insert(doseSchedules).values({ userId, compoundKey, intervalDays }).onDuplicateKeyUpdate({ set: { intervalDays } });
 }

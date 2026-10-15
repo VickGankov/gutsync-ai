@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtMg, mgToMcg, nextSite, doseStatus, dayAfterDose, sideEffectsByDay, DAY_MS } from "../shared/dose";
+import { fmtMg, mgToMcg, nextSite, doseStatus, dayAfterDose, sideEffectsByDay, intervalsByCompound, statusByCompound, dosesBefore, DAY_MS } from "../shared/dose";
 
 const D = DAY_MS;
 const dose = (id: number, daysAgo: number, mcg = 1000, compound = "Retatrutide") => ({ id, compound, doseMcg: mcg, site: null, loggedAt: 100 * D - daysAgo * D });
@@ -52,5 +52,36 @@ describe("side effects by day since dose", () => {
     expect(r.total).toBe(4);
     expect(r.peaks).toHaveLength(1);
     expect(r.peaks[0]).toMatchObject({ type: "nausea", peakDay: 1, n: 3 });
+  });
+});
+
+describe("per-compound schedules", () => {
+  const bpc = (id: number, daysAgo: number) => ({ id, compound: "BPC-157", doseMcg: 250, site: null, loggedAt: NOW - daysAgo * D });
+  const doses = [dose(1, 14), dose(2, 7), dose(3, 0), bpc(10, 2), bpc(11, 1), bpc(12, 0)];
+
+  it("uses the schedule the user set, else the median gap of their own doses, else 7", () => {
+    const inferred = intervalsByCompound(doses);
+    expect(inferred.get("retatrutide")).toMatchObject({ days: 7, explicit: false });
+    expect(inferred.get("bpc-157")).toMatchObject({ days: 1, explicit: false });
+    const set = intervalsByCompound(doses, [{ compound: "retatrutide", intervalDays: 5 }]);
+    expect(set.get("retatrutide")).toMatchObject({ days: 5, explicit: true });
+    expect(intervalsByCompound([dose(1, 0)]).get("retatrutide")?.days).toBe(7);
+  });
+
+  it("gives each compound its own status", () => {
+    const rows = statusByCompound(doses, intervalsByCompound(doses), NOW);
+    const reta = rows.find(r => r.key === "retatrutide")!;
+    const b = rows.find(r => r.key === "bpc-157")!;
+    expect(reta.dayNumber).toBe(15);
+    expect(reta.daysUntil).toBe(7);
+    expect(b.dayNumber).toBe(3);
+    expect(b.state).toBe("upcoming");
+  });
+
+  it("ignores daily compounds when working out 'day N after a dose'", () => {
+    const iv = intervalsByCompound(doses);
+    const r = dosesBefore(doses, iv, NOW - 5 * D);
+    expect(r.map(x => x.dose.compound)).toEqual(["Retatrutide"]);
+    expect(r[0].day).toBe(2);
   });
 });
