@@ -8,7 +8,8 @@ const NOW = 100 * D;
 describe("units and sites", () => {
   it("formats mg and converts to micrograms", () => {
     expect(fmtMg(1000)).toBe("1 mg");
-    expect(fmtMg(250)).toBe("0.25 mg");
+    expect(fmtMg(250)).toBe("250 mcg");
+    expect(fmtMg(2500)).toBe("2.5 mg");
     expect(mgToMcg(0.25)).toBe(250);
     expect(mgToMcg(2.5)).toBe(2500);
   });

@@ -40,6 +40,7 @@ export default function ProtocolCard() {
   const [compound, setCompound] = useState<string | null>(null);
   const [other, setOther] = useState("");
   const [mg, setMg] = useState<string | null>(null);
+  const [unit, setUnit] = useState<"mg" | "mcg">("mg");
   const [site, setSite] = useState<Site | null>(null);
   const [notes, setNotes] = useState("");
   const [when, setWhen] = useState("");
@@ -49,7 +50,7 @@ export default function ProtocolCard() {
   // Defaults come from the last dose: same compound and amount, next site in the rotation.
   const compoundValue = compound ?? latest?.compound ?? "Retatrutide";
   const isPreset = (COMPOUND_PRESETS as readonly string[]).includes(compoundValue);
-  const mgValue = mg ?? (latest ? String(latest.doseMcg / 1000) : "");
+  const mgValue = mg ?? (latest ? String(unit === "mg" ? latest.doseMcg / 1000 : latest.doseMcg) : "");
   const siteValue = site ?? nextSite(latest?.site);
 
   const refresh = () => { utils.dose.list.invalidate(); };
@@ -74,9 +75,9 @@ export default function ProtocolCard() {
     const name = (isPreset ? compoundValue : other || compoundValue).trim();
     const amount = Number(mgValue);
     if (!name) return toast.error("Enter the compound name");
-    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Enter the dose in mg");
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error(`Enter the dose in ${unit}`);
     const at = when ? new Date(when).getTime() : undefined;
-    logDose.mutate({ compound: name, doseMcg: mgToMcg(amount), site: siteValue, ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
+    logDose.mutate({ compound: name, doseMcg: unit === "mg" ? mgToMcg(amount) : Math.round(amount), site: siteValue, ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
   };
 
   const dueText =
@@ -137,8 +138,16 @@ export default function ProtocolCard() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs text-muted-foreground">
-              Dose (mg)
-              <input className={`${inputCls} mt-1`} type="number" inputMode="decimal" step="0.05" min="0" value={mgValue} onChange={e => setMg(e.target.value)} placeholder="e.g. 1" />
+              <span className="flex items-center justify-between">
+                Dose
+                <span className="flex gap-1">
+                  {(["mg", "mcg"] as const).map(u => (
+                    <button key={u} type="button" onClick={() => { setUnit(u); setMg(null); }}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${unit === u ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{u}</button>
+                  ))}
+                </span>
+              </span>
+              <input className={`${inputCls} mt-1`} type="number" inputMode="decimal" step={unit === "mg" ? "0.05" : "1"} min="0" value={mgValue} onChange={e => setMg(e.target.value)} placeholder={unit === "mg" ? "e.g. 1" : "e.g. 250"} />
             </label>
             <label className="text-xs text-muted-foreground">
               Time (blank = now)

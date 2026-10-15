@@ -11,13 +11,16 @@ export const SITE_LABEL: Record<Site, string> = {
   arm_left: "Arm L", arm_right: "Arm R",
 };
 
-export const COMPOUND_PRESETS = ["Retatrutide", "Tirzepatide", "Semaglutide"] as const;
+/** Quick-pick names (labels only; any other name can be typed). */
+export const COMPOUND_PRESETS = [
+  "Retatrutide", "BPC-157", "TB-500", "Ipamorelin", "CJC-1295", "GHK-Cu", "MOTS-c", "Tesamorelin",
+] as const;
 
 export interface DoseRow { id: number; compound: string; doseMcg: number; site: string | null; loggedAt: number }
 export interface SymptomRow { type: string; severity: number; loggedAt: number }
 
-/** 1000 -> "1 mg", 250 -> "0.25 mg" */
-export const fmtMg = (mcg: number) => `${Number((mcg / 1000).toFixed(3))} mg`;
+/** 1000 -> "1 mg", 2500 -> "2.5 mg", 250 -> "250 mcg" */
+export const fmtMg = (mcg: number) => (mcg < 1000 ? `${mcg} mcg` : `${Number((mcg / 1000).toFixed(3))} mg`);
 export const mgToMcg = (mg: number) => Math.round(mg * 1000);
 
 /** Next site in the rotation after the last used one (first site when none). */
