@@ -1,0 +1,251 @@
+// Dose log card (Progress page): log a dose, see what's next, and see side effects by day since a dose.
+// Records what the user took and felt. It gives no dosing advice.
+
+import { useMemo, useState } from "react";
+import { Syringe, Trash2, Plus, Loader2, Settings2 } from "lucide-react";
+import { Link } from "wouter";
+import { toast } from "sonner";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+import { getSymptomLabel } from "@/lib/store";
+import {
+  COMPOUND_PRESETS, SITES, SITE_LABEL, doseStatus, fmtMg, mgToMcg, nextSite, sideEffectsByDay, type Site,
+} from "@shared/dose";
+
+const inputCls =
+  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+/** yyyy-MM-ddTHH:mm in local time, for <input type="datetime-local"> */
+const toLocalInput = (ms: number) => {
+  const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000);
+  return d.toISOString().slice(0, 16);
+};
+
+const chip = (on: boolean) =>
+  `px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+    on ? "bg-primary text-primary-foreground border-primary" : "bg-muted/60 text-muted-foreground border-transparent"
+  }`;
+
+export default function ProtocolCard() {
+  const utils = trpc.useUtils();
+  const doseQuery = trpc.dose.list.useQuery();
+  const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 50 });
+  const doses = doseQuery.data?.doses ?? [];
+  const intervalDays = doseQuery.data?.intervalDays ?? 7;
+  const symptoms = symptomsQuery.data ?? [];
+
+  const latest = doses[0];
+  const [open, setOpen] = useState(false);
+  const [compound, setCompound] = useState<string | null>(null);
+  const [other, setOther] = useState("");
+  const [mg, setMg] = useState<string | null>(null);
+  const [site, setSite] = useState<Site | null>(null);
+  const [notes, setNotes] = useState("");
+  const [when, setWhen] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [editInterval, setEditInterval] = useState(false);
+
+  // Defaults come from the last dose: same compound and amount, next site in the rotation.
+  const compoundValue = compound ?? latest?.compound ?? "Retatrutide";
+  const isPreset = (COMPOUND_PRESETS as readonly string[]).includes(compoundValue);
+  const mgValue = mg ?? (latest ? String(latest.doseMcg / 1000) : "");
+  const siteValue = site ?? nextSite(latest?.site);
+
+  const refresh = () => { utils.dose.list.invalidate(); };
+  const logDose = trpc.dose.log.useMutation({
+    onSuccess: () => {
+      refresh();
+      setOpen(false); setMg(null); setSite(null); setNotes(""); setWhen("");
+      toast.success("Dose logged");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteDose = trpc.dose.delete.useMutation({ onSuccess: refresh, onError: (e) => toast.error(e.message) });
+  const saveInterval = trpc.dose.setInterval.useMutation({
+    onSuccess: () => { refresh(); setEditInterval(false); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const status = useMemo(() => doseStatus(doses, intervalDays), [doses, intervalDays]);
+  const effects = useMemo(() => sideEffectsByDay(doses, symptoms, 7), [doses, symptoms]);
+
+  const submit = () => {
+    const name = (isPreset ? compoundValue : other || compoundValue).trim();
+    const amount = Number(mgValue);
+    if (!name) return toast.error("Enter the compound name");
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Enter the dose in mg");
+    const at = when ? new Date(when).getTime() : undefined;
+    logDose.mutate({ compound: name, doseMcg: mgToMcg(amount), site: siteValue, ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
+  };
+
+  const dueText =
+    status.state === "none" ? null
+    : status.state === "due" ? "Next dose due today"
+    : status.state === "overdue" ? `Next dose was due ${Math.abs(status.daysUntil)} day${Math.abs(status.daysUntil) === 1 ? "" : "s"} ago`
+    : `Next dose in ${status.daysUntil} day${status.daysUntil === 1 ? "" : "s"}`;
+
+  const chartData = [...doses].reverse().slice(-12).map(d => ({
+    label: new Date(d.loggedAt).toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
+    mg: d.doseMcg / 1000,
+  }));
+
+  return (
+    <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Syringe className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold">Dose log</h2>
+        </div>
+        <Button size="sm" variant={open ? "outline" : "default"} className="h-8 rounded-xl gap-1" onClick={() => setOpen(v => !v)}>
+          <Plus className="w-3.5 h-3.5" /> {open ? "Close" : "Log dose"}
+        </Button>
+      </div>
+
+      {/* Status */}
+      {latest ? (
+        <div className="rounded-xl bg-sage-light/30 px-3.5 py-3 mb-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="font-display text-lg leading-tight">{latest.compound} · {fmtMg(latest.doseMcg)}</p>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Day {status.dayNumber}</span>
+          </div>
+          <p className={`text-xs mt-1 ${status.state === "overdue" ? "text-coral font-medium" : "text-muted-foreground"}`}>
+            Last dose {new Date(latest.loggedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            {latest.site && ` · ${SITE_LABEL[latest.site as Site] ?? latest.site}`}
+          </p>
+          {dueText && <p className="text-xs text-foreground mt-0.5">{dueText}</p>}
+        </div>
+      ) : (
+        !open && <p className="text-sm text-muted-foreground mb-3">No doses logged yet. Log your first dose to start tracking day count, injection sites and side effects.</p>
+      )}
+
+      {/* Log form */}
+      {open && (
+        <div className="rounded-xl border border-border/60 p-3 mb-3 space-y-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">Compound</p>
+            <div className="flex flex-wrap gap-1.5">
+              {COMPOUND_PRESETS.map(c => (
+                <button key={c} type="button" className={chip(compoundValue === c)} onClick={() => setCompound(c)}>{c}</button>
+              ))}
+              <button type="button" className={chip(!isPreset)} onClick={() => setCompound(other || "Other")}>Other</button>
+            </div>
+            {!isPreset && (
+              <input className={`${inputCls} mt-2`} placeholder="Name" value={other || (compoundValue === "Other" ? "" : compoundValue)}
+                onChange={e => { setOther(e.target.value); setCompound(e.target.value || "Other"); }} />
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-xs text-muted-foreground">
+              Dose (mg)
+              <input className={`${inputCls} mt-1`} type="number" inputMode="decimal" step="0.05" min="0" value={mgValue} onChange={e => setMg(e.target.value)} placeholder="e.g. 1" />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Time (blank = now)
+              <input className={`${inputCls} mt-1`} type="datetime-local" max={toLocalInput(Date.now())} value={when} onChange={e => setWhen(e.target.value)} />
+            </label>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">Injection site {latest && <span className="normal-case tracking-normal">(next in rotation selected)</span>}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SITES.map(s => (
+                <button key={s} type="button" className={chip(siteValue === s)} onClick={() => setSite(s)}>{SITE_LABEL[s]}</button>
+              ))}
+            </div>
+          </div>
+          <input className={inputCls} placeholder="Note (optional): vial, batch, how it went" maxLength={500} value={notes} onChange={e => setNotes(e.target.value)} />
+          <Button className="w-full" onClick={submit} disabled={logDose.isPending}>
+            {logDose.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Save dose
+          </Button>
+        </div>
+      )}
+
+      {/* Side effects */}
+      {latest && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs font-semibold">Side effects by day after a dose</p>
+            <Link href="/log?tab=symptoms" className="text-xs text-primary font-medium">Log how you feel →</Link>
+          </div>
+          {effects.total >= 3 ? (
+            <>
+              <div className="h-28">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={effects.chart} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                    <XAxis dataKey="day" tickFormatter={(d: number) => `D${d + 1}`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(v: number, _n: string, p: { payload?: { avgSeverity: number } }) => [`${v} logged${v ? ` · avg ${p.payload?.avgSeverity}/5` : ""}`, "Symptoms"]} labelFormatter={(d: number) => `Day ${d + 1} after dose`} />
+                    <Bar dataKey="count" fill="oklch(0.7 0.12 25)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {effects.peaks.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {effects.peaks.slice(0, 4).map(p => (
+                    <span key={p.type} className="text-[11px] px-2 py-1 rounded-full bg-muted text-foreground">
+                      {getSymptomLabel(p.type)} peaks day {p.peakDay + 1} · {p.n}×
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">Log a few symptoms after your doses and the day-by-day pattern shows up here.</p>
+          )}
+        </div>
+      )}
+
+      {/* Dose history */}
+      {chartData.length >= 2 && (
+        <div className="h-24 mb-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <Tooltip formatter={(v: number) => [`${v} mg`, "Dose"]} />
+              <Bar dataKey="mg" fill="oklch(0.55 0.1 155)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {doses.length > 0 && (
+        <button className="text-xs text-primary font-medium" onClick={() => setShowHistory(v => !v)}>
+          {showHistory ? "Hide history" : `History (${doses.length})`}
+        </button>
+      )}
+      {showHistory && (
+        <div className="mt-2 space-y-1.5 border-t border-border/60 pt-2">
+          {doses.slice(0, 20).map(d => (
+            <div key={d.id} className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                <span className="text-foreground font-medium">{fmtMg(d.doseMcg)}</span> {d.compound}
+                {d.site && ` · ${SITE_LABEL[d.site as Site] ?? d.site}`} · {new Date(d.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                {d.notes && <span className="block text-[11px] italic">{d.notes}</span>}
+              </span>
+              <button onClick={() => deleteDose.mutate({ id: d.id })} title="Delete"><Trash2 className="w-3.5 h-3.5 text-muted-foreground" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Interval */}
+      <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+        {editInterval ? (
+          <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); const v = Number((e.currentTarget.elements.namedItem("days") as HTMLInputElement).value); if (v >= 1) saveInterval.mutate({ days: Math.round(v) }); }}>
+            Every
+            <input name="days" type="number" min={1} max={60} defaultValue={intervalDays} className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-foreground" />
+            days
+            <Button type="submit" size="sm" className="h-7">Save</Button>
+          </form>
+        ) : (
+          <>
+            <span>Dose every {intervalDays} day{intervalDays === 1 ? "" : "s"}</span>
+            <button onClick={() => setEditInterval(true)} className="flex items-center gap-1"><Settings2 className="w-3 h-3" /> Change</button>
+          </>
+        )}
+      </div>
+      <p className="text-[10px] text-muted-foreground mt-2 leading-snug">A personal log, not medical advice. Tell your doctor what you take; seek care for severe or persistent vomiting or abdominal pain.</p>
+    </section>
+  );
+}

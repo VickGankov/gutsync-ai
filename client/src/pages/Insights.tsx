@@ -37,6 +37,7 @@ interface TriggerData {
   rate: number;
   otherRate: number;
   avgSeverity: number;
+  hitsNearDose: number;
   status: "trigger" | "watching";
 }
 
@@ -94,6 +95,12 @@ function TriggerCard({ t }: { t: TriggerData }) {
             </p>
           </div>
         </div>
+
+        {t.hitsNearDose > 0 && t.hitsNearDose / t.hits >= 0.5 && (
+          <p className="mt-2 text-[11px] text-coral">
+            💉 {t.hitsNearDose} of these {t.hits} came within 3 days of a logged dose, so the dose may be the cause rather than the food.
+          </p>
+        )}
 
         {t.names.length > 1 && (
           <p className="mt-2 text-[11px] text-muted-foreground">

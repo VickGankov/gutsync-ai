@@ -41,6 +41,7 @@ import {
   createLiftLog,
   deleteLiftLog,
   getFitnessDataInRange,
+  createDose, getDosesByUser, deleteDose, setDoseInterval,
 } from "./db";
 import {
   REINTRO_GROUPS,
@@ -52,6 +53,7 @@ import { buildFitnessSummary, DAY_MS } from "./fitness";
 import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
+import { SITES } from "../shared/dose";
 import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
@@ -380,7 +382,7 @@ export const appRouter = router({
 
     log: protectedProcedure
       .input(z.object({
-        type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "acid_reflux", "vomiting", "low_appetite", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"]),
+        type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "acid_reflux", "vomiting", "low_appetite", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog", "injection_site_reaction", "dizziness", "racing_heart"]),
         severity: z.number().min(1).max(5),
         source: z.enum(["manual"]).optional(),
         notes: z.string().optional(),
@@ -488,6 +490,52 @@ export const appRouter = router({
           status: "abandoned", outcome: null, toleratedDay: null, lowConfidence: false, finishedAt: Date.now(),
         });
         return { success: true };
+      }),
+  }),
+
+  dose: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const [doses, profile] = await Promise.all([getDosesByUser(ctx.user.id, 100), getFitnessProfile(ctx.user.id)]);
+      return { doses, intervalDays: profile?.doseIntervalDays ?? 7 };
+    }),
+
+    log: protectedProcedure
+      .input(z.object({
+        compound: z.string().trim().min(1).max(80),
+        doseMcg: z.number().int().min(1).max(50_000),
+        site: z.enum(SITES).optional(),
+        notes: z.string().max(500).optional(),
+        loggedAt: z.number().int().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const now = Date.now();
+        const at = input.loggedAt ?? now;
+        if (at > now + 5 * 60_000 || at < now - 366 * 86_400_000) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Dose time must be within the last year and not in the future" });
+        }
+        const id = await createDose({
+          userId: ctx.user.id,
+          compound: input.compound,
+          doseMcg: input.doseMcg,
+          site: input.site ?? null,
+          notes: input.notes?.trim() || null,
+          loggedAt: at,
+        });
+        return { id };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteDose(ctx.user.id, input.id);
+        return { success: true } as const;
+      }),
+
+    setInterval: protectedProcedure
+      .input(z.object({ days: z.number().int().min(1).max(60) }))
+      .mutation(async ({ ctx, input }) => {
+        await setDoseInterval(ctx.user.id, input.days);
+        return { success: true } as const;
       }),
   }),
 

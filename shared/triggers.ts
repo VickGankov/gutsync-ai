@@ -34,12 +34,16 @@ export interface TriggerStat {
   otherRate: number;
   avgSeverity: number;
   lastHitAt: number;
+  /** Hits whose symptom came within 3 days after a logged dose, so the dose may be the cause. */
+  hitsNearDose: number;
   status: "trigger" | "watching";
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
 interface Candidate extends TriggerStat { mealIds: Set<number>; lift: number; fromHidden: boolean }
+
+export const DOSE_NEAR_MS = 3 * 86_400_000;
 
 function jaccard(a: Set<number>, b: Set<number>): number {
   let inter = 0;
@@ -53,6 +57,7 @@ export function computeTriggers(
   symptoms: TriggerSymptom[],
   now: number = Date.now(),
   windowMs: number = FOLLOW_UP_WINDOW_MS,
+  doseTimes: number[] = [],
 ): TriggerStat[] {
   const eligible = meals.filter(m => m.loggedAt <= now - windowMs);
   if (eligible.length === 0) return [];
@@ -97,10 +102,13 @@ export function computeTriggers(
     const candidates: Candidate[] = [];
     keyMeals.forEach((mealIds, key) => {
       const exposures = mealIds.size;
-      let hits = 0, sevSum = 0, lastHitAt = 0;
+      let hits = 0, sevSum = 0, lastHitAt = 0, hitsNearDose = 0;
       mealIds.forEach(id => {
         const h = hitMeals.get(id);
-        if (h) { hits++; sevSum += h.severity; lastHitAt = Math.max(lastHitAt, h.at); }
+        if (h) {
+          hits++; sevSum += h.severity; lastHitAt = Math.max(lastHitAt, h.at);
+          if (doseTimes.some(d => h.at >= d && h.at - d <= DOSE_NEAR_MS)) hitsNearDose++;
+        }
       });
       if (hits === 0) return;
       const otherMeals = eligible.length - exposures;
@@ -120,7 +128,7 @@ export function computeTriggers(
 
       candidates.push({
         names: [key], symptom, exposures, hits, otherMeals, otherHits, rate, otherRate,
-        avgSeverity: Math.round((sevSum / hits) * 10) / 10, lastHitAt, status,
+        avgSeverity: Math.round((sevSum / hits) * 10) / 10, lastHitAt, hitsNearDose, status,
         mealIds, lift, fromHidden,
       });
     });

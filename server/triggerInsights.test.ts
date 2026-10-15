@@ -6,6 +6,7 @@ const invoke = vi.fn();
 vi.mock("./db", () => ({
   getMealsInRange: vi.fn(),
   getSymptomsByUser: vi.fn(),
+  getDosesByUser: vi.fn(),
   getTriggerExplanation: vi.fn(async (_u: number, key: string) => store.get(key) ?? null),
   saveTriggerExplanation: vi.fn(async (_u: number, key: string, statsHash: string, explanation: unknown) => {
     store.set(key, { statsHash, explanation });
@@ -18,7 +19,7 @@ import type { TriggerStat } from "../shared/triggers";
 
 const stat: TriggerStat = {
   names: ["garlic", "onion"], symptom: "bloating", exposures: 4, hits: 3, otherMeals: 12, otherHits: 2,
-  rate: 0.75, otherRate: 2 / 12, avgSeverity: 3.7, lastHitAt: 1, status: "trigger",
+  rate: 0.75, otherRate: 2 / 12, avgSeverity: 3.7, lastHitAt: 1, hitsNearDose: 0, status: "trigger",
 };
 const good = { shows: "a", why: "b", confidence: "c", nextStep: "d", seeProfessional: "" };
 const reply = (obj: unknown) => ({ choices: [{ message: { content: JSON.stringify(obj) } }] });

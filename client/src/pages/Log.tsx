@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useSearch } from "wouter";
 import { attributeSymptoms, formatGap } from "@shared/timeline";
+import { dayAfterDose, fmtMg } from "@shared/dose";
 import { Plus, Loader2, Leaf, UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -16,7 +17,7 @@ import MealTile from "@/components/MealTile";
 import type { FoodItem } from "@/lib/store";
 import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
-type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog";
+type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog" | "injection_site_reaction" | "dizziness" | "racing_heart";
 
 const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] = [
   { type: 'bloating', emoji: '🫧', label: 'Bloating' },
@@ -30,6 +31,9 @@ const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] =
   { type: 'acid_reflux', emoji: '🔥', label: 'Reflux' },
   { type: 'vomiting', emoji: '🤮', label: 'Vomiting' },
   { type: 'low_appetite', emoji: '🍽️', label: 'Low Appetite' },
+  { type: 'injection_site_reaction', emoji: '💉', label: 'Injection Site' },
+  { type: 'dizziness', emoji: '💫', label: 'Dizziness' },
+  { type: 'racing_heart', emoji: '💓', label: 'Racing Heart' },
 ];
 
 const POSITIVE_OUTCOMES: { type: SymptomType; emoji: string; label: string }[] = [
@@ -115,6 +119,8 @@ export default function Log() {
 
   const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 50 }, { enabled: isAuthenticated });
   const mealsQuery = trpc.meals.list.useQuery({ limit: 30 }, { enabled: isAuthenticated });
+  const dosesQuery = trpc.dose.list.useQuery(undefined, { enabled: isAuthenticated });
+  const doses = dosesQuery.data?.doses ?? [];
 
   const logSymptom = trpc.symptoms.log.useMutation({
     onSuccess: () => {
@@ -404,14 +410,24 @@ export default function Log() {
                     )}
                   </div>
                 </motion.div>
-                {before && (
-                  <div className="ml-6 mt-1.5 pl-3 border-l-2 border-sage/30">
+                {(before || dayAfterDose(doses, sym.loggedAt, 7)) && (
+                  <div className="ml-6 mt-1.5 pl-3 border-l-2 border-sage/30 flex flex-wrap gap-1.5">
+                    {(() => {
+                      const afterDose = dayAfterDose(doses, sym.loggedAt, 7);
+                      return afterDose ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sand/60 text-foreground text-[10px] px-2 py-0.5">
+                          💉 Day {afterDose.day + 1} after {fmtMg(afterDose.dose.doseMcg)} {afterDose.dose.compound}
+                        </span>
+                      ) : null;
+                    })()}
+                    {before && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-sage-light/40 text-sage-dark text-[10px] px-2 py-0.5">
                       <UtensilsCrossed className="w-2.5 h-2.5" />
                       <span className="capitalize">{before.meal.mealType}</span>
                       <span className="opacity-70 truncate max-w-[11rem]">· {before.meal.foods.map(f => f.name).join(", ")}</span>
                       <span className="opacity-60">· {formatGap(before.afterMs, "earlier")}</span>
                     </span>
+                    )}
                   </div>
                 )}
                 </div>

@@ -68,7 +68,9 @@ export const symptoms = mysqlTable("symptoms", {
     "fatigue", "headache", "diarrhea", "constipation",
     "acid_reflux", "vomiting", "low_appetite",
     // Positive outcomes
-    "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog"
+    "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog",
+    // Medication side effects (appended last: TiDB only allows adding enum values at the end)
+    "injection_site_reaction", "dizziness", "racing_heart"
   ]).notNull(),
   severity: int("severity").notNull(), // 1-5
   source: mysqlEnum("source", ["manual"]).default("manual").notNull(),
@@ -196,6 +198,8 @@ export const fitnessProfile = mysqlTable("fitness_profile", {
   userId: int("userId").notNull().unique(),
   proteinTargetG: int("proteinTargetG").default(150).notNull(),
   waterTargetMl: int("waterTargetMl").default(3785).notNull(),
+  /** Days between doses, used for the "next dose due" line. */
+  doseIntervalDays: int("doseIntervalDays").default(7).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -294,3 +298,15 @@ export interface TriggerExplanation {
   nextStep: string;
   seeProfessional: string;
 }
+
+/** Medication / peptide doses the user logged. Amounts are stored in micrograms (1 mg = 1000). */
+export const doseLogs = mysqlTable("dose_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  compound: varchar("compound", { length: 80 }).notNull(),
+  doseMcg: int("doseMcg").notNull(),
+  site: varchar("site", { length: 32 }),
+  notes: text("notes"),
+  loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

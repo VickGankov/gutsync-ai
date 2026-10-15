@@ -87,6 +87,9 @@ export function getSymptomEmoji(type: string): string {
     better_sleep: '😴',
     clearer_skin: '🌟',
     reduced_brain_fog: '🧠',
+    injection_site_reaction: '💉',
+    dizziness: '💫',
+    racing_heart: '💓',
   };
   return map[type] || '❓';
 }
@@ -110,6 +113,9 @@ export function getSymptomLabel(type: string): string {
     better_sleep: 'Better Sleep',
     clearer_skin: 'Clearer Skin',
     reduced_brain_fog: 'Reduced Brain Fog',
+    injection_site_reaction: 'Injection Site Reaction',
+    dizziness: 'Dizziness',
+    racing_heart: 'Racing Heart',
   };
   return map[type] || type;
 }

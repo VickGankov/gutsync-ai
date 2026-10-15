@@ -13,6 +13,7 @@ import {
   reintroChallenges,
   foodCache, productCache,
   triggerExplanations, type TriggerExplanation,
+  doseLogs,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
@@ -445,4 +446,31 @@ export async function saveTriggerExplanation(userId: number, triggerKey: string,
   await db.insert(triggerExplanations).values({ userId, triggerKey, statsHash, explanation }).onDuplicateKeyUpdate({
     set: { statsHash, explanation, createdAt: new Date() },
   });
+}
+
+// ─── Dose log ───
+
+export async function createDose(row: typeof doseLogs.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(doseLogs).values(row);
+  return result[0].insertId;
+}
+
+export async function getDosesByUser(userId: number, limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(doseLogs).where(eq(doseLogs.userId, userId)).orderBy(desc(doseLogs.loggedAt)).limit(limit);
+}
+
+export async function deleteDose(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(doseLogs).where(and(eq(doseLogs.id, id), eq(doseLogs.userId, userId)));
+}
+
+export async function setDoseInterval(userId: number, doseIntervalDays: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(fitnessProfile).values({ userId, doseIntervalDays }).onDuplicateKeyUpdate({ set: { doseIntervalDays } });
 }

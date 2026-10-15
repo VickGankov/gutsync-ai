@@ -6,6 +6,7 @@ import { formatGal, formatGalTarget, galInputValue, galToMl, mlToOz, ozToMl } fr
 import { useMemo, useState } from "react";
 import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ProtocolCard from "@/components/ProtocolCard";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
@@ -268,6 +269,8 @@ export default function Progress() {
           </div>
         )}
       </Card>
+
+      <motion.div variants={item}><ProtocolCard /></motion.div>
 
       {/* Protein history */}
       <Card>

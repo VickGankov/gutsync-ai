@@ -2,7 +2,7 @@
 
 import { createHash } from "crypto";
 import { invokeLLM } from "./_core/llm";
-import { getMealsInRange, getSymptomsByUser, getTriggerExplanation, saveTriggerExplanation } from "./db";
+import { getMealsInRange, getSymptomsByUser, getDosesByUser, getTriggerExplanation, saveTriggerExplanation } from "./db";
 import { computeTriggers, ofMeals, pct, type TriggerStat } from "../shared/triggers";
 import type { MealFood, TriggerExplanation } from "../drizzle/schema";
 
@@ -13,19 +13,22 @@ export const triggerKey = (t: Pick<TriggerStat, "names" | "symptom">) => `${t.na
 
 export const statsHash = (t: TriggerStat) =>
   createHash("sha1")
-    .update(JSON.stringify([t.names, t.symptom, t.exposures, t.hits, t.otherMeals, t.otherHits, t.avgSeverity]))
+    .update(JSON.stringify([t.names, t.symptom, t.exposures, t.hits, t.otherMeals, t.otherHits, t.avgSeverity, t.hitsNearDose]))
     .digest("hex");
 
 export async function loadTriggers(userId: number, now = Date.now()) {
-  const [meals, symptoms] = await Promise.all([
+  const [meals, symptoms, doses] = await Promise.all([
     getMealsInRange(userId, now - LOOKBACK_DAYS * DAY_MS, now),
     getSymptomsByUser(userId, 500),
+    getDosesByUser(userId, 200),
   ]);
   const recentSymptoms = symptoms.filter(s => s.loggedAt >= now - LOOKBACK_DAYS * DAY_MS);
   const triggers = computeTriggers(
     meals.map(m => ({ id: m.id, loggedAt: m.loggedAt, foods: m.foods as MealFood[] })),
     recentSymptoms.map(s => ({ type: s.type, severity: s.severity, loggedAt: s.loggedAt })),
     now,
+    undefined,
+    doses.map(d => d.loggedAt),
   );
   return { triggers, mealCount: meals.length, symptomCount: recentSymptoms.length };
 }

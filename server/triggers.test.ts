@@ -63,4 +63,15 @@ describe("computeTriggers", () => {
     expect(entry?.names).toEqual(expect.arrayContaining(["garlic", "onion"]));
     expect(r.filter(t => t.names.includes("onion")).length).toBe(1);
   });
+
+  it("counts hits that came within 3 days after a logged dose", () => {
+    const meals = [
+      meal(100, ["Pasta"], ["garlic"]), meal(80, ["Soup"], ["garlic"]), meal(60, ["Bread"], ["garlic"]),
+      meal(40, ["Rice"]), meal(30, ["Chicken"]), meal(20, ["Salad"]),
+    ];
+    const symptoms = [sym(98), sym(78), sym(58)];
+    const doses = [NOW - 160 * H]; // only the first symptom (62 h later) is within 3 days of it
+    const garlic = computeTriggers(meals, symptoms, NOW, undefined, doses).find(t => t.names.includes("garlic"));
+    expect(garlic?.hitsNearDose).toBe(1);
+  });
 });
