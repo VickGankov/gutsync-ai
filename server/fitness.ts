@@ -19,6 +19,16 @@ export function mealProteinGrams(foods: MealFood[] | null | undefined): number {
   }, 0);
 }
 
+/** Estimated fiber in a meal. `tracked` is false for meals saved before fiber tracking (they have no fiber data). */
+export function mealFiber(foods: MealFood[] | null | undefined): { grams: number; tracked: boolean } {
+  if (!Array.isArray(foods)) return { grams: 0, tracked: false };
+  let grams = 0, tracked = false;
+  for (const f of foods) {
+    if (typeof f.fiberGrams === "number" && Number.isFinite(f.fiberGrams)) { tracked = true; grams += Math.max(0, f.fiberGrams); }
+  }
+  return { grams, tracked };
+}
+
 /** Total volume of non-alcoholic drinks in a meal, in mL (counts toward water). */
 export function mealWaterMl(foods: MealFood[] | null | undefined): number {
   if (!Array.isArray(foods)) return 0;
@@ -38,6 +48,10 @@ export interface DaySummary {
   date: string;
   proteinG: number;
   waterMl: number;
+  /** Estimated fiber from logged meals (rough; packaged items have none). */
+  fiberG: number;
+  /** True when at least one meal that day carried fiber data. */
+  fiberTracked: boolean;
   /** Latest weigh-in that day, in lb, or null. */
   weightLb: number | null;
 }
@@ -65,7 +79,7 @@ export function buildFitnessSummary(params: {
   const byDate = new Map<string, DaySummary & { weightTs: number }>();
   for (let i = days - 1; i >= 0; i--) {
     const date = key(now - i * DAY_MS);
-    if (!byDate.has(date)) byDate.set(date, { date, proteinG: 0, waterMl: 0, weightLb: null, weightTs: -1 });
+    if (!byDate.has(date)) byDate.set(date, { date, proteinG: 0, waterMl: 0, fiberG: 0, fiberTracked: false, weightLb: null, weightTs: -1 });
   }
 
   for (const m of params.meals) {
@@ -73,6 +87,9 @@ export function buildFitnessSummary(params: {
     if (d) {
       d.proteinG += mealProteinGrams(m.foods);
       d.waterMl += mealWaterMl(m.foods);
+      const fb = mealFiber(m.foods);
+      d.fiberG += fb.grams;
+      if (fb.tracked) d.fiberTracked = true;
     }
   }
   for (const e of params.intake) {
@@ -92,6 +109,7 @@ export function buildFitnessSummary(params: {
   const daysOut: DaySummary[] = Array.from(byDate.values()).map(({ weightTs: _ignored, ...rest }) => ({
     ...rest,
     proteinG: Math.round(rest.proteinG),
+    fiberG: Math.round(rest.fiberG * 2) / 2,
   }));
 
   // Lifts grouped by exercise (case-insensitive), oldest first, best set per day.
@@ -126,10 +144,19 @@ export function buildFitnessSummary(params: {
     }
   }
 
+  // Fiber average over the last 7 days, counting only days that have fiber data (older meals have none).
+  const fiberDays = daysOut.slice(-7).filter(d => d.fiberTracked);
+  const fiber = {
+    todayG: daysOut[daysOut.length - 1]?.fiberG ?? 0,
+    avg7: fiberDays.length >= 2 ? Math.round((fiberDays.reduce((a, d) => a + d.fiberG, 0) / fiberDays.length) * 10) / 10 : null,
+    daysCounted: fiberDays.length,
+  };
+
   return {
     days: daysOut,
     today: daysOut[daysOut.length - 1],
     lifts,
     weeklyChangePct,
+    fiber,
   };
 }

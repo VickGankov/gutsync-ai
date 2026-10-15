@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildFitnessSummary, estimatedOneRepMax, localDateKey, mealProteinGrams, DAY_MS } from "./fitness";
+import { buildFitnessSummary, estimatedOneRepMax, localDateKey, mealProteinGrams, mealFiber, DAY_MS } from "./fitness";
 
 const NOW = Date.UTC(2026, 9, 14, 20, 0, 0); // 2026-10-14 20:00 UTC
 const PDT = 420; // getTimezoneOffset() for America/Los_Angeles in October
@@ -85,5 +85,37 @@ describe("mealWaterMl", () => {
       intake: [{ kind: "water", amount: 250, loggedAt: now - 2000 }], weights: [], lifts: [],
     });
     expect(s.today?.waterMl).toBe(841);
+  });
+});
+
+describe("fiber", () => {
+  it("treats meals without fiber data as untracked", () => {
+    expect(mealFiber([{ name: "Steak", category: "protein", fodmap: "low", hiddenIngredients: [] }])).toEqual({ grams: 0, tracked: false });
+    expect(mealFiber([{ name: "Oats", category: "grain", fodmap: "low", hiddenIngredients: [], fiberGrams: 4 }, { name: "Banana", category: "fruit", fodmap: "low", hiddenIngredients: [], fiberGrams: 3 }])).toEqual({ grams: 7, tracked: true });
+  });
+
+  it("averages the last 7 days over only the days that have fiber data", () => {
+    const food = (g?: number) => [{ name: "x", category: "other" as const, fodmap: "low" as const, hiddenIngredients: [], ...(g !== undefined ? { fiberGrams: g } : {}) }];
+    const s = buildFitnessSummary({
+      now: NOW, days: 7, tzOffsetMinutes: PDT,
+      meals: [
+        { foods: food(10), loggedAt: NOW - 1000 },
+        { foods: food(20), loggedAt: NOW - 1 * DAY_MS },
+        { foods: food(), loggedAt: NOW - 3 * DAY_MS }, // older meal, no fiber data: not counted as 0 g
+      ],
+      intake: [], weights: [], lifts: [],
+    });
+    expect(s.fiber.todayG).toBe(10);
+    expect(s.fiber.daysCounted).toBe(2);
+    expect(s.fiber.avg7).toBe(15);
+  });
+
+  it("gives no average until at least 2 days have data", () => {
+    const s = buildFitnessSummary({
+      now: NOW, days: 7, tzOffsetMinutes: PDT,
+      meals: [{ foods: [{ name: "x", category: "other", fodmap: "low", hiddenIngredients: [], fiberGrams: 5 }], loggedAt: NOW - 1000 }],
+      intake: [], weights: [], lifts: [],
+    });
+    expect(s.fiber.avg7).toBeNull();
   });
 });

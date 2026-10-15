@@ -1,5 +1,5 @@
 import { isEmailInList } from "./access";
-import { eq, desc, and, gte, lte, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2";
 import { mysqlOptionsFromUrl } from "../shared/dbConnection.mjs";
@@ -15,6 +15,7 @@ import {
   triggerExplanations, type TriggerExplanation,
   doseLogs, doseSchedules,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
+  waistLogs, supplements, supplementLogs,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
@@ -415,6 +416,15 @@ export async function saveFoodFacts(facts: Array<typeof foodCache.$inferInsert>)
   await db.insert(foodCache).ignore().values(facts);
 }
 
+/** Fill in fiber for cached foods that were saved before fiber tracking. Never touches other columns. */
+export async function saveFoodFiber(rows: Array<{ foodKey: string; fiberPer100gTenths: number }>) {
+  const db = await getDb();
+  if (!db || rows.length === 0) return;
+  for (const r of rows) {
+    await db.update(foodCache).set({ fiberPer100gTenths: r.fiberPer100gTenths }).where(and(eq(foodCache.foodKey, r.foodKey), isNull(foodCache.fiberPer100gTenths)));
+  }
+}
+
 export async function getProductCache(key: string) {
   const db = await getDb();
   if (!db) return null;
@@ -479,4 +489,73 @@ export async function setDoseSchedule(userId: number, compoundKey: string, inter
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(doseSchedules).values({ userId, compoundKey, intervalDays }).onDuplicateKeyUpdate({ set: { intervalDays } });
+}
+
+
+// ─── Waist ───
+
+export async function createWaistLog(userId: number, waistIn10: number, loggedAt: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(waistLogs).values({ userId, waistIn10, loggedAt });
+  return result[0].insertId;
+}
+
+export async function getWaistLogs(userId: number, fromTs: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(waistLogs)
+    .where(and(eq(waistLogs.userId, userId), gte(waistLogs.loggedAt, fromTs)))
+    .orderBy(desc(waistLogs.loggedAt));
+}
+
+export async function deleteWaistLog(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(waistLogs).where(and(eq(waistLogs.id, id), eq(waistLogs.userId, userId)));
+}
+
+// ─── Supplement checklist ───
+
+export async function getSupplements(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(supplements)
+    .where(and(eq(supplements.userId, userId), eq(supplements.archived, false)))
+    .orderBy(supplements.id);
+}
+
+export async function addSupplement(userId: number, name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(supplements).values({ userId, name });
+  return result[0].insertId;
+}
+
+export async function archiveSupplement(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(supplements).set({ archived: true }).where(and(eq(supplements.id, id), eq(supplements.userId, userId)));
+}
+
+/** Supplement ids taken on each given local date. */
+export async function getSupplementLogs(userId: number, dateKeys: string[]) {
+  const db = await getDb();
+  if (!db || dateKeys.length === 0) return [];
+  return db.select().from(supplementLogs)
+    .where(and(eq(supplementLogs.userId, userId), inArray(supplementLogs.dateKey, dateKeys)));
+}
+
+export async function setSupplementTaken(userId: number, supplementId: number, dateKey: string, taken: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Only the owner's own supplements can be checked off.
+  const own = await db.select({ id: supplements.id }).from(supplements)
+    .where(and(eq(supplements.id, supplementId), eq(supplements.userId, userId))).limit(1);
+  if (own.length === 0) throw new Error("Supplement not found");
+  if (taken) {
+    await db.insert(supplementLogs).ignore().values({ userId, supplementId, dateKey, loggedAt: Date.now() });
+  } else {
+    await db.delete(supplementLogs).where(and(eq(supplementLogs.supplementId, supplementId), eq(supplementLogs.dateKey, dateKey), eq(supplementLogs.userId, userId)));
+  }
 }

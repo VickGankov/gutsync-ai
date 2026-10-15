@@ -4,15 +4,20 @@
 import { motion } from "framer-motion";
 import { formatGal, formatGalTarget, galInputValue, galToMl, mlToOz, ozToMl } from "@/lib/units";
 import { useMemo, useState } from "react";
-import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
+import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2, Wheat, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProtocolCard from "@/components/ProtocolCard";
+import WeeklySummaryCard from "@/components/WeeklySummaryCard";
+import SupplementChecklist from "@/components/SupplementChecklist";
+import { readFiberPref, writeFiberPref } from "@/components/TodayCard";
+import { weightTrend, doseMarkers } from "@shared/weekly";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip,
 } from "recharts";
+import { fmtMg } from "@shared/dose";
 
 const container = {
   hidden: { opacity: 0 },
@@ -81,6 +86,10 @@ export default function Progress() {
   const deleteIntake = trpc.fitness.deleteIntake.useMutation({ onSuccess: refresh });
   const logWeight = trpc.fitness.logWeight.useMutation({ onSuccess: refresh });
   const deleteWeight = trpc.fitness.deleteWeight.useMutation({ onSuccess: refresh });
+  const waistsQuery = trpc.fitness.waists.useQuery(undefined, { enabled: isAuthenticated });
+  const doseQuery = trpc.dose.list.useQuery(undefined, { enabled: isAuthenticated });
+  const logWaist = trpc.fitness.logWaist.useMutation({ onSuccess: () => utils.fitness.waists.invalidate() });
+  const deleteWaist = trpc.fitness.deleteWaist.useMutation({ onSuccess: () => utils.fitness.waists.invalidate() });
   const logLift = trpc.fitness.logLift.useMutation({ onSuccess: refresh });
   const deleteLift = trpc.fitness.deleteLift.useMutation({ onSuccess: refresh });
   const setProfile = trpc.fitness.setProfile.useMutation({
@@ -91,6 +100,8 @@ export default function Progress() {
   });
 
   const [customProtein, setCustomProtein] = useState("");
+  const [waistInput, setWaistInput] = useState("");
+  const [fiberOnToday, setFiberOnToday] = useState(() => readFiberPref());
   const [weightInput, setWeightInput] = useState("");
   const [lift, setLift] = useState({ exercise: "", weightLb: "", reps: "", sets: "" });
   const [showTargets, setShowTargets] = useState(false);
@@ -106,6 +117,12 @@ export default function Progress() {
     () => (data?.days ?? []).filter(d => d.weightLb !== null).map(d => ({ date: d.date, weightLb: d.weightLb })),
     [data],
   );
+  // Full day range (so dose markers always have a date to sit on), with the 7-day average per weigh-in.
+  const trend = useMemo(() => weightTrend(data?.days ?? []), [data]);
+  const markers = useMemo(() => {
+    const first = data?.days?.[0]?.date;
+    return doseMarkers(doseQuery.data?.doses ?? [], tzOffsetMinutes).filter(m => !!first && m.date >= first);
+  }, [data, doseQuery.data, tzOffsetMinutes]);
   const knownExercises = useMemo(() => (data?.lifts ?? []).map(l => l.exercise), [data]);
   const proteinDaysHit = last14.filter(d => d.proteinG >= proteinTarget).length;
 
@@ -133,6 +150,15 @@ export default function Progress() {
         onError: (e) => toast.error(e.message),
       },
     );
+  };
+
+  const submitWaist = () => {
+    const w = Number(waistInput);
+    if (!Number.isFinite(w) || w < 15 || w > 80) return toast.error("Enter your waist in inches");
+    logWaist.mutate({ waistIn: w }, {
+      onSuccess: () => { setWaistInput(""); toast.success(`Logged ${w} in`); },
+      onError: (e) => toast.error(e.message),
+    });
   };
 
   const submitLift = () => {
@@ -270,7 +296,37 @@ export default function Progress() {
         )}
       </Card>
 
+      <motion.div variants={item}><WeeklySummaryCard /></motion.div>
       <motion.div variants={item}><ProtocolCard /></motion.div>
+      <motion.div variants={item}><SupplementChecklist /></motion.div>
+
+      {/* Fiber (rough estimate from logged meals) */}
+      <Card>
+        <div id="fiber" />
+        <CardTitle icon={Wheat} title="Fiber (estimate)" right={
+          <span className="text-sm font-semibold">~{data?.fiber.todayG ?? 0}<span className="text-muted-foreground font-normal"> g today</span></span>
+        } />
+        {data?.fiber.avg7 != null ? (
+          <p className="text-sm">
+            7-day average <span className="font-semibold">~{data.fiber.avg7} g</span>
+            <span className="text-muted-foreground"> over {data.fiber.daysCounted} days · typical reference 25–38 g</span>
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Needs at least 2 days of meals logged after this feature arrived to show an average.</p>
+        )}
+        {data?.fiber.avg7 != null && data.fiber.daysCounted >= 3 && data.fiber.avg7 < 20 && (
+          <p className="text-xs text-muted-foreground mt-2">Your logged meals average below the typical range. Low fiber can add to constipation, and eating much less overall can too. Worth raising with your doctor or a dietitian if it persists.</p>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-2">Rough AI estimate from photos and typed meals. Packaged items with no fiber data aren't counted, so the real number is likely higher.</p>
+        <label className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={fiberOnToday}
+            onChange={e => { setFiberOnToday(e.target.checked); writeFiberPref(e.target.checked); }}
+          />
+          Show fiber on the Today card
+        </label>
+      </Card>
 
       {/* Protein history */}
       <Card>
@@ -312,16 +368,32 @@ export default function Progress() {
           </p>
         )}
         {weightSeries.length >= 2 ? (
-          <div className="h-36 mt-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weightSeries} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis domain={["dataMin - 2", "dataMax + 2"]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v: number) => [`${v} lb`, "Weight"]} labelFormatter={shortDate} />
-                <Line type="monotone" dataKey="weightLb" stroke={PRIMARY} strokeWidth={2} dot={{ r: 2 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <>
+            <div className="h-40 mt-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend} margin={{ top: 6, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 10 }} interval={6} axisLine={false} tickLine={false} />
+                  <YAxis domain={[(min: number) => Math.floor(min - 2), (max: number) => Math.ceil(max + 2)]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v: number, name: string) => [`${v} lb`, name === "avg" ? "7-day avg" : "Weigh-in"]} labelFormatter={shortDate} />
+                  {markers.map((m, i) => (
+                    <ReferenceLine key={`${m.date}-${m.compound}-${i}`} x={m.date} stroke={m.kind === "start" ? PRIMARY : CORAL} strokeDasharray="3 3" />
+                  ))}
+                  <Line type="monotone" dataKey="weightLb" stroke="none" dot={{ r: 2.5, fill: MUTED, stroke: "none" }} activeDot={false} isAnimationActive={false} />
+                  <Line type="monotone" dataKey="avg" stroke={PRIMARY} strokeWidth={2.5} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">Dots are weigh-ins; the line is the 7-day average. Dashed lines mark a dose start (green) or change (orange).</p>
+            {markers.length > 0 && (
+              <ul className="mt-1.5 space-y-0.5">
+                {markers.slice(-4).map((m, i) => (
+                  <li key={`${m.date}-${i}`} className="text-[11px] text-muted-foreground">
+                    <span style={{ color: m.kind === "start" ? PRIMARY : CORAL }}>●</span> {shortDate(m.date)} · {m.kind === "start" ? "started" : "changed to"} {m.compound} {fmtMg(m.doseMcg)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         ) : (
           <p className="text-xs text-muted-foreground mt-3">Log at least two weigh-ins to see a trend.</p>
         )}
@@ -335,6 +407,38 @@ export default function Progress() {
             ))}
           </div>
         )}
+
+        {/* Waist (optional) */}
+        <div className="mt-4 border-t border-border/60 pt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Ruler className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Waist</span>
+            <span className="text-[11px] text-muted-foreground">optional · helps tell fat loss from muscle loss</span>
+          </div>
+          <div className="flex gap-2">
+            <input className={inputCls} type="number" inputMode="decimal" step="0.1" placeholder="Waist at navel (in)"
+              value={waistInput} onChange={e => setWaistInput(e.target.value)} />
+            <Button size="sm" onClick={submitWaist} disabled={logWaist.isPending}>Log</Button>
+          </div>
+          {(waistsQuery.data?.length ?? 0) > 0 && (() => {
+            const w = waistsQuery.data!;
+            const change = w.length >= 2 ? Math.round((w[0].waistIn - w[w.length - 1].waistIn) * 10) / 10 : null;
+            return (
+              <div className="mt-2 space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  Latest <span className="font-semibold text-foreground">{w[0].waistIn} in</span>
+                  {change !== null && <> · {change > 0 ? "+" : ""}{change} in since {new Date(w[w.length - 1].loggedAt).toLocaleDateString()}</>}
+                </p>
+                {w.slice(0, 3).map(x => (
+                  <div key={x.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{x.waistIn} in · {new Date(x.loggedAt).toLocaleDateString()}</span>
+                    <button onClick={() => deleteWaist.mutate({ id: x.id })} title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
       </Card>
 
       {/* Lifts */}

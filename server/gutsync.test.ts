@@ -17,6 +17,15 @@ vi.mock("./db", () => ({
   deleteSymptom: vi.fn().mockResolvedValue(undefined),
   getFoodFactsByKeys: vi.fn().mockResolvedValue([]),
   saveFoodFacts: vi.fn().mockResolvedValue(undefined),
+  saveFoodFiber: vi.fn().mockResolvedValue(undefined),
+  getSupplements: vi.fn().mockResolvedValue([]),
+  addSupplement: vi.fn().mockResolvedValue(5),
+  archiveSupplement: vi.fn().mockResolvedValue(undefined),
+  getSupplementLogs: vi.fn().mockResolvedValue([]),
+  setSupplementTaken: vi.fn().mockResolvedValue(undefined),
+  createWaistLog: vi.fn().mockResolvedValue(3),
+  getWaistLogs: vi.fn().mockResolvedValue([]),
+  deleteWaistLog: vi.fn().mockResolvedValue(undefined),
   upsertCorrelation: vi.fn(),
   getCorrelationsByUser: vi.fn().mockResolvedValue([]),
   // Subscription mocks (default: free tier, 0 scans used)
@@ -180,6 +189,86 @@ describe("GutSync Server Procedures", () => {
           notes: "Morning oatmeal bowl",
         })
       );
+    });
+  });
+
+  describe("meals.logManual time", () => {
+    const meal = { mealType: "lunch" as const, foods: [{ name: "Rice", category: "grain" as const, fodmap: "low" as const, hiddenIngredients: [] }] };
+
+    it("saves a past meal at the time given", async () => {
+      vi.mocked(db.createMeal).mockResolvedValue(1);
+      const caller = appRouter.createCaller(createAuthContext());
+      const at = Date.now() - 5 * 3_600_000;
+      await caller.meals.logManual({ ...meal, loggedAt: at });
+      expect(db.createMeal).toHaveBeenCalledWith(expect.objectContaining({ loggedAt: at }));
+    });
+
+    it("rejects a time in the future or more than 30 days back", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await expect(caller.meals.logManual({ ...meal, loggedAt: Date.now() + 3_600_000 })).rejects.toThrow(/last 30 days/);
+      await expect(caller.meals.logManual({ ...meal, loggedAt: Date.now() - 31 * 86_400_000 })).rejects.toThrow(/last 30 days/);
+      expect(db.createMeal).not.toHaveBeenCalled();
+    });
+
+    it("keeps fiber estimates on saved foods", async () => {
+      vi.mocked(db.createMeal).mockResolvedValue(1);
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.meals.logManual({ ...meal, foods: [{ ...meal.foods[0], fiberGrams: 3.5 }] });
+      expect(db.createMeal).toHaveBeenCalledWith(expect.objectContaining({ foods: [expect.objectContaining({ fiberGrams: 3.5 })] }));
+    });
+  });
+
+  describe("meals.analyzeText", () => {
+    it("rejects an empty description", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await expect(caller.meals.analyzeText({ text: " " })).rejects.toThrow();
+    });
+
+    it("requires sign-in", async () => {
+      const caller = appRouter.createCaller(createUnauthContext());
+      await expect(caller.meals.analyzeText({ text: "2 eggs and toast" })).rejects.toThrow();
+    });
+
+    it("counts a scan for free users and returns no photo", async () => {
+      const { invokeLLM } = await import("./_core/llm");
+      vi.mocked(invokeLLM)
+        .mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({
+          foods: [{ name: "egg", estimatedGrams: 100, packaged: false, labelIngredients: [], likelyTriggers: [], drinkMl: 0, labelProteinG: 0 }],
+          mealType: "breakfast", summary: "Eggs",
+        }) } }] } as any)
+        .mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({
+          foods: [{ key: "egg", category: "protein", fodmap: "low", hiddenIngredients: [], proteinPer100g: 13, fiberPer100g: 0 }],
+        }) } }] } as any);
+      const caller = appRouter.createCaller(createAuthContext());
+      const r = await caller.meals.analyzeText({ text: "2 eggs" });
+      expect(r.photoUrl).toBeNull();
+      expect(r.mealType).toBe("breakfast");
+      expect(r.foods[0].name).toBe("Egg");
+      expect(db.incrementScanCount).toHaveBeenCalled();
+    });
+  });
+
+  describe("supplement checklist", () => {
+    it("lists items with what was taken on the given dates", async () => {
+      vi.mocked(db.getSupplements).mockResolvedValue([{ id: 1, userId: 1, name: "Magnesium", archived: false, createdAt: new Date() }] as any);
+      vi.mocked(db.getSupplementLogs).mockResolvedValue([{ id: 1, userId: 1, supplementId: 1, dateKey: "2026-10-15", loggedAt: 1 }] as any);
+      const caller = appRouter.createCaller(createAuthContext());
+      const r = await caller.supplement.list({ dateKeys: ["2026-10-15"] });
+      expect(r.items).toEqual([{ id: 1, name: "Magnesium" }]);
+      expect(r.taken).toEqual([{ supplementId: 1, dateKey: "2026-10-15" }]);
+    });
+
+    it("refuses duplicates and bad dates", async () => {
+      vi.mocked(db.getSupplements).mockResolvedValue([{ id: 1, userId: 1, name: "Magnesium", archived: false, createdAt: new Date() }] as any);
+      const caller = appRouter.createCaller(createAuthContext());
+      await expect(caller.supplement.add({ name: "magnesium" })).rejects.toThrow(/already/);
+      await expect(caller.supplement.toggle({ id: 1, dateKey: "tomorrow", taken: true })).rejects.toThrow();
+    });
+
+    it("checks an item off for a day", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.supplement.toggle({ id: 1, dateKey: "2026-10-15", taken: true });
+      expect(db.setSupplementTaken).toHaveBeenCalledWith(1, 1, "2026-10-15", true);
     });
   });
 

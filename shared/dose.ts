@@ -115,7 +115,7 @@ export function dayAfterDose(doses: DoseRow[], at: number, maxDays = 7): { dose:
   return day < maxDays ? { dose: best, day } : null;
 }
 
-const NEGATIVE = new Set([
+export const NEGATIVE_SYMPTOMS = new Set([
   "bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation",
   "acid_reflux", "vomiting", "low_appetite", "injection_site_reaction", "dizziness", "racing_heart",
 ]);
@@ -125,7 +125,7 @@ export function sideEffectsByDay(doses: DoseRow[], symptoms: SymptomRow[], days 
   const perDay = Array.from({ length: days }, (_, day) => ({ day, count: 0, severitySum: 0 }));
   const perType = new Map<string, { n: number; sev: number; byDay: number[] }>();
   for (const s of symptoms) {
-    if (!NEGATIVE.has(s.type)) continue;
+    if (!NEGATIVE_SYMPTOMS.has(s.type)) continue;
     const hit = dayAfterDose(doses, s.loggedAt, days);
     if (!hit) continue;
     perDay[hit.day].count++;

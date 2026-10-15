@@ -1,5 +1,6 @@
 // Home "Today" card: a live summary of the day plus the single most useful next action.
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Activity, ArrowRight, Check, Droplets, Dumbbell, UtensilsCrossed } from "lucide-react";
@@ -7,6 +8,17 @@ import { trpc } from "@/lib/trpc";
 import { formatTimeAgo, getSymptomLabel } from "@/lib/store";
 import { summarizeToday } from "@shared/today";
 import { formatGal, formatGalTarget } from "@/lib/units";
+import { useSupplements } from "@/components/SupplementChecklist";
+
+/** Reference used only for the optional Today fiber bar; not advice. */
+const FIBER_REFERENCE_G = 25;
+const FIBER_PREF_KEY = "gutsync_today_fiber";
+export function readFiberPref() {
+  try { return localStorage.getItem(FIBER_PREF_KEY) === "1"; } catch { return false; }
+}
+export function writeFiberPref(on: boolean) {
+  try { localStorage.setItem(FIBER_PREF_KEY, on ? "1" : "0"); } catch { /* storage unavailable: preference just won't persist */ }
+}
 
 interface Props {
   meals: Array<{ loggedAt: number }>;
@@ -40,6 +52,10 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
   const proteinTarget = fitness.data?.targets.proteinTargetG ?? null;
   const waterMl = fitness.data ? fitness.data.today?.waterMl ?? 0 : null;
   const waterTargetMl = fitness.data?.targets.waterTargetMl ?? null;
+
+  const supps = useSupplements();
+  const showFiber = useMemo(() => readFiberPref(), []);
+  const fiberG = fitness.data?.fiber.todayG ?? null;
 
   const s = summarizeToday({
     now, startOfDay, hour: d.getHours(), meals, symptoms,
@@ -96,7 +112,39 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
           value={waterMl === null ? "–" : waterTargetMl ? `${formatGal(waterMl)} / ${formatGalTarget(waterTargetMl)}` : formatGal(waterMl)}
           progress={waterMl !== null && waterTargetMl ? waterMl / waterTargetMl : undefined}
         />
+        {showFiber && (
+          <Tile
+            href="/progress"
+            icon={<Activity className="w-3 h-3" />}
+            label="Fiber (est.)"
+            unit="g"
+            value={fiberG === null ? "–" : `~${fiberG}`}
+            progress={fiberG !== null ? fiberG / FIBER_REFERENCE_G : undefined}
+          />
+        )}
       </div>
+
+      {supps.items.length > 0 && (
+        <div className="mt-2.5 relative">
+          <p className="text-[10px] uppercase tracking-wide font-medium text-sage-dark mb-1.5">Supplements · {supps.takenIds.size}/{supps.items.length}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {supps.items.map(i => {
+              const on = supps.takenIds.has(i.id);
+              return (
+                <button
+                  key={i.id}
+                  type="button"
+                  onClick={() => supps.toggle(i.id)}
+                  aria-pressed={on}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border active:scale-95 transition-all ${on ? "bg-sage-dark text-white border-sage-dark" : "bg-white/60 dark:bg-white/10 border-white/70 dark:border-white/10 text-foreground"}`}
+                >
+                  {on ? "✓ " : ""}{i.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {s.nudge.href && nudgeText ? (
         <Link href={s.nudge.href}>

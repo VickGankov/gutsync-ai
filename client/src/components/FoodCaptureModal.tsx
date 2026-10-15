@@ -19,6 +19,20 @@ export interface FoodCaptureModalProps {
   uploadedFile?: File | null;
 }
 
+const TEXT_STEPS = [
+  "Reading your description...",
+  "Identifying food items...",
+  "Detecting hidden ingredients...",
+  "Analyzing sensitivity levels...",
+  "Generating breakdown...",
+];
+
+/** Value for a datetime-local input, in the viewer's local time. */
+function toLocalInput(ms: number) {
+  const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000);
+  return d.toISOString().slice(0, 16);
+}
+
 const ANALYSIS_STEPS = [
   "Uploading photo...",
   "Identifying food items...",
@@ -38,6 +52,7 @@ interface AnalyzedFood {
   fodmap: "low" | "moderate" | "high";
   hiddenIngredients: string[];
   proteinGrams?: number;
+  fiberGrams?: number;
   volumeMl?: number;
   packaged?: boolean;
   ingredients?: string[];
@@ -64,6 +79,10 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [labelFile, setLabelFile] = useState<File | null>(null);
   const [foodThumb, setFoodThumb] = useState<string | null>(null);
   const [labelThumb, setLabelThumb] = useState<string | null>(null);
+  const [typedText, setTypedText] = useState("");
+  const [isTextEntry, setIsTextEntry] = useState(false);
+  /** When it was eaten, as a datetime-local string; null means "now". */
+  const [eatenAt, setEatenAt] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallScansUsed, setPaywallScansUsed] = useState(10);
   // Refs removed - using inline <label>+<input> pattern for better mobile compatibility
@@ -71,12 +90,14 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
 
   const utils = trpc.useUtils();
   const analyzePhoto = trpc.meals.analyzePhoto.useMutation();
+  const analyzeText = trpc.meals.analyzeText.useMutation();
   const readLabel = trpc.meals.readLabel.useMutation();
   const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
 
   const runAnalysis = useCallback(async (file: File, label?: File | null) => {
     const url = URL.createObjectURL(file);
+    setIsTextEntry(false);
     setPreviewUrl(url);
     setStep("analyzing");
     setAnalysisStep(0);
@@ -143,6 +164,40 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       setPreviewUrl(null);
     }
   }, [analyzePhoto, utils.subscription.status]);
+
+  const runTextAnalysis = useCallback(async (text: string) => {
+    setIsTextEntry(true);
+    setPreviewUrl(null);
+    setStep("analyzing");
+    setAnalysisStep(0);
+    setError(null);
+    const stepInterval = setInterval(() => {
+      setAnalysisStep((prev) => (prev < TEXT_STEPS.length - 1 ? prev + 1 : prev));
+    }, 800);
+    try {
+      const result = await analyzeText.mutateAsync({ text });
+      clearInterval(stepInterval);
+      setAnalysisStep(TEXT_STEPS.length);
+      setAnalyzedFoods(result.foods);
+      setMealSummary(result.summary);
+      setDetectedMealType(result.mealType || "snack");
+      setSavedPhotoUrl(null);
+      await utils.subscription.status.invalidate();
+      setTimeout(() => setStep("results"), 400);
+    } catch (err: unknown) {
+      clearInterval(stepInterval);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("FREE_LIMIT_REACHED")) {
+        setPaywallScansUsed(parseInt(msg.split(":")[1] ?? "3", 10));
+        setShowPaywall(true);
+      } else if (msg.includes("NO_FOOD_DETECTED")) {
+        setError("I couldn't find any food in that. Try something like: 2 eggs, toast with butter, coffee.");
+      } else {
+        setError(msg || "Analysis failed. Please try again.");
+      }
+      setStep("upload");
+    }
+  }, [analyzeText, utils.subscription.status]);
 
   // Handle uploaded file from long-press
   useEffect(() => {
@@ -268,11 +323,13 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
           fodmap: f.fodmap,
           hiddenIngredients: f.hiddenIngredients,
           ...(typeof f.proteinGrams === "number" ? { proteinGrams: f.proteinGrams } : {}),
+          ...(typeof f.fiberGrams === "number" ? { fiberGrams: f.fiberGrams } : {}),
           ...(f.volumeMl && f.volumeMl > 0 ? { volumeMl: Math.round(f.volumeMl) } : {}),
           ...(f.ingredients?.length ? { ingredients: f.ingredients } : {}),
         })),
         notes: mealSummary || undefined,
         photoUrl: savedPhotoUrl || undefined,
+        ...(eatenAt ? { loggedAt: Math.min(new Date(eatenAt).getTime(), Date.now()) } : {}),
       },
       {
         onSuccess: () => {
@@ -299,6 +356,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setAnalyzedFoods([]);
     setScanSeconds(null); clearStaged();
     setMealSummary("");
+    setTypedText(""); setIsTextEntry(false); setEatenAt(null);
     setDetectedMealType("snack");
     setError(null);
     setEditingIndex(null);
@@ -438,6 +496,28 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   </label>
                 </div>
                 )}
+                {!foodFile && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 space-y-2">
+                    <p className="text-sm font-medium text-foreground">Or type what you ate</p>
+                    <textarea
+                      value={typedText}
+                      onChange={(e) => setTypedText(e.target.value)}
+                      rows={2}
+                      maxLength={600}
+                      placeholder="e.g. 2 eggs, sourdough toast with butter, black coffee"
+                      className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => runTextAnalysis(typedText.trim())}
+                      disabled={typedText.trim().length < 2}
+                      className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform"
+                    >
+                      Analyze text
+                    </button>
+                    <p className="text-[11px] text-muted-foreground">Uses the same analysis as a photo, so it counts as one scan. You can edit everything before saving.</p>
+                  </div>
+                )}
                 {error && (
                   <div className="bg-coral-light/30 border border-coral/20 rounded-xl p-3 text-sm text-coral">
                     {error}
@@ -455,7 +535,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   </div>
                 )}
                 <div className="space-y-3">
-                  {ANALYSIS_STEPS.map((text, i) => (
+                  {(isTextEntry ? TEXT_STEPS : ANALYSIS_STEPS).map((text, i) => (
                     <motion.div
                       key={`step-${i}`}
                       initial={{ opacity: 0, x: -10 }}
@@ -532,6 +612,24 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                   </div>
                 </div>
 
+                <div className="rounded-2xl border border-border/50 bg-muted/30 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">When you ate</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="datetime-local"
+                      value={eatenAt ?? toLocalInput(Date.now())}
+                      max={toLocalInput(Date.now())}
+                      min={toLocalInput(Date.now() - 30 * 86_400_000)}
+                      onChange={(e) => setEatenAt(e.target.value || null)}
+                      className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    {eatenAt && (
+                      <button type="button" onClick={() => setEatenAt(null)} className="text-xs font-medium text-primary px-2 py-1">Now</button>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">Symptom timing and triggers use this time, so set it if you're logging a past meal.</p>
+                </div>
+
                 {/* Editable hint */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -543,6 +641,14 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                     Estimated protein: <span className="font-semibold text-foreground">
                       {Math.round(analyzedFoods.reduce((sum, f) => sum + (f.proteinGrams ?? 0), 0))} g
                     </span> · tap an item to adjust
+                  </p>
+                )}
+
+                {analyzedFoods.some(f => typeof f.fiberGrams === "number") && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Estimated fiber: <span className="font-semibold text-foreground">
+                      {Math.round(analyzedFoods.reduce((sum, f) => sum + (f.fiberGrams ?? 0), 0) * 2) / 2} g
+                    </span> (rough estimate)
                   </p>
                 )}
 
@@ -616,6 +722,9 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                           ) : typeof food.proteinGrams === "number" && food.proteinGrams > 0 ? (
                             <p className="mt-1.5 text-xs text-muted-foreground">~{Math.round(food.proteinGrams)} g protein</p>
                           ) : null}
+                          {editingIndex !== i && typeof food.fiberGrams === "number" && food.fiberGrams > 0 && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">~{food.fiberGrams} g fiber</p>
+                          )}
                           {typeof food.volumeMl === "number" && food.volumeMl > 0 && (
                             editingIndex === i ? (
                               <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>

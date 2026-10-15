@@ -43,6 +43,8 @@ export interface MealFood {
   hiddenIngredients: string[];
   /** Estimated grams of protein in this item (AI estimate, user-editable). */
   proteinGrams?: number;
+  /** Estimated grams of fiber in this item (AI estimate; not shown for packaged items). */
+  fiberGrams?: number;
   /** Packaged/branded product (identified by its printed name). */
   packaged?: boolean;
   /** Where the FODMAP/ingredient data came from: the product label, or an AI estimate. */
@@ -218,6 +220,34 @@ export const weightLogs = mysqlTable("weight_logs", {
 
 export type WeightLog = typeof weightLogs.$inferSelect;
 
+/** Waist measurements (optional). Tenths of an inch, like weight. */
+export const waistLogs = mysqlTable("waist_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  waistIn10: int("waistIn10").notNull(),
+  loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** The user's own supplement list (a checklist, no advice). Removed items are archived so history stays. */
+export const supplements = mysqlTable("supplements", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 60 }).notNull(),
+  archived: boolean("archived").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** One row per supplement per local calendar day it was taken. */
+export const supplementLogs = mysqlTable("supplement_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  supplementId: int("supplementId").notNull(),
+  /** Local calendar date, YYYY-MM-DD, as seen by the user. */
+  dateKey: varchar("dateKey", { length: 10 }).notNull(),
+  loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
+}, (t) => ({ once: uniqueIndex("supplement_logs_once").on(t.supplementId, t.dateKey) }));
+
 /**
  * Quick-add intake entries that aren't photo meals (protein shakes, water).
  */
@@ -262,6 +292,8 @@ export const foodCache = mysqlTable("food_cache", {
   hiddenIngredients: json("hiddenIngredients").$type<string[]>().notNull(),
   /** Protein grams per 100 g of food, in tenths (e.g. 310 = 31.0 g). */
   proteinPer100gTenths: int("proteinPer100gTenths").default(0).notNull(),
+  /** Fiber grams per 100 g, in tenths. NULL until looked up (rows from before fiber tracking). */
+  fiberPer100gTenths: int("fiberPer100gTenths"),
   source: mysqlEnum("source", ["seed", "ai"]).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

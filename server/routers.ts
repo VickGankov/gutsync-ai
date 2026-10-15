@@ -8,6 +8,9 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
   createMeal,
+  saveFoodFiber,
+  createWaistLog, getWaistLogs, deleteWaistLog,
+  getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -54,7 +57,7 @@ import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
 import { SITES, compoundKey } from "../shared/dose";
-import { analyzeWithCache, identifyFoods, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
+import { analyzeWithCache, identifyFoods, identifyFoodsFromText, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
@@ -175,8 +178,24 @@ async function analyzeMeal(imageUrl: string) {
     lookup: lookupFoodFacts,
     getFacts: getFoodFactsByKeys,
     saveFacts: saveFoodFacts,
+    saveFiber: saveFoodFiber,
     findProduct: name => findProduct(name, { get: getProductCache, save: saveProductCache }),
     legacy: analyzeFood,
+  });
+}
+
+/** Same pipeline for a typed description: "2 eggs, toast with butter, coffee". */
+async function analyzeMealText(text: string) {
+  await ensureFoodSeed(saveFoodFacts);
+  return analyzeWithCache(text, {
+    identify: identifyFoodsFromText,
+    lookup: lookupFoodFacts,
+    getFacts: getFoodFactsByKeys,
+    saveFacts: saveFoodFacts,
+    saveFiber: saveFoodFiber,
+    findProduct: name => findProduct(name, { get: getProductCache, save: saveProductCache }),
+    // There is no single-call fallback for text: surface the real error instead.
+    legacy: async () => { throw new Error("Could not analyze that description. Try again or add the items by hand."); },
   });
 }
 
@@ -293,6 +312,25 @@ export const appRouter = router({
         };
       }),
 
+    /** Typed meal description instead of a photo. Counts as one scan, like a photo. */
+    analyzeText: protectedProcedure
+      .input(z.object({ text: z.string().trim().min(2).max(600) }))
+      .mutation(async ({ ctx, input }) => {
+        const premium = await enforceScanLimit(ctx.user.id);
+        const analysis = await analyzeMealText(input.text);
+        if (!analysis.foods || analysis.foods.length === 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'NO_FOOD_DETECTED' });
+        }
+        if (!premium) await incrementScanCount(ctx.user.id);
+        return {
+          photoUrl: null,
+          mealType: analysis.mealType,
+          foods: analysis.foods,
+          summary: analysis.summary,
+          timings: analysis.timings ?? null,
+        };
+      }),
+
     /** Read an ingredient label from a photo and classify its FODMAP triggers. Counts as one scan. */
     readLabel: protectedProcedure
       .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
@@ -323,20 +361,27 @@ export const appRouter = router({
           fodmap: z.enum(["low", "moderate", "high"]),
           hiddenIngredients: z.array(z.string()),
           proteinGrams: z.number().min(0).max(500).optional(),
+          fiberGrams: z.number().min(0).max(200).optional(),
           ingredients: z.array(z.string().max(160)).max(80).optional(),
           volumeMl: z.number().int().min(0).max(5000).optional(),
         })),
         notes: z.string().optional(),
         photoUrl: z.string().optional(),
+        /** When it was eaten (ms). Defaults to now; must be in the past 30 days and not in the future. */
+        loggedAt: z.number().int().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const now = Date.now();
+        if (input.loggedAt !== undefined && (input.loggedAt > now + 5 * 60_000 || input.loggedAt < now - 30 * 86_400_000)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'The time must be within the last 30 days and not in the future.' });
+        }
         const mealId = await createMeal({
           userId: ctx.user.id,
           mealType: input.mealType,
           foods: input.foods,
           notes: input.notes ?? null,
           photoUrl: input.photoUrl,
-          loggedAt: Date.now(),
+          loggedAt: Math.min(input.loggedAt ?? now, now),
         });
         return { id: mealId };
       }),
@@ -351,6 +396,7 @@ export const appRouter = router({
           fodmap: z.enum(["low", "moderate", "high"]),
           hiddenIngredients: z.array(z.string()),
           proteinGrams: z.number().min(0).max(500).optional(),
+          fiberGrams: z.number().min(0).max(200).optional(),
           ingredients: z.array(z.string().max(160)).max(80).optional(),
           volumeMl: z.number().int().min(0).max(5000).optional(),
         })).optional(),
@@ -493,6 +539,44 @@ export const appRouter = router({
       }),
   }),
 
+  supplement: router({
+    /** The user's checklist with which items are checked on the given local dates. */
+    list: protectedProcedure
+      .input(z.object({ dateKeys: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(14) }))
+      .query(async ({ ctx, input }) => {
+        const [items, logs] = await Promise.all([getSupplements(ctx.user.id), getSupplementLogs(ctx.user.id, input.dateKeys)]);
+        return {
+          items: items.map(i => ({ id: i.id, name: i.name })),
+          taken: logs.map(l => ({ supplementId: l.supplementId, dateKey: l.dateKey })),
+        };
+      }),
+
+    add: protectedProcedure
+      .input(z.object({ name: z.string().trim().min(1).max(60) }))
+      .mutation(async ({ ctx, input }) => {
+        const existing = await getSupplements(ctx.user.id);
+        if (existing.length >= 20) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You can keep up to 20 supplements.' });
+        if (existing.some(e => e.name.toLowerCase() === input.name.toLowerCase())) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'That one is already on your list.' });
+        }
+        return { id: await addSupplement(ctx.user.id, input.name) };
+      }),
+
+    remove: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(async ({ ctx, input }) => {
+        await archiveSupplement(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    toggle: protectedProcedure
+      .input(z.object({ id: z.number().int(), dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), taken: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        await setSupplementTaken(ctx.user.id, input.id, input.dateKey, input.taken);
+        return { success: true };
+      }),
+  }),
+
   dose: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const [doses, schedules] = await Promise.all([getDosesByUser(ctx.user.id, 200), getDoseSchedules(ctx.user.id)]);
@@ -618,6 +702,25 @@ export const appRouter = router({
         await deleteLiftLog(ctx.user.id, input.id);
         return { success: true };
       }),
+
+    logWaist: protectedProcedure
+      .input(z.object({ waistIn: z.number().min(15).max(80) }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createWaistLog(ctx.user.id, Math.round(input.waistIn * 10), Date.now());
+        return { id };
+      }),
+
+    deleteWaist: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteWaistLog(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    waists: protectedProcedure.query(async ({ ctx }) => {
+      const rows = await getWaistLogs(ctx.user.id, Date.now() - 120 * DAY_MS);
+      return rows.map(w => ({ id: w.id, waistIn: w.waistIn10 / 10, loggedAt: w.loggedAt }));
+    }),
 
     summary: protectedProcedure
       .input(z.object({

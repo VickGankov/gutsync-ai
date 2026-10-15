@@ -11,6 +11,8 @@ export interface FoodFact {
   hiddenIngredients: string[];
   /** Protein grams per 100 g, in tenths. */
   proteinPer100gTenths: number;
+  /** Fiber grams per 100 g, in tenths. null = not looked up yet (older cache rows). */
+  fiberPer100gTenths?: number | null;
   source: "seed" | "ai";
 }
 
@@ -41,6 +43,12 @@ export function normalizeFoodKey(name: string): string {
 export function proteinForPortion(proteinPer100gTenths: number, grams: number): number {
   const g = Number.isFinite(grams) ? Math.min(2000, Math.max(0, grams)) : 100;
   return Math.round(((proteinPer100gTenths / 10) * g) / 100);
+}
+
+/** Estimated fiber grams in a portion, rounded to 0.5 g. */
+export function fiberForPortion(fiberPer100gTenths: number, grams: number): number {
+  const g = Number.isFinite(grams) ? Math.min(2000, Math.max(0, grams)) : 100;
+  return Math.round(((fiberPer100gTenths / 10) * g) / 100 * 2) / 2;
 }
 
 export function displayName(name: string): string {

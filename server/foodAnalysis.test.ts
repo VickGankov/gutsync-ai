@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { analyzeWithCache, applyLabelToFoods, type Deps } from "./foodAnalysis";
 import { FOOD_SEED, parseSeed } from "./foodSeed";
-import { normalizeFoodKey, proteinForPortion } from "../shared/foodCache";
+import { normalizeFoodKey, proteinForPortion, fiberForPortion } from "../shared/foodCache";
 
 const fact = (foodKey: string, over: Partial<ReturnType<typeof base>> = {}) => ({ ...base(foodKey), ...over });
 const base = (foodKey: string) => ({
@@ -224,5 +224,62 @@ describe("applyLabelToFoods", () => {
   it("ignores an unreadable label", () => {
     const foods = [{ name: "Bar", category: "other" as const, fodmap: "low" as const, hiddenIngredients: [] }];
     expect(applyLabelToFoods(foods, { ...label, ingredients: ["x"] })).toBe(foods);
+  });
+});
+
+describe("fiber", () => {
+  it("scales per-100g fiber to the portion, rounded to half a gram", () => {
+    expect(fiberForPortion(26, 100)).toBe(2.5);
+    expect(fiberForPortion(26, 150)).toBe(4);
+    expect(fiberForPortion(0, 150)).toBe(0);
+  });
+
+  it("uses cached fiber without any lookup", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({ foods: [{ name: "chicken breast", grams: 100, ...G }], mealType: "lunch", summary: "x" }),
+      getFacts: vi.fn().mockResolvedValue([fact("chicken breast", { fiberPer100gTenths: 20 })]),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(d.lookup).not.toHaveBeenCalled();
+    expect(r.foods[0].fiberGrams).toBe(2);
+  });
+
+  it("looks up fiber once for a cached food that predates fiber tracking, then saves it", async () => {
+    const saveFiber = vi.fn().mockResolvedValue(undefined);
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({ foods: [{ name: "chicken breast", grams: 200, ...G }], mealType: "lunch", summary: "x" }),
+      getFacts: vi.fn().mockResolvedValue([fact("chicken breast", { fiberPer100gTenths: null })]),
+      lookup: vi.fn().mockResolvedValue([fact("chicken breast", { fiberPer100gTenths: 10, source: "ai" })]),
+      saveFiber,
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(d.lookup).toHaveBeenCalledTimes(1);
+    expect(d.saveFacts).not.toHaveBeenCalled(); // the rest of the cached row is left alone
+    expect(saveFiber).toHaveBeenCalledWith([{ foodKey: "chicken breast", fiberPer100gTenths: 10 }]);
+    expect(r.foods[0].fiberGrams).toBe(2);
+    expect(r.timings?.path).toBe("fast");
+  });
+
+  it("still returns the meal when the fiber-only lookup fails to cover a food", async () => {
+    const d = deps({
+      identify: vi.fn().mockResolvedValue({ foods: [{ name: "chicken breast", grams: 100, ...G }], mealType: "lunch", summary: "x" }),
+      getFacts: vi.fn().mockResolvedValue([fact("chicken breast", { fiberPer100gTenths: null })]),
+      lookup: vi.fn().mockResolvedValue([]),
+    });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.timings?.path).toBe("fast");
+    expect(r.foods[0].fiberGrams).toBeUndefined();
+    expect(r.foods[0].proteinGrams).toBe(31);
+  });
+});
+
+describe("typed meal description", () => {
+  it("runs the same pipeline with the text as input", async () => {
+    const identify = vi.fn().mockResolvedValue({ foods: [{ name: "egg", grams: 100, ...G }], mealType: "breakfast", summary: "Eggs" });
+    const d = deps({ identify, getFacts: vi.fn().mockResolvedValue([fact("egg", { fiberPer100gTenths: 0 })]) });
+    const r = await analyzeWithCache("2 eggs", d, quiet);
+    expect(identify).toHaveBeenCalledWith("2 eggs");
+    expect(r.foods[0]).toMatchObject({ name: "Egg", fiberGrams: 0 });
+    expect(r.mealType).toBe("breakfast");
   });
 });

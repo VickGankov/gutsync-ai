@@ -4,7 +4,7 @@
 import { invokeLLM } from "./_core/llm";
 import { FOOD_SEED } from "./foodSeed";
 import {
-  displayName, normalizeFoodKey, proteinForPortion,
+  displayName, normalizeFoodKey, proteinForPortion, fiberForPortion,
   type FoodFact, type FoodCategory, type FodmapLevel,
 } from "../shared/foodCache";
 import { classifyIngredients } from "../shared/ingredients";
@@ -22,6 +22,8 @@ export interface Deps {
   lookup(items: Array<{ key: string; name: string }>): Promise<FoodFact[]>;
   getFacts(keys: string[]): Promise<FoodFact[]>;
   saveFacts(facts: FoodFact[]): Promise<void>;
+  /** Fill in fiber for cached foods that predate fiber tracking. */
+  saveFiber?(rows: Array<{ foodKey: string; fiberPer100gTenths: number }>): Promise<void>;
   /** Optional packaged-product lookup (Open Food Facts) returning a real ingredient list. */
   findProduct?(name: string): Promise<{ name: string; ingredients: string[] } | null>;
   /** Original single-call analysis, used if anything in the fast path fails. */
@@ -80,10 +82,12 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
     }
     const byKey = new Map(known.map(f => [f.foodKey, f]));
     const missing = genericKeys.filter(k => !byKey.has(k));
+    // Cached before fiber tracking (fiber is explicitly null): ask once, then remember it.
+    const needFiber = genericKeys.filter(k => byKey.has(k) && byKey.get(k)!.fiberPer100gTenths === null);
 
     // One lookup call covers unknown generic foods and un-labelled packaged products.
     // Un-labelled packaged products get NO AI lookup: it could only invent ingredients from the name.
-    const toLookup = missing.map(k => ({ key: k, name: generic.find(i => i.key === k)!.name }));
+    const toLookup = [...missing, ...needFiber].map(k => ({ key: k, name: generic.find(i => i.key === k)!.name }));
     const lookedUp = new Map<string, FoodFact>();
     let lookupMs = 0;
     if (toLookup.length) {
@@ -91,9 +95,13 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
       const fresh = await deps.lookup(toLookup);
       lookupMs = Date.now() - tl;
       fresh.forEach(f => lookedUp.set(f.foodKey, f));
-      if (toLookup.some(i => !lookedUp.has(i.key))) throw new Error("lookup missing foods");
+      if (missing.some(k => !lookedUp.has(k))) throw new Error("lookup missing foods");
       const toSave = fresh.filter(f => missing.includes(f.foodKey));
       if (toSave.length) deps.saveFacts(toSave).catch(() => { /* caching is best-effort */ });
+      const fiberRows = fresh
+        .filter(f => needFiber.includes(f.foodKey) && typeof f.fiberPer100gTenths === "number")
+        .map(f => ({ foodKey: f.foodKey, fiberPer100gTenths: f.fiberPer100gTenths as number }));
+      if (fiberRows.length && deps.saveFiber) deps.saveFiber(fiberRows).catch(() => { /* best-effort */ });
     }
 
     const built: MealFood[] = items.map(i => {
@@ -127,9 +135,12 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
         };
       }
       const f = byKey.get(i.key) ?? lookedUp.get(i.key)!;
+      // Fiber: the cached value when there is one, else the one just looked up (older rows had none).
+      const fiberTenths = typeof f.fiberPer100gTenths === "number" ? f.fiberPer100gTenths : lookedUp.get(i.key)?.fiberPer100gTenths;
       return {
         name: displayName(i.name), category: f.category, fodmap: f.fodmap, hiddenIngredients: f.hiddenIngredients,
         proteinGrams: proteinForPortion(f.proteinPer100gTenths, i.grams),
+        ...(typeof fiberTenths === "number" ? { fiberGrams: fiberForPortion(fiberTenths, i.grams) } : {}),
       };
     });
     const foods: MealFood[] = built.map((f, idx) => (items[idx].drinkMl ? { ...f, volumeMl: items[idx].drinkMl } : f));
@@ -148,14 +159,7 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
 
 // ─── Real implementations ───
 
-export async function identifyFoods(imageUrl: string): Promise<Identified> {
-  const result = await invokeLLM({
-    maxTokens: 4096,
-    reasoningEffort: "none",
-    messages: [
-      {
-        role: "system",
-        content: `You identify foods in meal photos for a gut-health tracker. Return JSON only.
+const IDENTIFY_PROMPT = `You identify foods in meal photos for a gut-health tracker. Return JSON only.
 - foods: every distinct food or drink item visible, including visible sauces and dressings. For each: name, estimatedGrams (grams or mL of that item in the visible portion), packaged, labelIngredients, likelyTriggers, drinkMl, labelProteinG.
 - One entry per physical item. Never list a package and its contents separately, and never list the same product twice (a bottle and its label are one item).
 - For unpackaged food use plain, generic, singular, lowercase names without cooking adjectives: "chicken breast", "white rice", "broccoli", "tomato sauce", "egg".
@@ -166,49 +170,59 @@ export async function identifyFoods(imageUrl: string): Promise<Identified> {
 - labelProteinG: grams of protein per container or serving shown on a nutrition label or front panel for what is being consumed; 0 if not visible.
 - mealType: breakfast, lunch, dinner or snack, inferred from the foods.
 - summary: one short sentence describing the meal.
-If there is no food in the photo, return an empty foods array.`,
-      },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "Identify the foods in this meal photo." },
-          { type: "image_url", image_url: { url: imageUrl, detail: "auto" } },
-        ],
-      },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "food_identification",
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            foods: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                  estimatedGrams: { type: "number" },
-                  packaged: { type: "boolean" },
-                  labelIngredients: { type: "array", items: { type: "string" } },
-                  likelyTriggers: { type: "array", items: { type: "string" } },
-                  drinkMl: { type: "number" },
-                  labelProteinG: { type: "number" },
-                },
-                required: ["name", "estimatedGrams", "packaged", "labelIngredients", "likelyTriggers", "drinkMl", "labelProteinG"],
-                additionalProperties: false,
-              },
+If there is no food in the photo, return an empty foods array.`;
+
+/** Same rules for typed descriptions: there is no label to read and no photo to look at. */
+const IDENTIFY_TEXT_PROMPT = IDENTIFY_PROMPT
+  .replace("in meal photos for a gut-health tracker", "in a typed description of what someone ate, for a gut-health tracker")
+  .replace("every distinct food or drink item visible, including visible sauces and dressings", "every distinct food or drink item mentioned, including sauces and dressings")
+  .replace("grams or mL of that item in the visible portion", "grams or mL of that item: use any quantity the person gave (e.g. 2 eggs, a cup of rice, 12 oz coffee), otherwise a typical single serving")
+  .replace("- labelIngredients: if the product's ingredient list is legible anywhere in the photo, transcribe it exactly as printed, one entry per ingredient. Otherwise an empty array. Never guess ingredients.", "- labelIngredients: always an empty array for a typed description. Never guess ingredients.")
+  .replace("If there is no food in the photo, return an empty foods array.", "If the text does not describe any food or drink, return an empty foods array.");
+
+const IDENTIFY_FORMAT = {
+  type: "json_schema" as const,
+  json_schema: {
+    name: "food_identification",
+    strict: true,
+    schema: {
+      type: "object",
+      properties: {
+        foods: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              estimatedGrams: { type: "number" },
+              packaged: { type: "boolean" },
+              labelIngredients: { type: "array", items: { type: "string" } },
+              likelyTriggers: { type: "array", items: { type: "string" } },
+              drinkMl: { type: "number" },
+              labelProteinG: { type: "number" },
             },
-            mealType: { type: "string", enum: MEAL_TYPES },
-            summary: { type: "string" },
+            required: ["name", "estimatedGrams", "packaged", "labelIngredients", "likelyTriggers", "drinkMl", "labelProteinG"],
+            additionalProperties: false,
           },
-          required: ["foods", "mealType", "summary"],
-          additionalProperties: false,
         },
+        mealType: { type: "string", enum: MEAL_TYPES },
+        summary: { type: "string" },
       },
+      required: ["foods", "mealType", "summary"],
+      additionalProperties: false,
     },
+  },
+};
+
+async function runIdentify(system: string, user: Array<Record<string, unknown>> | string): Promise<Identified> {
+  const result = await invokeLLM({
+    maxTokens: 4096,
+    reasoningEffort: "none",
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user as any },
+    ],
+    response_format: IDENTIFY_FORMAT,
   });
   const content = result.choices[0]?.message?.content;
   if (!content || typeof content !== "string") throw new Error("empty identification response");
@@ -231,6 +245,18 @@ If there is no food in the photo, return an empty foods array.`,
   };
 }
 
+export async function identifyFoods(imageUrl: string): Promise<Identified> {
+  return runIdentify(IDENTIFY_PROMPT, [
+    { type: "text", text: "Identify the foods in this meal photo." },
+    { type: "image_url", image_url: { url: imageUrl, detail: "auto" } },
+  ]);
+}
+
+/** Identify foods from what the person typed. The "image" argument of analyzeWithCache carries the text. */
+export async function identifyFoodsFromText(text: string): Promise<Identified> {
+  return runIdentify(IDENTIFY_TEXT_PROMPT, `What I ate: ${text.trim().slice(0, 600)}`);
+}
+
 export async function lookupFoodFacts(items: Array<{ key: string; name: string }>): Promise<FoodFact[]> {
   const result = await invokeLLM({
     maxTokens: 4096,
@@ -241,7 +267,8 @@ export async function lookupFoodFacts(items: Array<{ key: string; name: string }
         content: `You provide gut-health facts for foods, for people with IBS. Return JSON only.
 For each food give: category, fodmap (low/moderate/high for a typical serving, following common low-FODMAP diet guidance),
 hiddenIngredients (ingredients typically present in the usual preparation that are common IBS triggers, e.g. garlic, onion, wheat, lactose, high-fructose corn syrup; empty if none),
-and proteinPer100g (grams of protein per 100 g, as typically prepared/cooked). Echo each food's "key" exactly.`,
+proteinPer100g (grams of protein per 100 g, as typically prepared/cooked),
+and fiberPer100g (grams of dietary fiber per 100 g, as typically prepared/cooked; 0 if none). Echo each food's "key" exactly.`,
       },
       { role: "user", content: JSON.stringify(items) },
     ],
@@ -263,8 +290,9 @@ and proteinPer100g (grams of protein per 100 g, as typically prepared/cooked). E
                   fodmap: { type: "string", enum: FODMAPS },
                   hiddenIngredients: { type: "array", items: { type: "string" } },
                   proteinPer100g: { type: "number" },
+                  fiberPer100g: { type: "number" },
                 },
-                required: ["key", "category", "fodmap", "hiddenIngredients", "proteinPer100g"],
+                required: ["key", "category", "fodmap", "hiddenIngredients", "proteinPer100g", "fiberPer100g"],
                 additionalProperties: false,
               },
             },
@@ -290,6 +318,9 @@ and proteinPer100g (grams of protein per 100 g, as typically prepared/cooked). E
       fodmap: f.fodmap,
       hiddenIngredients: Array.isArray(f.hiddenIngredients) ? f.hiddenIngredients.filter((h: unknown) => typeof h === "string").slice(0, 8) : [],
       proteinPer100gTenths: Math.round(Math.min(100, Math.max(0, f.proteinPer100g)) * 10),
+      fiberPer100gTenths: typeof f.fiberPer100g === "number" && Number.isFinite(f.fiberPer100g)
+        ? Math.round(Math.min(100, Math.max(0, f.fiberPer100g)) * 10)
+        : null,
       source: "ai",
     });
   }
