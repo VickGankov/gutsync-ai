@@ -68,6 +68,21 @@ function CardTitle({ icon: Icon, title, right }: { icon: React.ElementType; titl
   );
 }
 
+type TabId = "today" | "body" | "protocol" | "nutrition";
+const TABS: { id: TabId; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "body", label: "Body" },
+  { id: "protocol", label: "Protocol" },
+  { id: "nutrition", label: "Nutrition" },
+];
+const TAB_KEY = "gutsync_progress_tab";
+function readTab(): TabId {
+  try {
+    const v = localStorage.getItem(TAB_KEY);
+    return TABS.some(t => t.id === v) ? (v as TabId) : "today";
+  } catch { return "today"; }
+}
+
 const inputCls =
   "bg-background border border-border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/30";
 
@@ -105,6 +120,12 @@ export default function Progress() {
   const [weightInput, setWeightInput] = useState("");
   const [lift, setLift] = useState({ exercise: "", weightLb: "", reps: "", sets: "" });
   const [showTargets, setShowTargets] = useState(false);
+  const [tab, setTabState] = useState<TabId>(() => readTab());
+  const [bodyView, setBodyView] = useState<"weight" | "strength">("weight");
+  const setTab = (t: TabId) => {
+    setTabState(t);
+    try { localStorage.setItem(TAB_KEY, t); } catch { /* storage unavailable */ }
+  };
   const [targets, setTargets] = useState({ protein: "", water: "" });
 
   const data = summaryQuery.data;
@@ -213,7 +234,7 @@ export default function Progress() {
       <motion.div variants={item} className="mb-5 flex items-end justify-between">
         <div>
           <h1 className="text-2xl tracking-tight">Progress</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Protein, hydration, weight and strength</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Protein, hydration, weight and protocol</p>
         </div>
         <button
           onClick={() => {
@@ -246,7 +267,21 @@ export default function Progress() {
         </Card>
       )}
 
+      <motion.div variants={item} role="tablist" aria-label="Progress sections"
+        className="sticky top-0 z-10 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur border-b border-border/40">
+        <div className="grid grid-cols-4 gap-1 bg-muted/60 rounded-xl p-1">
+          {TABS.map(t => (
+            <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+              className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
       {/* Today */}
+      {tab === "today" && (<>
       <Card>
         <CardTitle icon={Beef} title="Protein today" right={
           <span className="text-sm font-semibold">{today?.proteinG ?? 0}<span className="text-muted-foreground font-normal"> / {proteinTarget} g</span></span>
@@ -297,9 +332,14 @@ export default function Progress() {
       </Card>
 
       <motion.div variants={item}><WeeklySummaryCard /></motion.div>
+      </>)}
+
+      {tab === "protocol" && (<>
       <motion.div variants={item}><ProtocolCard /></motion.div>
       <motion.div variants={item}><SupplementChecklist /></motion.div>
+      </>)}
 
+      {tab === "nutrition" && (<>
       {/* Fiber (rough estimate from logged meals) */}
       <Card>
         <div id="fiber" />
@@ -346,7 +386,22 @@ export default function Progress() {
         </div>
       </Card>
 
+      </>)}
+
+      {tab === "body" && (
+      <div className="flex gap-1 mb-3 text-xs">
+        {(["weight", "strength"] as const).map(v => (
+          <button key={v} onClick={() => setBodyView(v)}
+            className={`px-3 py-1.5 rounded-full font-medium border transition-colors ${
+              bodyView === v ? "bg-primary text-primary-foreground border-primary" : "bg-muted/60 text-muted-foreground border-transparent"}`}>
+            {v === "weight" ? "Weight & waist" : "Strength"}
+          </button>
+        ))}
+      </div>
+      )}
+
       {/* Weight */}
+      {tab === "body" && bodyView === "weight" && (
       <Card>
         <CardTitle icon={Scale} title="Weight" right={
           weeklyChange !== null ? (
@@ -441,7 +496,10 @@ export default function Progress() {
         </div>
       </Card>
 
+      )}
+
       {/* Lifts */}
+      {tab === "body" && bodyView === "strength" && (
       <Card>
         <CardTitle icon={Dumbbell} title="Strength" />
         <div className="space-y-2">
@@ -509,6 +567,7 @@ export default function Progress() {
           </div>
         )}
       </Card>
+      )}
 
       <p className="text-[11px] text-center mb-4" style={{ color: MUTED }}>
         Protein from photos is an AI estimate — adjust items when you log a meal.

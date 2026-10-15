@@ -1,15 +1,25 @@
 // "This week" card on Progress: the few numbers worth checking at a glance.
 // Weight (7-day average vs the week before), protein vs target, doses taken vs scheduled, side effects.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { CalendarDays, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { CalendarDays, TrendingDown, TrendingUp, Minus, ChevronDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { intervalsByCompound } from "@shared/dose";
 import { weeklySummary } from "@shared/weekly";
 import { getSymptomLabel } from "@/lib/store";
 
+const OPEN_KEY = "gutsync_week_open";
+function readOpen(): boolean {
+  try { return localStorage.getItem(OPEN_KEY) === "1"; } catch { return false; }
+}
+
 export default function WeeklySummaryCard() {
+  const [open, setOpenState] = useState(() => readOpen());
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    try { localStorage.setItem(OPEN_KEY, v ? "1" : "0"); } catch { /* storage unavailable */ }
+  };
   const tzOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
   const summaryQuery = trpc.fitness.summary.useQuery({ days: 28, tzOffsetMinutes });
   const doseQuery = trpc.dose.list.useQuery();
@@ -34,16 +44,24 @@ export default function WeeklySummaryCard() {
   const hasDoses = s.doses.byCompound.length > 0;
   const delta = s.weight.delta;
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta < 0 ? TrendingDown : TrendingUp;
+  const showSideEffects = hasDoses || s.sideEffects.count > 0;
+  const oneLine = [
+    s.weight.thisAvg !== null ? `${s.weight.thisAvg} lb avg${delta !== null ? ` (${delta > 0 ? "+" : ""}${delta})` : ""}` : null,
+    s.protein.avg !== null ? `protein ${s.protein.daysOnTarget}/7 days` : null,
+    hasDoses ? `doses ${s.doses.taken}/${s.doses.expected}` : null,
+  ].filter(Boolean).join(" · ") || "Nothing logged this week";
 
   return (
     <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <CalendarDays className="w-4 h-4 text-primary" />
-        <h2 className="text-sm font-semibold">This week</h2>
-        <span className="text-[11px] text-muted-foreground">last 7 days</span>
-      </div>
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center gap-2 text-left">
+        <CalendarDays className="w-4 h-4 text-primary shrink-0" />
+        <h2 className="text-sm font-semibold shrink-0">This week</h2>
+        {!open && <span className="text-[11px] text-muted-foreground truncate flex-1">{oneLine}</span>}
+        <ChevronDown className={`w-4 h-4 text-muted-foreground ml-auto shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
 
-      <div className="grid grid-cols-2 gap-2">
+      {open && (<>
+      <div className="grid grid-cols-2 gap-2 mt-3">
         <Stat
           label="Weight (avg)"
           value={s.weight.thisAvg !== null ? `${s.weight.thisAvg} lb` : "–"}
@@ -56,18 +74,23 @@ export default function WeeklySummaryCard() {
           value={s.protein.avg !== null ? `${s.protein.avg} g` : "–"}
           sub={s.protein.avg !== null ? `${s.protein.daysOnTarget} of 7 days on ${s.protein.target} g` : "Nothing logged"}
         />
-        <Stat
-          label="Doses"
-          value={hasDoses ? `${s.doses.taken} / ${s.doses.expected}` : "–"}
-          sub={hasDoses ? s.doses.byCompound.map(c => `${c.name} ${c.taken}/${c.expected}`).join(" · ") : "No doses logged"}
-        />
-        <Stat
-          label="Side effects"
-          value={String(s.sideEffects.count)}
-          sub={s.sideEffects.worst ? `Worst: ${getSymptomLabel(s.sideEffects.worst.type)} ${s.sideEffects.worst.severity}/5` : "None logged"}
-        />
+        {hasDoses && (
+          <Stat
+            label="Doses"
+            value={`${s.doses.taken} / ${s.doses.expected}`}
+            sub={s.doses.byCompound.map(c => `${c.name} ${c.taken}/${c.expected}`).join(" · ")}
+          />
+        )}
+        {showSideEffects && (
+          <Stat
+            label="Side effects"
+            value={String(s.sideEffects.count)}
+            sub={s.sideEffects.worst ? `Worst: ${getSymptomLabel(s.sideEffects.worst.type)} ${s.sideEffects.worst.severity}/5` : "None logged"}
+          />
+        )}
       </div>
-      <p className="text-[11px] text-muted-foreground mt-2.5">Taken vs scheduled uses your set or inferred days between doses. It's a log, not a plan.</p>
+      {hasDoses && <p className="text-[11px] text-muted-foreground mt-2.5">Taken vs scheduled uses your set or inferred days between doses. It's a log, not a plan.</p>}
+      </>)}
     </section>
   );
 }
