@@ -95,4 +95,20 @@ describe('Email Auth', () => {
   it('should reject non-existent email', async () => {
     await expect(loginEmail('nonexistent@example.com', testPassword)).rejects.toThrow('Invalid credentials');
   });
+
+  it('stores emails in lowercase and trims spaces', async () => {
+    const user = await registerEmail('  Test@Example.COM ', testPassword, 'Test User');
+    expect(user.email).toBe('test@example.com');
+  });
+
+  it('logs in regardless of the letter case typed', async () => {
+    await registerEmail(testEmail, testPassword, 'Test User');
+    const user = await loginEmail('TEST@Example.com', testPassword);
+    expect(user.email).toBe(testEmail);
+  });
+
+  it('treats different capitalisation as the same account', async () => {
+    await registerEmail(testEmail, testPassword, 'Test User');
+    await expect(registerEmail('Test@Example.com', testPassword, 'Dup')).rejects.toThrow('already registered');
+  });
 });

@@ -1,8 +1,26 @@
 import bcrypt from 'bcrypt';
 import { getDb } from './db';
 import { users, passwordResetTokens } from '../drizzle/schema';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * Finds a user by email regardless of letter case. New accounts store the lowercase address, but older
+ * accounts may hold whatever case the person typed, and TiDB compares text case-sensitively by default.
+ */
+async function findUserByEmail(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, email: string) {
+  const normalized = normalizeEmail(email);
+  const candidates = [normalized, email.trim()].filter((v, i, a) => a.indexOf(v) === i);
+  for (const candidate of candidates) {
+    const rows = await db.select().from(users).where(eq(users.email, candidate)).limit(1);
+    if (rows.length > 0) return rows;
+  }
+  return db.select().from(users).where(sql`lower(${users.email}) = ${normalized}`).limit(1);
+}
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -25,7 +43,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
     throw new Error("Password reset email is not configured. Please contact support.");
   }
 
-  const response = await fetch('https://api.resend.com/emails', {
+  const response = await fetch(process.env.RESEND_API_URL || 'https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${resendKey}`,
@@ -49,7 +67,8 @@ export async function registerEmail(email: string, password: string, name?: stri
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   
-  const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  email = normalizeEmail(email);
+  const existing = await findUserByEmail(db, email);
   if (existing.length > 0) throw new Error("Email already registered");
   
   const hash = await bcrypt.hash(password, 10);
@@ -68,7 +87,7 @@ export async function loginEmail(email: string, password: string) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
   
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const result = await findUserByEmail(db, email);
   if (result.length === 0) throw new Error("Invalid credentials");
   
   const user = result[0];
@@ -86,7 +105,7 @@ export async function requestPasswordReset(email: string, requestBaseUrl?: strin
   const db = await getDb();
   if (!db) throw new Error("Password reset is temporarily unavailable. Please try again later.");
 
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const result = await findUserByEmail(db, email);
   if (result.length === 0) {
     return;
   }
@@ -104,7 +123,7 @@ export async function requestPasswordReset(email: string, requestBaseUrl?: strin
     });
 
     const resetUrl = `${getAppBaseUrl(requestBaseUrl)}/reset-password?token=${encodeURIComponent(rawToken)}`;
-    await sendPasswordResetEmail(email, resetUrl);
+    await sendPasswordResetEmail(user.email || email, resetUrl);
   } catch (error) {
     console.error("[Auth] Password reset request failed:", error);
     throw new Error("We couldn't send a reset link right now. Please try again in a few minutes.");
