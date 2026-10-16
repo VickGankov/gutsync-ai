@@ -68,6 +68,14 @@ export function rangeStatus(value: number, low?: number | null, high?: number | 
   return "in";
 }
 
+/** "30–400", "up to 100" or "at least 40" for the lab's printed range; null when there is none. */
+export function rangeText(low?: number | null, high?: number | null): string | null {
+  if (low != null && high != null) return `${low}–${high}`;
+  if (high != null) return `up to ${high}`;
+  if (low != null) return `at least ${low}`;
+  return null;
+}
+
 export interface LabPoint { value: number; unit: string; drawnOn: string }
 
 /** Points in one unit only (the most recent entry's unit), with a count of any left out for a different unit. */

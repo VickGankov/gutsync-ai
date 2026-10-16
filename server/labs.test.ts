@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeMarker, rangeStatus, pointsInLatestUnit, changeSincePrevious, buildRuns, positionOf } from "../shared/labs";
+import { normalizeMarker, rangeText, rangeStatus, pointsInLatestUnit, changeSincePrevious, buildRuns, positionOf } from "../shared/labs";
 import { cleanExtraction, parsePlainNumber } from "./labExtract";
 
 describe("normalizeMarker", () => {
@@ -26,6 +26,15 @@ describe("rangeStatus", () => {
     expect(rangeStatus(120, 30, 100)).toBe("above");
     expect(rangeStatus(150, null, 200)).toBe("in");
     expect(rangeStatus(50, null, null)).toBeNull();
+  });
+});
+
+describe("rangeText", () => {
+  it("words one-sided ranges plainly", () => {
+    expect(rangeText(30, 400)).toBe("30–400");
+    expect(rangeText(null, 100)).toBe("up to 100");
+    expect(rangeText(40, undefined)).toBe("at least 40");
+    expect(rangeText(null, null)).toBeNull();
   });
 });
 

@@ -41,7 +41,7 @@ export default function LabImportSheet({ draft, onClose }: { draft: Draft | null
           <button onClick={onClose} aria-label="Close" className="p-1 text-muted-foreground"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-xs text-muted-foreground mb-3">
-          Compare each row with your report. Reading can get a digit or unit wrong, so fix anything off, and remove rows you don't want. Nothing is saved until you tap Save. Your file isn't kept.
+          Compare each row with your report. Reading can get a digit or unit wrong, so fix anything off, and remove rows you don't want. Nothing is saved until you tap Save. Your report was read by an AI service and the file isn't kept. Only what you confirm here is saved, to your account.
         </p>
         {draft.skipped > 0 && (
           <p className="text-xs rounded-lg bg-amber-100/70 text-amber-800 px-3 py-2 mb-3">

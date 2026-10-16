@@ -2,14 +2,14 @@
 // Shows timing only. It never says a supplement or dose caused a change.
 
 import { useMemo, useRef, useState } from "react";
-import { FlaskConical, Plus, Upload, Trash2, Loader2 } from "lucide-react";
+import { FlaskConical, Plus, Upload, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
 import { trpc } from "@/lib/trpc";
 import { prepareImageForUpload } from "@/lib/image";
 import LabEntrySheet from "@/components/LabEntrySheet";
 import LabImportSheet, { type Draft } from "@/components/LabImportSheet";
-import { changeSincePrevious, daysBetween, pointsInLatestUnit, positionOf, rangeStatus, type Run } from "@shared/labs";
+import { changeSincePrevious, daysBetween, pointsInLatestUnit, positionOf, rangeStatus, rangeText, type Run } from "@shared/labs";
 import { dateKeyOf } from "@shared/weekly";
 
 const PRIMARY = "oklch(0.55 0.1 155)";
@@ -182,9 +182,9 @@ export default function LabsPanel() {
                 <span className="text-xs text-muted-foreground">{unit} · {short(latest.drawnOn)}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {status === "in" && `Within the range on your report (${latest.refLow ?? "…"}–${latest.refHigh ?? "…"}).`}
-                {status === "below" && `Below the range on your report (${latest.refLow ?? "…"}–${latest.refHigh ?? "…"}).`}
-                {status === "above" && `Above the range on your report (${latest.refLow ?? "…"}–${latest.refHigh ?? "…"}).`}
+                {status === "in" && `Within the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
+                {status === "below" && `Below the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
+                {status === "above" && `Above the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
                 {status === null && "No range entered for this result."}
                 {change && ` ${change.delta >= 0 ? "+" : ""}${fmt(change.delta)} ${unit}${change.pct != null ? ` (${change.pct >= 0 ? "+" : ""}${Math.round(change.pct)}%)` : ""} since ${short(change.fromOn)}.`}
               </p>
@@ -226,7 +226,7 @@ export default function LabsPanel() {
               <div key={r.id} className="flex items-center gap-2 py-1.5 text-xs">
                 <span className="text-muted-foreground w-16 shrink-0">{short(r.drawnOn)}</span>
                 <span className="font-medium">{fmt(r.value)} {r.unit}</span>
-                {(r.refLow != null || r.refHigh != null) && <span className="text-muted-foreground">({r.refLow ?? "…"}–{r.refHigh ?? "…"})</span>}
+                {rangeText(r.refLow, r.refHigh) && <span className="text-muted-foreground">({rangeText(r.refLow, r.refHigh)})</span>}
                 <button type="button" aria-label="Delete result"
                   onClick={() => { if (confirmId === r.id) { del.mutate({ id: r.id }); setConfirmId(null); } else setConfirmId(r.id); }}
                   className={`ml-auto p-1.5 rounded ${confirmId === r.id ? "bg-red-500 text-white" : "text-muted-foreground"}`}>
@@ -237,6 +237,14 @@ export default function LabsPanel() {
           </div>
         </>
       )}
+
+      <div className="mt-4 flex gap-2.5 rounded-xl bg-primary/5 px-3 py-2.5">
+        <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">Your results stay yours.</span> Reports are read by an AI service over an encrypted connection, and the file isn't kept.
+          Only the results you confirm are saved, to your account, and only you can see them in the app. We never sell your health data, and you can delete any result at any time.
+        </p>
+      </div>
 
       <LabEntrySheet open={entryOpen} onClose={() => setEntryOpen(false)} knownMarkers={markers} lastUnitFor={lastUnitFor} presetMarker={marker} />
       {draft && <LabImportSheet key={JSON.stringify(draft.rows.length) + (draft.collectedOn ?? "")} draft={draft} onClose={() => setDraft(null)} />}

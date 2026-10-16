@@ -572,10 +572,6 @@ export default function Progress() {
       )}
 
       {tab === "labs" && <LabsPanel />}
-
-      <p className="text-[11px] text-center mb-4" style={{ color: MUTED }}>
-        Protein from photos is an AI estimate — adjust items when you log a meal.
-      </p>
     </motion.div>
   );
 }

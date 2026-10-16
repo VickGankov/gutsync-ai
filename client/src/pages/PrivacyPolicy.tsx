@@ -1,4 +1,4 @@
-import { Brain, Camera, CreditCard, Database, Mail, Shield } from "lucide-react";
+import { Brain, Camera, CreditCard, Database, FlaskConical, Mail, Shield } from "lucide-react";
 
 const updatedAt = "October 16, 2026";
 
@@ -6,7 +6,7 @@ const sections = [
   {
     icon: Database,
     title: "Information We Collect",
-    body: "GutSync collects the account details you provide, meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working. If you use the optional tracking features, it also stores the body and health information you enter, such as weight, waist, strength lifts, protein and water intake, supplements, and medication or peptide dose logs. This is sensitive health information; you choose what to log, and you can leave any of it blank.",
+    body: "GutSync collects the account details you provide, meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working. If you use the optional tracking features, it also stores the body and health information you enter, such as weight, waist, strength lifts, protein and water intake, supplements, medication or peptide dose logs, and blood work results. This is sensitive health information; you choose what to log, and you can leave any of it blank.",
   },
   {
     icon: Brain,
@@ -17,6 +17,11 @@ const sections = [
     icon: Camera,
     title: "Meal Photos",
     body: "Meal photos are uploaded only when you choose to scan or save them. They may be processed by AI and storage providers so the app can identify foods and preserve your meal history.",
+  },
+  {
+    icon: FlaskConical,
+    title: "Blood Work",
+    body: "Blood work you add by hand or import is stored in your account and shown only to you in the app. When you import a report, the photo or the text of the PDF is sent to our AI provider so the values can be read, and GutSync does not keep the file. Only the results you review and confirm are saved. You can delete any result in the app at any time. This is sensitive health information; you choose what to add.",
   },
   {
     icon: CreditCard,
