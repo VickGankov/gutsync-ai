@@ -2,7 +2,8 @@
 // Wired to real auth
 
 import { motion } from "framer-motion";
-import { User, Shield, Bell, ChevronRight, Leaf, Apple, LogOut } from "lucide-react";
+import { User, Shield, Bell, ChevronRight, Leaf, Apple, LogOut, Smartphone } from "lucide-react";
+import { InstallSheet, useInstallAction } from "@/components/InstallPrompt";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ function SettingsRow({ icon: Icon, label, description, action, iconColor = "text
 }
 
 export default function Profile() {
+  const install = useInstallAction();
   const { user, isAuthenticated, logout } = useAuth();
 
   const handleToggle = (feature: string) => {
@@ -139,6 +141,14 @@ export default function Profile() {
             <Switch defaultChecked onCheckedChange={() => handleToggle("Discovery alerts")} />
           </div>
         </div>
+      </motion.div>
+
+      {/* Add to home screen */}
+      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+        <SettingsRow icon={Smartphone} label="Add to Home Screen" description={install.installed ? "GutSync is installed on this device" : "Open GutSync like an app, full-screen"} action={
+          install.installed ? <span className="text-xs font-semibold text-muted-foreground">Installed</span> : <button onClick={install.start} className="text-xs font-semibold text-primary">Add</button>
+        } />
+        <InstallSheet open={install.sheetOpen} onClose={install.closeSheet} platform={install.platform} />
       </motion.div>
 
       {/* Privacy & Data */}

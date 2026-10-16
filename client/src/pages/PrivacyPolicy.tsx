@@ -1,12 +1,12 @@
 import { Brain, Camera, CreditCard, Database, Mail, Shield } from "lucide-react";
 
-const updatedAt = "May 6, 2026";
+const updatedAt = "October 16, 2026";
 
 const sections = [
   {
     icon: Database,
     title: "Information We Collect",
-    body: "GutSync collects the account details you provide, meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working.",
+    body: "GutSync collects the account details you provide, meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working. If you use the optional tracking features, it also stores the body and health information you enter, such as weight, waist, strength lifts, protein and water intake, supplements, and medication or peptide dose logs. This is sensitive health information; you choose what to log, and you can leave any of it blank.",
   },
   {
     icon: Brain,

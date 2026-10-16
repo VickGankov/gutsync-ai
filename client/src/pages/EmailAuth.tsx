@@ -44,6 +44,7 @@ export default function EmailAuth() {
   const [mode, setMode] = useState<'login' | 'signup'>(returning ? 'login' : 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [name, setName] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +58,10 @@ export default function EmailAuth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (mode === 'signup' && password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
 
     try {
       const result =
@@ -128,6 +133,17 @@ export default function EmailAuth() {
             {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
+        {mode === 'signup' && (
+          <Input
+            type={showPw ? 'text' : 'password'}
+            placeholder="Confirm password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
+        )}
         {mode === 'login' && (
           <div className="text-right -mt-1">
             <button

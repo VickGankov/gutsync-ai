@@ -22,6 +22,7 @@ import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 import SeverityBubble from "@/components/SeverityBubble";
 import TodayCard from "@/components/TodayCard";
+import InstallBanner from "@/components/InstallPrompt";
 import MealTile from "@/components/MealTile";
 import { REINTRO_GROUP_INFO, currentChallengeDay, type ReintroGroup } from "@shared/reintro";
 
@@ -336,6 +337,8 @@ export default function Home() {
             <Leaf className="w-5 h-5 text-sage-dark" />
           </button>
         </motion.div>
+
+        <motion.div variants={item}><InstallBanner /></motion.div>
 
         {(() => {
           const active = reintroQuery.data?.find(c => c.status === "active");
