@@ -32,7 +32,35 @@ function getAppBaseUrl(requestBaseUrl?: string) {
   return process.env.APP_BASE_URL || requestBaseUrl || process.env.VITE_APP_URL || 'http://localhost:3000';
 }
 
+/** True when SMTP settings (e.g. a Gmail app password) are present. Works on paid Render instances; free ones block SMTP. */
+function smtpConfigured() {
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
 async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  const subject = 'Reset your GutSync password';
+  const html = `<p>You requested a password reset for GutSync.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't ask for this, you can ignore this email.</p>`;
+  const text = `You requested a password reset for GutSync.\n\nReset your password: ${resetUrl}\n\nThis link expires in 1 hour. If you didn't ask for this, you can ignore this email.`;
+
+  if (smtpConfigured()) {
+    const nodemailer = await import('nodemailer');
+    const port = Number(process.env.SMTP_PORT || 465);
+    const transport = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port,
+      secure: port === 465,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    await transport.sendMail({
+      from: process.env.SMTP_FROM || `GutSync <${process.env.SMTP_USER}>`,
+      to: email,
+      subject,
+      text,
+      html,
+    });
+    return;
+  }
+
   const resendKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
@@ -40,7 +68,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(`[Auth] Password reset link for ${email}: ${resetUrl}`);
     }
-    throw new Error("Password reset email is not configured. Please contact support.");
+    throw new Error("Password reset email is not configured: set SMTP_HOST/SMTP_USER/SMTP_PASS or RESEND_API_KEY/RESEND_FROM_EMAIL.");
   }
 
   const response = await fetch(process.env.RESEND_API_URL || 'https://api.resend.com/emails', {
@@ -49,12 +77,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
       Authorization: `Bearer ${resendKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: email,
-      subject: 'Reset your GutSync password',
-      html: `<p>You requested a password reset for GutSync.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour.</p>`,
-    }),
+    body: JSON.stringify({ from: fromEmail, to: email, subject, html, text }),
   });
 
   if (!response.ok) {
