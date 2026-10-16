@@ -1,6 +1,7 @@
 // Log: Food and Symptoms tabs, day by day. Each meal shows the symptoms that followed it,
 // and each symptom shows the meal it followed (see shared/timeline.ts).
 
+import ManualMealSheet from "@/components/ManualMealSheet";
 import { invalidateToday } from "@/lib/invalidateToday";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -113,6 +114,7 @@ export default function Log() {
     try { localStorage.setItem(TAB_KEY, t); } catch { /* ignore */ }
   };
   const [showLogger, setShowLogger] = useState(false);
+  const [showMeal, setShowMeal] = useState(false);
   const [logMode, setLogMode] = useState<'negative' | 'positive'>('negative');
   const [selectedType, setSelectedType] = useState<SymptomType | null>(null);
   const [severity, setSeverity] = useState(3);
@@ -189,19 +191,32 @@ export default function Log() {
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-28 max-w-lg mx-auto">
       {/* Header */}
       <motion.div variants={item} className="flex items-center justify-between mb-6">
-        <div>
+        <div className="min-w-0 pr-3">
           <h1 className="text-2xl tracking-tight">Log</h1>
-          <p className="text-sm text-muted-foreground mt-1">{tab === "food" ? "What you ate, and how you felt after" : "How you felt, and what came before"}</p>
+          <p className="text-sm text-muted-foreground mt-1">{tab === "food" ? "What you ate, and how you felt" : "How you felt, and what came before"}</p>
         </div>
-        <Button
-          onClick={() => setShowLogger(!showLogger)}
-          className="rounded-xl h-10 gap-2 bg-primary hover:bg-primary/90"
-          size="sm"
-        >
-          <Plus className="w-4 h-4" />
-          Symptom
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            onClick={() => setShowMeal(true)}
+            variant="outline"
+            className="rounded-xl h-10 gap-1.5 px-3"
+            size="sm"
+          >
+            <Plus className="w-4 h-4" />
+            Meal
+          </Button>
+          <Button
+            onClick={() => setShowLogger(!showLogger)}
+            className="rounded-xl h-10 gap-1.5 px-3 bg-primary hover:bg-primary/90"
+            size="sm"
+          >
+            <Plus className="w-4 h-4" />
+            Symptom
+          </Button>
+        </div>
       </motion.div>
+
+      <ManualMealSheet open={showMeal} onClose={() => setShowMeal(false)} onSaved={() => switchTab("food")} />
 
       {/* Food / Symptoms switch */}
       <motion.div variants={item} className="flex p-1 mb-5 rounded-2xl bg-muted/70">
@@ -341,7 +356,7 @@ export default function Log() {
           <h3 className="font-display text-lg mb-1">{tab === "food" ? "No meals logged yet" : "No symptoms logged yet"}</h3>
           <p className="text-sm text-muted-foreground">
             {tab === "food"
-              ? "Tap the camera to log a meal. Symptoms you log afterwards will show up under it."
+              ? "Tap the camera to scan a meal, or Meal to enter one by hand. Symptoms you log afterwards will show up under it."
               : 'Tap "Symptom" above to track how you feel. Each one will show the meal that came before it.'}
           </p>
         </motion.div>
