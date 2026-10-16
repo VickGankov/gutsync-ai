@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import ProtocolCard from "@/components/ProtocolCard";
 import WeeklySummaryCard from "@/components/WeeklySummaryCard";
 import SupplementChecklist from "@/components/SupplementChecklist";
+import LabsPanel from "@/components/LabsPanel";
 import { readFiberPref, writeFiberPref } from "@/components/TodayCard";
 import { weightTrend, doseMarkers } from "@shared/weekly";
 import { trpc } from "@/lib/trpc";
@@ -68,12 +69,13 @@ function CardTitle({ icon: Icon, title, right }: { icon: React.ElementType; titl
   );
 }
 
-type TabId = "today" | "body" | "protocol" | "nutrition";
+type TabId = "today" | "body" | "protocol" | "nutrition" | "labs";
 const TABS: { id: TabId; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "body", label: "Body" },
   { id: "protocol", label: "Protocol" },
   { id: "nutrition", label: "Nutrition" },
+  { id: "labs", label: "Labs" },
 ];
 const TAB_KEY = "gutsync_progress_tab";
 function readTab(): TabId {
@@ -269,7 +271,7 @@ export default function Progress() {
 
       <motion.div variants={item} role="tablist" aria-label="Progress sections"
         className="sticky top-0 z-10 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur border-b border-border/40">
-        <div className="grid grid-cols-4 gap-1 bg-muted/60 rounded-xl p-1">
+        <div className="grid grid-cols-5 gap-0.5 bg-muted/60 rounded-xl p-1">
           {TABS.map(t => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
               className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -568,6 +570,8 @@ export default function Progress() {
         )}
       </Card>
       )}
+
+      {tab === "labs" && <LabsPanel />}
 
       <p className="text-[11px] text-center mb-4" style={{ color: MUTED }}>
         Protein from photos is an AI estimate — adjust items when you log a meal.

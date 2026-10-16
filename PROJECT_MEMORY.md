@@ -30,3 +30,10 @@ This file is the durable context for future Cursor chats in this workspace.
 - Progress is split into Today / Body / Protocol / Nutrition tabs (last tab remembered in localStorage `gutsync_progress_tab`). Body has a Weight & waist / Strength toggle.
 - "This week" card is collapsed to one line by default (state in `gutsync_week_open`); Doses and Side effects tiles hide when there is no dose data.
 - Protocol tab is always shown because it is where the first dose gets logged.
+
+## 2026-10-16 — Blood work (Labs tab)
+- New Progress "Labs" tab (`client/src/components/LabsPanel.tsx`, `LabEntrySheet.tsx`, `LabImportSheet.tsx`, `shared/labs.ts`, `labs` tRPC router, `server/labExtract.ts`). Table `lab_results` (migration 0029): marker, value, unit as printed, the lab's own printed range (never a generic "normal"), draw date.
+- Chart per marker with the report range as a band (scale follows the user's values, band clipped), change since previous draw, and a "What you were taking" strip: supplement runs (split on dose change or a break over 3 days) and logged compound doses (break over 21 days). Timing only, never causation; wording says so.
+- Import: photo/screenshot goes to the vision model, text PDFs are read with `unpdf` and the text is sent (scanned PDFs are refused with a "use a photo" message). Output is a draft: values that aren't plain numbers (like "<0.5") or lack a unit are dropped and counted, the user reviews/edits every row, nothing saves until confirmed, the uploaded file is never stored. Counts as one scan. Not yet tried against real Gemini (only a mock).
+- Supplements got an optional dose (`supplements.dose`, copied onto each `supplement_logs.dose` when ticked, so dose changes show in history). Different units for one marker: chart uses the latest entry's unit and says how many older entries it left out.
+- Local only until the owner approves a push.

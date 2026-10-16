@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex, boolean } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, uniqueIndex, boolean, double, index } from "drizzle-orm/mysql-core";
 import type { ReintroCheckIn } from "../shared/reintro";
 
 /**
@@ -234,6 +234,8 @@ export const supplements = mysqlTable("supplements", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   name: varchar("name", { length: 60 }).notNull(),
+  /** Optional free-text current dose, e.g. "2000 IU". */
+  dose: varchar("dose", { length: 40 }),
   archived: boolean("archived").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -245,6 +247,8 @@ export const supplementLogs = mysqlTable("supplement_logs", {
   supplementId: int("supplementId").notNull(),
   /** Local calendar date, YYYY-MM-DD, as seen by the user. */
   dateKey: varchar("dateKey", { length: 10 }).notNull(),
+  /** The supplement's dose when it was ticked, so dose changes show up in history. */
+  dose: varchar("dose", { length: 40 }),
   loggedAt: bigint("loggedAt", { mode: "number" }).notNull(),
 }, (t) => ({ once: uniqueIndex("supplement_logs_once").on(t.supplementId, t.dateKey) }));
 
@@ -349,3 +353,19 @@ export const doseSchedules = mysqlTable("dose_schedules", {
   intervalDays: int("intervalDays").notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (t) => ({ userCompound: uniqueIndex("dose_schedules_user_compound").on(t.userId, t.compoundKey) }));
+
+/** Blood work values the user entered or confirmed from an imported report. Units are kept as printed. */
+export const labResults = mysqlTable("lab_results", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  marker: varchar("marker", { length: 60 }).notNull(),
+  value: double("value").notNull(),
+  unit: varchar("unit", { length: 24 }).notNull(),
+  /** The lab's own reference range as printed on the report (never a generic "normal"). */
+  refLow: double("refLow"),
+  refHigh: double("refHigh"),
+  /** Local date the blood was drawn, YYYY-MM-DD. */
+  drawnOn: varchar("drawnOn", { length: 10 }).notNull(),
+  notes: varchar("notes", { length: 200 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({ byUserMarker: index("lab_results_user_marker").on(t.userId, t.marker) }));

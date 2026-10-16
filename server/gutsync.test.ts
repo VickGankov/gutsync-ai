@@ -23,6 +23,7 @@ vi.mock("./db", () => ({
   archiveSupplement: vi.fn().mockResolvedValue(undefined),
   getSupplementLogs: vi.fn().mockResolvedValue([]),
   setSupplementTaken: vi.fn().mockResolvedValue(undefined),
+  setSupplementDose: vi.fn().mockResolvedValue(undefined),
   createWaistLog: vi.fn().mockResolvedValue(3),
   getWaistLogs: vi.fn().mockResolvedValue([]),
   deleteWaistLog: vi.fn().mockResolvedValue(undefined),
@@ -250,11 +251,11 @@ describe("GutSync Server Procedures", () => {
 
   describe("supplement checklist", () => {
     it("lists items with what was taken on the given dates", async () => {
-      vi.mocked(db.getSupplements).mockResolvedValue([{ id: 1, userId: 1, name: "Magnesium", archived: false, createdAt: new Date() }] as any);
+      vi.mocked(db.getSupplements).mockResolvedValue([{ id: 1, userId: 1, name: "Magnesium", dose: "400 mg", archived: false, createdAt: new Date() }] as any);
       vi.mocked(db.getSupplementLogs).mockResolvedValue([{ id: 1, userId: 1, supplementId: 1, dateKey: "2026-10-15", loggedAt: 1 }] as any);
       const caller = appRouter.createCaller(createAuthContext());
       const r = await caller.supplement.list({ dateKeys: ["2026-10-15"] });
-      expect(r.items).toEqual([{ id: 1, name: "Magnesium" }]);
+      expect(r.items).toEqual([{ id: 1, name: "Magnesium", dose: "400 mg" }]);
       expect(r.taken).toEqual([{ supplementId: 1, dateKey: "2026-10-15" }]);
     });
 
@@ -263,6 +264,14 @@ describe("GutSync Server Procedures", () => {
       const caller = appRouter.createCaller(createAuthContext());
       await expect(caller.supplement.add({ name: "magnesium" })).rejects.toThrow(/already/);
       await expect(caller.supplement.toggle({ id: 1, dateKey: "tomorrow", taken: true })).rejects.toThrow();
+    });
+
+    it("sets and clears an optional dose, passing the day so a ticked day follows", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.supplement.setDose({ id: 1, dose: " 2000 IU ", dateKey: "2026-10-15" });
+      expect(db.setSupplementDose).toHaveBeenCalledWith(1, 1, "2000 IU", "2026-10-15");
+      await caller.supplement.setDose({ id: 1, dose: "" });
+      expect(db.setSupplementDose).toHaveBeenLastCalledWith(1, 1, null, undefined);
     });
 
     it("checks an item off for a day", async () => {

@@ -40,11 +40,18 @@ export function useSupplements() {
 
 export default function SupplementChecklist() {
   const utils = trpc.useUtils();
-  const { items, takenIds, toggle } = useSupplements();
+  const { items, takenIds, toggle, dateKey } = useSupplements();
   const [name, setName] = useState("");
+  const [dose, setDose] = useState("");
+  const [editing, setEditing] = useState<number | null>(null);
+  const [draftDose, setDraftDose] = useState("");
   const add = trpc.supplement.add.useMutation({
-    onSuccess: () => { setName(""); utils.supplement.list.invalidate(); },
+    onSuccess: () => { setName(""); setDose(""); utils.supplement.list.invalidate(); },
     onError: e => toast.error(e.message),
+  });
+  const setDoseMut = trpc.supplement.setDose.useMutation({
+    onSuccess: () => { setEditing(null); utils.supplement.list.invalidate(); },
+    onError: () => toast.error("Couldn't save the dose."),
   });
   const remove = trpc.supplement.remove.useMutation({ onSuccess: () => utils.supplement.list.invalidate() });
 
@@ -55,7 +62,7 @@ export default function SupplementChecklist() {
         <h2 className="text-sm font-semibold">Supplements</h2>
         {items.length > 0 && <span className="text-xs text-muted-foreground ml-auto">{takenIds.size} / {items.length} today</span>}
       </div>
-      <p className="text-[11px] text-muted-foreground mb-3">Your own list: tick what you took today. These also show on the Today card. No recommendations here.</p>
+      <p className="text-[11px] text-muted-foreground mb-3">Your own list: tick what you took today. The optional dose is saved with each day, so dose changes show next to your blood work. No recommendations here.</p>
 
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground mb-3">Add the things you take, like magnesium, electrolytes or creatine.</p>
@@ -72,8 +79,20 @@ export default function SupplementChecklist() {
                   aria-pressed={on}
                 >
                   <span className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${on ? "bg-primary border-primary text-primary-foreground" : "border-border"}`}>{on ? "✓" : ""}</span>
-                  {i.name}
+                  <span className="flex-1 min-w-0 truncate">{i.name}</span>
                 </button>
+                {editing === i.id ? (
+                  <form className="flex gap-1" onSubmit={e => { e.preventDefault(); setDoseMut.mutate({ id: i.id, dose: draftDose, dateKey }); }}>
+                    <input autoFocus value={draftDose} onChange={e => setDraftDose(e.target.value)} maxLength={40} placeholder="e.g. 2000 IU" aria-label={`Dose for ${i.name}`}
+                      className="bg-background border border-border rounded-lg px-2 py-1.5 text-xs w-24 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                    <button type="submit" className="px-2 rounded-lg bg-primary text-primary-foreground text-xs">Save</button>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => { setEditing(i.id); setDraftDose(i.dose ?? ""); }}
+                    className="text-[11px] text-muted-foreground px-2 py-1.5 rounded-lg bg-muted/50 max-w-[6.5rem] truncate" aria-label={`Set dose for ${i.name}`}>
+                    {i.dose ?? "+ dose"}
+                  </button>
+                )}
                 <button type="button" onClick={() => remove.mutate({ id: i.id })} className="p-2 text-muted-foreground" aria-label={`Remove ${i.name}`}><X className="w-4 h-4" /></button>
               </div>
             );
@@ -81,10 +100,14 @@ export default function SupplementChecklist() {
         </div>
       )}
 
-      <form className="flex gap-2" onSubmit={e => { e.preventDefault(); if (name.trim()) add.mutate({ name: name.trim() }); }}>
+      <form className="flex gap-2" onSubmit={e => { e.preventDefault(); if (name.trim()) add.mutate({ name: name.trim(), dose: dose.trim() || undefined }); }}>
         <input
           value={name} onChange={e => setName(e.target.value)} maxLength={60} placeholder="Add a supplement"
           className="bg-background border border-border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <input
+          value={dose} onChange={e => setDose(e.target.value)} maxLength={40} placeholder="Dose (optional)" aria-label="Dose (optional)"
+          className="bg-background border border-border rounded-lg px-3 py-2 text-sm w-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
         <button type="submit" disabled={!name.trim() || add.isPending} className="px-3 rounded-lg bg-primary text-primary-foreground disabled:opacity-40" aria-label="Add"><Plus className="w-4 h-4" /></button>
       </form>

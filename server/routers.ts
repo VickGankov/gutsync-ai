@@ -11,6 +11,7 @@ import {
   saveFoodFiber,
   createWaistLog, getWaistLogs, deleteWaistLog,
   getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
+  setSupplementDose, getSupplementHistory, getLabResults, addLabResults, updateLabResult, deleteLabResult,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -56,7 +57,10 @@ import { buildFitnessSummary, DAY_MS } from "./fitness";
 import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
-import { SITES, compoundKey } from "../shared/dose";
+import { SITES, compoundKey, fmtMg } from "../shared/dose";
+import { buildRuns, normalizeMarker, type Run } from "../shared/labs";
+import { dateKeyOf } from "../shared/weekly";
+import { extractLabs, pdfToText } from "./labExtract";
 import { analyzeWithCache, identifyFoods, identifyFoodsFromText, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
 import { classifyIngredients } from "../shared/ingredients";
 import { TRPCError } from "@trpc/server";
@@ -209,6 +213,24 @@ async function enforceScanLimit(userId: number): Promise<boolean> {
     }
   }
   return premium;
+}
+
+const labRowInput = z.object({
+  marker: z.string().trim().min(1).max(60),
+  value: z.number().finite().min(-1e9).max(1e9),
+  unit: z.string().trim().min(1).max(24),
+  refLow: z.number().finite().nullable().optional(),
+  refHigh: z.number().finite().nullable().optional(),
+  drawnOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  notes: z.string().trim().max(200).optional(),
+});
+
+function cleanLabRow(r: z.infer<typeof labRowInput>) {
+  const today = new Date(Date.now() + 14 * 3600_000).toISOString().slice(0, 10); // allow any timezone's "today"
+  if (r.drawnOn > today) throw new TRPCError({ code: "BAD_REQUEST", message: "The draw date can't be in the future." });
+  let refLow = r.refLow ?? null, refHigh = r.refHigh ?? null;
+  if (refLow !== null && refHigh !== null && refLow > refHigh) { refLow = null; refHigh = null; }
+  return { marker: normalizeMarker(r.marker), value: r.value, unit: r.unit, refLow, refHigh, drawnOn: r.drawnOn, notes: r.notes || null };
 }
 
 // ─── Router ───
@@ -546,20 +568,30 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const [items, logs] = await Promise.all([getSupplements(ctx.user.id), getSupplementLogs(ctx.user.id, input.dateKeys)]);
         return {
-          items: items.map(i => ({ id: i.id, name: i.name })),
+          items: items.map(i => ({ id: i.id, name: i.name, dose: i.dose ?? null })),
           taken: logs.map(l => ({ supplementId: l.supplementId, dateKey: l.dateKey })),
         };
       }),
 
     add: protectedProcedure
-      .input(z.object({ name: z.string().trim().min(1).max(60) }))
+      .input(z.object({ name: z.string().trim().min(1).max(60), dose: z.string().trim().max(40).optional() }))
       .mutation(async ({ ctx, input }) => {
         const existing = await getSupplements(ctx.user.id);
         if (existing.length >= 20) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You can keep up to 20 supplements.' });
         if (existing.some(e => e.name.toLowerCase() === input.name.toLowerCase())) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'That one is already on your list.' });
         }
-        return { id: await addSupplement(ctx.user.id, input.name) };
+        const id = await addSupplement(ctx.user.id, input.name);
+        if (input.dose) await setSupplementDose(ctx.user.id, id, input.dose);
+        return { id };
+      }),
+
+    /** Optional free-text dose, e.g. "2000 IU". Empty clears it. If it was ticked today, today's record follows. */
+    setDose: protectedProcedure
+      .input(z.object({ id: z.number().int(), dose: z.string().trim().max(40), dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        await setSupplementDose(ctx.user.id, input.id, input.dose || null, input.dateKey);
+        return { success: true };
       }),
 
     remove: protectedProcedure
@@ -574,6 +606,101 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         await setSupplementTaken(ctx.user.id, input.id, input.dateKey, input.taken);
         return { success: true };
+      }),
+  }),
+
+  labs: router({
+    list: protectedProcedure.query(async ({ ctx }) => getLabResults(ctx.user.id)),
+
+    add: protectedProcedure
+      .input(labRowInput)
+      .mutation(async ({ ctx, input }) => {
+        await addLabResults(ctx.user.id, [cleanLabRow(input)]);
+        return { success: true };
+      }),
+
+    /** Save the rows the user reviewed and confirmed from an imported report. */
+    addMany: protectedProcedure
+      .input(z.object({ rows: z.array(labRowInput).min(1).max(100) }))
+      .mutation(async ({ ctx, input }) => {
+        const saved = await addLabResults(ctx.user.id, input.rows.map(cleanLabRow));
+        return { saved };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({ id: z.number().int(), row: labRowInput }))
+      .mutation(async ({ ctx, input }) => {
+        await updateLabResult(ctx.user.id, input.id, cleanLabRow(input.row));
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().int() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteLabResult(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    /** Read a report photo, screenshot or text PDF into draft rows. Nothing is saved and the file is not kept. Counts as one scan. */
+    extract: protectedProcedure
+      .input(z.object({ fileBase64: z.string().max(14_000_000), mimeType: z.string().max(60) }))
+      .mutation(async ({ ctx, input }) => {
+        const premium = await enforceScanLimit(ctx.user.id);
+        const isPdf = input.mimeType === "application/pdf";
+        if (!isPdf && !/^image\/(jpeg|png|webp|heic|heif)$/.test(input.mimeType)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Upload a photo, screenshot or PDF of your report." });
+        }
+        let result;
+        try {
+          if (isPdf) {
+            const text = await pdfToText(Buffer.from(input.fileBase64, "base64"));
+            if (text.length < 40) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: "This PDF looks like a scan with no readable text. Upload a photo or screenshot of the results instead." });
+            }
+            result = await extractLabs({ kind: "text", text });
+          } else {
+            result = await extractLabs({ kind: "image", dataUrl: `data:${input.mimeType};base64,${input.fileBase64}` });
+          }
+        } catch (e) {
+          if (e instanceof TRPCError) throw e;
+          console.error("[labs.extract] failed:", e);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Couldn't read that report. Try a clearer photo, or enter the values by hand." });
+        }
+        if (result.rows.length === 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "No numeric results found in that file. Try a clearer photo, or enter the values by hand." });
+        }
+        if (!premium) await incrementScanCount(ctx.user.id);
+        return result;
+      }),
+
+    /** What the user was taking between two dates: supplement runs (with dose changes) and logged compound doses. */
+    overlay: protectedProcedure
+      .input(z.object({
+        fromKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        toKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        tzOffsetMinutes: z.number().int().min(-840).max(840),
+      }))
+      .query(async ({ ctx, input }): Promise<{ runs: Run[] }> => {
+        const [hist, doses] = await Promise.all([
+          getSupplementHistory(ctx.user.id, input.fromKey, input.toKey),
+          getDosesByUser(ctx.user.id, 1000),
+        ]);
+        const runs: Run[] = [];
+        const bySupp = new Map<number, { dateKey: string; dose: string | null }[]>();
+        for (const l of hist.logs) bySupp.set(l.supplementId, [...(bySupp.get(l.supplementId) ?? []), { dateKey: l.dateKey, dose: l.dose ?? null }]);
+        bySupp.forEach((entries, id) => runs.push(...buildRuns(hist.names.get(id) ?? "Supplement", "supplement", entries, 3)));
+
+        const byCompound = new Map<string, { label: string; entries: { dateKey: string; dose: string | null }[] }>();
+        for (const d of doses) {
+          const key = compoundKey(d.compound);
+          const dateKey = dateKeyOf(d.loggedAt, input.tzOffsetMinutes);
+          if (dateKey < input.fromKey || dateKey > input.toKey) continue;
+          const g = byCompound.get(key) ?? { label: d.compound, entries: [] };
+          g.entries.push({ dateKey, dose: fmtMg(d.doseMcg) });
+          byCompound.set(key, g);
+        }
+        byCompound.forEach(g => runs.push(...buildRuns(g.label, "compound", g.entries, 21)));
+        return { runs: runs.sort((a, b) => a.startOn.localeCompare(b.startOn)) };
       }),
   }),
 

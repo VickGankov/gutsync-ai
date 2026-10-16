@@ -15,7 +15,7 @@ import {
   triggerExplanations, type TriggerExplanation,
   doseLogs, doseSchedules,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
-  waistLogs, supplements, supplementLogs,
+  waistLogs, supplements, supplementLogs, labResults,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
@@ -550,12 +550,66 @@ export async function setSupplementTaken(userId: number, supplementId: number, d
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   // Only the owner's own supplements can be checked off.
-  const own = await db.select({ id: supplements.id }).from(supplements)
+  const own = await db.select({ id: supplements.id, dose: supplements.dose }).from(supplements)
     .where(and(eq(supplements.id, supplementId), eq(supplements.userId, userId))).limit(1);
   if (own.length === 0) throw new Error("Supplement not found");
   if (taken) {
-    await db.insert(supplementLogs).ignore().values({ userId, supplementId, dateKey, loggedAt: Date.now() });
+    await db.insert(supplementLogs).ignore().values({ userId, supplementId, dateKey, dose: own[0].dose ?? null, loggedAt: Date.now() });
   } else {
     await db.delete(supplementLogs).where(and(eq(supplementLogs.supplementId, supplementId), eq(supplementLogs.dateKey, dateKey), eq(supplementLogs.userId, userId)));
   }
+}
+
+/** Set or clear a supplement's dose. If it was already ticked on `dateKey`, that day's record follows the change. */
+export async function setSupplementDose(userId: number, supplementId: number, dose: string | null, dateKey?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const res = await db.update(supplements).set({ dose }).where(and(eq(supplements.id, supplementId), eq(supplements.userId, userId)));
+  if (dateKey) {
+    await db.update(supplementLogs).set({ dose })
+      .where(and(eq(supplementLogs.supplementId, supplementId), eq(supplementLogs.userId, userId), eq(supplementLogs.dateKey, dateKey)));
+  }
+  return res;
+}
+
+/** Every supplement the user has had (archived too, so history stays) with the days taken in a date range. */
+export async function getSupplementHistory(userId: number, fromKey: string, toKey: string) {
+  const db = await getDb();
+  if (!db) return { names: new Map<number, string>(), logs: [] as { supplementId: number; dateKey: string; dose: string | null }[] };
+  const [items, logs] = await Promise.all([
+    db.select({ id: supplements.id, name: supplements.name }).from(supplements).where(eq(supplements.userId, userId)),
+    db.select({ supplementId: supplementLogs.supplementId, dateKey: supplementLogs.dateKey, dose: supplementLogs.dose }).from(supplementLogs)
+      .where(and(eq(supplementLogs.userId, userId), gte(supplementLogs.dateKey, fromKey), lte(supplementLogs.dateKey, toKey))),
+  ]);
+  return { names: new Map(items.map(i => [i.id, i.name])), logs };
+}
+
+// ─── Blood work ───
+
+export async function getLabResults(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(labResults).where(eq(labResults.userId, userId)).orderBy(labResults.drawnOn, labResults.id).limit(2000);
+}
+
+export type NewLabResult = { marker: string; value: number; unit: string; refLow: number | null; refHigh: number | null; drawnOn: string; notes?: string | null };
+
+export async function addLabResults(userId: number, rows: NewLabResult[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (rows.length === 0) return 0;
+  await db.insert(labResults).values(rows.map(r => ({ ...r, notes: r.notes ?? null, userId })));
+  return rows.length;
+}
+
+export async function updateLabResult(userId: number, id: number, patch: Partial<NewLabResult>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(labResults).set(patch).where(and(eq(labResults.id, id), eq(labResults.userId, userId)));
+}
+
+export async function deleteLabResult(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(labResults).where(and(eq(labResults.id, id), eq(labResults.userId, userId)));
 }

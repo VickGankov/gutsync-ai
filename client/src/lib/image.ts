@@ -19,10 +19,10 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /** Returns a resized JPEG, or the original file if the browser can't decode/resize it. */
-export async function prepareImageForUpload(file: File): Promise<PreparedImage> {
+export async function prepareImageForUpload(file: File, maxEdge = MAX_EDGE): Promise<PreparedImage> {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
     const w = Math.max(1, Math.round(bitmap.width * scale));
     const h = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement("canvas");
