@@ -1,7 +1,7 @@
 // Meal card: tap to expand, edit foods / meal type, collapsible ingredients. Shared by Home and Log.
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Clock, X, Check, Trash2, MoreHorizontal, ChevronDown, Info } from "lucide-react";
+import { Coffee, Sandwich, Utensils, Cookie, Clock, X, Check, Trash2, MoreHorizontal, ChevronDown, Info } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatTimeAgo } from "@/lib/store";
 import type { FoodItem } from "@/lib/store";
@@ -9,6 +9,9 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { invalidateToday } from "@/lib/invalidateToday";
+import { foodEmoji } from "@/lib/foodEmoji";
+
+const TYPE_ICON = { breakfast: Coffee, lunch: Sandwich, dinner: Utensils, snack: Cookie } as const;
 
 // ─── Minimalistic Meal Tile ─────────────────────────────────────────────────
 const item = {
@@ -149,6 +152,8 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
     return "bg-sage-light/60 text-sage-dark";
   };
 
+  const emoji = foodEmoji(foods.map((f) => f.name));
+  const TypeIcon = TYPE_ICON[mealType];
   const highFodmap = foods.some((f) => f.fodmap === "high");
   const allLow = foods.length > 0 && foods.every((f) => f.fodmap === "low");
 
@@ -178,8 +183,12 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
             className="w-12 h-12 rounded-xl object-cover shrink-0"
           />
         ) : (
-          <div className="w-12 h-12 rounded-xl bg-sage-light/40 flex items-center justify-center shrink-0">
-            <Leaf className="w-5 h-5 text-sage-dark" />
+          <div className="w-12 h-12 rounded-xl bg-sage-light/40 flex items-center justify-center shrink-0" aria-hidden="true">
+            {emoji ? (
+              <span className="text-2xl leading-none">{emoji}</span>
+            ) : (
+              <TypeIcon className="w-5 h-5 text-sage-dark" />
+            )}
           </div>
         )}
         <div className="flex-1 min-w-0">
