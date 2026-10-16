@@ -11,7 +11,7 @@ import {
   saveFoodFiber,
   createWaistLog, getWaistLogs, deleteWaistLog,
   getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
-  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, addLabResults, updateLabResult, deleteLabResult,
+  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -58,7 +58,7 @@ import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
 import { SITES, compoundKey, fmtMg } from "../shared/dose";
-import { buildRuns, normalizeMarker, type Run } from "../shared/labs";
+import { buildRuns, matchExisting, normalizeMarker, type Run } from "../shared/labs";
 import { dateKeyOf } from "../shared/weekly";
 import { extractLabs, pdfToText } from "./labExtract";
 import { analyzeWithCache, identifyFoods, identifyFoodsFromText, lookupFoodFacts, ensureFoodSeed, readLabelImage, applyLabelToFoods } from "./foodAnalysis";
@@ -225,15 +225,20 @@ const labRowInput = z.object({
   notes: z.string().trim().max(200).optional(),
 });
 
-function cleanLabRow(r: z.infer<typeof labRowInput>) {
+function cleanLabRow(r: z.infer<typeof labRowInput>, existing: string[] = []) {
   const today = new Date(Date.now() + 14 * 3600_000).toISOString().slice(0, 10); // allow any timezone's "today"
   if (r.drawnOn > today) throw new TRPCError({ code: "BAD_REQUEST", message: "The draw date can't be in the future." });
   let refLow = r.refLow ?? null, refHigh = r.refHigh ?? null;
   if (refLow !== null && refHigh !== null && refLow > refHigh) { refLow = null; refHigh = null; }
-  return { marker: normalizeMarker(r.marker), value: r.value, unit: r.unit, refLow, refHigh, drawnOn: r.drawnOn, notes: r.notes || null };
+  return { marker: matchExisting(normalizeMarker(r.marker), existing), value: r.value, unit: r.unit, refLow, refHigh, drawnOn: r.drawnOn, notes: r.notes || null };
 }
 
 // ─── Router ───
+
+/** The marker names this user already has, so new entries fold into them. */
+async function existingMarkers(userId: number) {
+  return Array.from(new Set((await getLabResults(userId)).map(r => r.marker)));
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -650,7 +655,7 @@ export const appRouter = router({
     add: protectedProcedure
       .input(labRowInput)
       .mutation(async ({ ctx, input }) => {
-        await addLabResults(ctx.user.id, [cleanLabRow(input)]);
+        await addLabResults(ctx.user.id, [cleanLabRow(input, await existingMarkers(ctx.user.id))]);
         return { success: true };
       }),
 
@@ -658,15 +663,26 @@ export const appRouter = router({
     addMany: protectedProcedure
       .input(z.object({ rows: z.array(labRowInput).min(1).max(100) }))
       .mutation(async ({ ctx, input }) => {
-        const saved = await addLabResults(ctx.user.id, input.rows.map(cleanLabRow));
+        const existing = await existingMarkers(ctx.user.id);
+        const saved = await addLabResults(ctx.user.id, input.rows.map(r => cleanLabRow(r, existing)));
         return { saved };
       }),
 
     update: protectedProcedure
       .input(z.object({ id: z.number().int(), row: labRowInput }))
       .mutation(async ({ ctx, input }) => {
-        await updateLabResult(ctx.user.id, input.id, cleanLabRow(input.row));
+        await updateLabResult(ctx.user.id, input.id, cleanLabRow(input.row, await existingMarkers(ctx.user.id)));
         return { success: true };
+      }),
+
+    /** Rename a marker, or merge it into another one the user already has (e.g. "LDL" and "LDLC"). */
+    renameMarker: protectedProcedure
+      .input(z.object({ from: z.string().trim().min(1).max(60), to: z.string().trim().min(1).max(60) }))
+      .mutation(async ({ ctx, input }) => {
+        const to = normalizeMarker(input.to);
+        if (to === input.from) return { success: true };
+        await renameLabMarker(ctx.user.id, input.from, to);
+        return { success: true, marker: to };
       }),
 
     delete: protectedProcedure
@@ -705,7 +721,9 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "No numeric results found in that file. Try a clearer photo, or enter the values by hand." });
         }
         if (!premium) await incrementScanCount(ctx.user.id);
-        return result;
+        // Fold names into markers the user already tracks, so a new report extends the same chart.
+        const existing = await existingMarkers(ctx.user.id);
+        return { ...result, rows: result.rows.map(r => ({ ...r, marker: matchExisting(r.marker, existing) })) };
       }),
 
     /** What the user was taking between two dates: supplement runs (with dose changes) and logged compound doses. */

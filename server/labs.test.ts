@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeMarker, rangeText, rangeStatus, pointsInLatestUnit, changeSincePrevious, buildRuns, positionOf } from "../shared/labs";
+import { matchExisting, normalizeMarker, rangeText, rangeStatus, pointsInLatestUnit, changeSincePrevious, buildRuns, positionOf } from "../shared/labs";
 import { cleanExtraction, parsePlainNumber } from "./labExtract";
 
 describe("normalizeMarker", () => {
@@ -16,6 +16,22 @@ describe("normalizeMarker", () => {
   it("does not match short aliases inside other words", () => {
     expect(normalizeMarker("Basal metabolic")).toBe("Basal metabolic");
     expect(normalizeMarker("ALT")).toBe("ALT");
+  });
+});
+
+describe("marker names from different labs", () => {
+  it("treats LDL, LDL-C, LDLC and LDL Cholesterol Calc as one marker", () => {
+    for (const n of ["LDL", "LDL-C", "LDLC", "ldlc", "LDL Cholesterol Calc", "LDL Chol Calc (NIH)"]) expect(normalizeMarker(n)).toBe("LDL cholesterol");
+    expect(normalizeMarker("HDLC")).toBe("HDL cholesterol");
+  });
+  it("keeps ratios, non-HDL and VLDL separate", () => {
+    expect(normalizeMarker("Non-HDL Cholesterol")).toBe("Non-HDL Cholesterol");
+    expect(normalizeMarker("LDL/HDL Ratio")).toBe("LDL/HDL Ratio");
+    expect(normalizeMarker("VLDL")).toBe("VLDL");
+  });
+  it("folds names that differ only by case or punctuation into one the user already has", () => {
+    expect(matchExisting("lipoprotein(a)", ["Lipoprotein (a)", "Ferritin"])).toBe("Lipoprotein (a)");
+    expect(matchExisting("Apo B", ["Ferritin"])).toBe("Apo B");
   });
 });
 

@@ -614,6 +614,13 @@ export async function updateLabResult(userId: number, id: number, patch: Partial
   await db.update(labResults).set(patch).where(and(eq(labResults.id, id), eq(labResults.userId, userId)));
 }
 
+/** Rename every result of one marker, which merges it into `to` when the user already has results under that name. */
+export async function renameLabMarker(userId: number, from: string, to: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(labResults).set({ marker: to }).where(and(eq(labResults.userId, userId), eq(labResults.marker, from)));
+}
+
 export async function deleteLabResult(userId: number, id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

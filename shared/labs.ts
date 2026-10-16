@@ -17,8 +17,8 @@ export const COMMON_MARKERS: MarkerInfo[] = [
   { name: "Glucose (fasting)", unit: "mg/dL", aliases: ["glucose"] },
   { name: "Insulin", unit: "µIU/mL", aliases: ["insulin"] },
   { name: "Total cholesterol", unit: "mg/dL", aliases: ["cholesterol, total", "total cholesterol"] },
-  { name: "LDL cholesterol", unit: "mg/dL", aliases: ["ldl"] },
-  { name: "HDL cholesterol", unit: "mg/dL", aliases: ["hdl"] },
+  { name: "LDL cholesterol", unit: "mg/dL", aliases: ["ldl", "ldlc"] },
+  { name: "HDL cholesterol", unit: "mg/dL", aliases: ["hdl", "hdlc"] },
   { name: "Triglycerides", unit: "mg/dL", aliases: ["triglycerides"] },
   { name: "hs-CRP", unit: "mg/L", aliases: ["hs-crp", "c-reactive", "crp"] },
   { name: "Testosterone (total)", unit: "ng/dL", aliases: ["testosterone, total", "testosterone total", "testosterone"] },
@@ -44,6 +44,8 @@ export const COMMON_MARKERS: MarkerInfo[] = [
 export function normalizeMarker(raw: string): string {
   const name = raw.replace(/\s+/g, " ").trim().slice(0, 60);
   const low = name.toLowerCase();
+  // Ratios and "non-HDL" are different measurements; never fold them into HDL or LDL.
+  if (/ratio|non[- ]?hdl/.test(low)) return name;
   // Exact canonical match first, then the longest alias contained in the printed name.
   const exact = COMMON_MARKERS.find(m => m.name.toLowerCase() === low);
   if (exact) return exact.name;
@@ -57,6 +59,18 @@ export function normalizeMarker(raw: string): string {
   // "Free testosterone" must not collapse into total testosterone just because it contains the word.
   if (best && /free/.test(low) && best.name === "Testosterone (total)") return "Free testosterone";
   return best ? best.name : name;
+}
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * After normalizeMarker, fold a name that is still unrecognised into one the user already has when the two
+ * differ only in case, spacing or punctuation ("Lipoprotein(a)" vs "Lipoprotein (a)"). Never guesses beyond that.
+ */
+export function matchExisting(name: string, existing: string[]): string {
+  const key = squash(name);
+  if (!key) return name;
+  return existing.find(e => squash(e) === key) ?? name;
 }
 
 export type RangeStatus = "below" | "in" | "above";

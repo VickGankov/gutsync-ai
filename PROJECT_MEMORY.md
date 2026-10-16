@@ -42,3 +42,8 @@ This file is the durable context for future Cursor chats in this workspace.
 - Users can add a profile photo (Profile page: Change photo / Remove). Shown on Profile and as the Home header button, with an initials fallback (`client/src/components/Avatar.tsx`). Client crops to a 256px square JPEG (`prepareAvatar` in `client/src/lib/image.ts`); `profile.setAvatar` / `removeAvatar` check JPEG magic bytes and a 250 KB cap, store at `avatars/<userId>/<id>.jpg` (served via `/api/media`), and delete the previous file. `users.avatarUrl` added in migration 0030.
 - Security fix: `auth.me` used to return the whole user row including the bcrypt password hash. It now returns only id, email, name, role, avatarUrl.
 - Local only until the owner approves a push.
+
+## 2026-10-16 — Lab marker matching and merge
+- `normalizeMarker` now treats LDL / LDL-C / LDLC / "LDL Cholesterol Calc" (and HDL likewise) as one marker; ratios and "non-HDL" are kept as typed. `matchExisting` folds a still-unknown name into one the user already has when it differs only by case/spacing/punctuation; applied on import (`labs.extract`), add, addMany and update.
+- Manual fix: "Merge or rename" on a marker (`LabMergeSheet.tsx`, `labs.renameMarker`) moves all its results under another name, so two names from different labs become one chart. Different units after a merge are handled by the existing latest-unit rule. No automatic merge of old data; names already saved separately need the manual merge.
+- Local only until the owner approves a push.

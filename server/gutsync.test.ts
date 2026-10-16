@@ -25,6 +25,9 @@ vi.mock("./db", () => ({
   setSupplementTaken: vi.fn().mockResolvedValue(undefined),
   setSupplementDose: vi.fn().mockResolvedValue(undefined),
   setUserAvatar: vi.fn().mockResolvedValue(undefined),
+  renameLabMarker: vi.fn().mockResolvedValue(undefined),
+  getLabResults: vi.fn().mockResolvedValue([{ marker: "LDL cholesterol" }, { marker: "Ferritin" }]),
+  addLabResults: vi.fn().mockResolvedValue(1),
   createWaistLog: vi.fn().mockResolvedValue(3),
   getWaistLogs: vi.fn().mockResolvedValue([]),
   deleteWaistLog: vi.fn().mockResolvedValue(undefined),
@@ -249,6 +252,19 @@ describe("GutSync Server Procedures", () => {
       expect(r.mealType).toBe("breakfast");
       expect(r.foods[0].name).toBe("Egg");
       expect(db.incrementScanCount).toHaveBeenCalled();
+    });
+  });
+
+  describe("lab marker merge", () => {
+    it("renames a marker, folding known names into canonical ones", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.labs.renameMarker({ from: "ldlc", to: "LDL" });
+      expect(db.renameLabMarker).toHaveBeenLastCalledWith(1, "ldlc", "LDL cholesterol");
+    });
+    it("folds a newly added result into a marker the user already has", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.labs.add({ marker: "ferritin ", value: 50, unit: "ng/mL", drawnOn: "2026-01-02" });
+      expect((db.addLabResults as any).mock.calls.at(-1)[1][0].marker).toBe("Ferritin");
     });
   });
 

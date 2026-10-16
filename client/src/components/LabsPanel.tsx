@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
 import { trpc } from "@/lib/trpc";
 import { prepareImageForUpload } from "@/lib/image";
+import LabMergeSheet from "@/components/LabMergeSheet";
 import LabEntrySheet from "@/components/LabEntrySheet";
 import LabImportSheet, { type Draft } from "@/components/LabImportSheet";
 import { changeSincePrevious, daysBetween, pointsInLatestUnit, positionOf, rangeStatus, rangeText, type Run } from "@shared/labs";
@@ -82,6 +83,7 @@ export default function LabsPanel() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [entryOpen, setEntryOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const tz = useMemo(() => new Date().getTimezoneOffset(), []);
@@ -180,6 +182,7 @@ export default function LabsPanel() {
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-semibold">{fmt(latest.value)}</span>
                 <span className="text-xs text-muted-foreground">{unit} · {short(latest.drawnOn)}</span>
+                <button type="button" onClick={() => setMergeOpen(true)} className="ml-auto text-[11px] text-primary font-medium">Merge or rename</button>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {status === "in" && `Within the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
@@ -247,6 +250,10 @@ export default function LabsPanel() {
       </div>
 
       <LabEntrySheet open={entryOpen} onClose={() => setEntryOpen(false)} knownMarkers={markers} lastUnitFor={lastUnitFor} presetMarker={marker} />
+      {mergeOpen && marker && (
+        <LabMergeSheet marker={marker} others={markers.filter(m => m !== marker)} onClose={() => setMergeOpen(false)}
+          onDone={name => { setMergeOpen(false); setPicked(name); }} />
+      )}
       {draft && <LabImportSheet key={JSON.stringify(draft.rows.length) + (draft.collectedOn ?? "")} draft={draft} onClose={() => setDraft(null)} />}
     </section>
   );
