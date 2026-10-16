@@ -207,7 +207,8 @@ export default function Log() {
           </Button>
           <Button
             onClick={() => setShowLogger(!showLogger)}
-            className="rounded-xl h-10 gap-1.5 px-3 bg-primary hover:bg-primary/90"
+            variant="outline"
+            className="rounded-xl h-10 gap-1.5 px-3"
             size="sm"
           >
             <Plus className="w-4 h-4" />
