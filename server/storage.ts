@@ -9,7 +9,7 @@
 // a public/CDN URL (S3_PUBLIC_URL_BASE) or a stable app URL (/api/media/<key>)
 // that redirects to a short-lived presigned URL.
 
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ENV } from "./_core/env";
 
@@ -20,9 +20,26 @@ export function normalizeKey(relKey: string): string {
   return relKey.replace(/^\/+/, "");
 }
 
-/** Keys we serve: meals/<userId>/<id>.<ext>. Rejects traversal and odd paths. */
+/** Keys we serve: meals/<userId>/<id>.<ext> and avatars/<userId>/<id>.jpg. Rejects traversal and odd paths. */
 export function isValidMediaKey(key: string): boolean {
-  return /^meals\/\d+\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp|heic)$/.test(key);
+  return /^meals\/\d+\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp|heic)$/.test(key)
+    || /^avatars\/\d+\/[A-Za-z0-9_-]+\.jpg$/.test(key);
+}
+
+/** The avatar key inside a stored avatar URL (relative /api/media/... or a public base URL), or null. */
+export function avatarKeyFromUrl(url: string | null | undefined, userId: number): string | null {
+  const m = url?.match(/avatars\/(\d+)\/[A-Za-z0-9_-]+\.jpg$/);
+  return m && Number(m[1]) === userId ? m[0] : null;
+}
+
+/** Best-effort delete (direct S3/R2 only). A leftover object is harmless, so failures are logged, not thrown. */
+export async function storageDelete(relKey: string): Promise<void> {
+  if (storageMode() !== "s3") return;
+  try {
+    await s3().send(new DeleteObjectCommand({ Bucket: ENV.s3Bucket, Key: normalizeKey(relKey) }));
+  } catch (e) {
+    console.error("[storage] delete failed", relKey, e);
+  }
 }
 
 export function storageMode(): "s3" | "forge" | "none" {

@@ -12,6 +12,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import Avatar from "@/components/Avatar";
 import { getLoginUrl } from "@/const";
 import { formatTimeAgo, getSymptomEmoji, getSymptomLabel } from "@/lib/store";
 import type { FoodItem } from "@/lib/store";
@@ -146,9 +147,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
             </div>
             <div className="px-5 pb-8 pt-3">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full bg-sage-light/60 flex items-center justify-center">
-                  <User className="w-7 h-7 text-sage-dark" />
-                </div>
+                <Avatar user={user} size={56} />
                 <div>
                   <p className="font-display text-lg">{user?.name ?? "Guest"}</p>
                   <p className="text-sm text-muted-foreground">{user?.email ?? ""}</p>
@@ -331,10 +330,10 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setProfileOpen(true)}
-            className="w-10 h-10 rounded-full bg-sage-light/60 flex items-center justify-center hover:bg-sage-light transition-colors active:scale-95"
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-opacity hover:opacity-90 active:scale-95"
             aria-label="Open profile"
           >
-            <Leaf className="w-5 h-5 text-sage-dark" />
+            <Avatar user={user} size={40} />
           </button>
         </motion.div>
 

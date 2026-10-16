@@ -1,16 +1,18 @@
 // GutSync — Profile Page
 // Wired to real auth
 
+import { useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Shield, Bell, ChevronRight, Leaf, Apple, LogOut, Smartphone } from "lucide-react";
+import { User, Shield, Bell, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
+import Avatar from "@/components/Avatar";
+import { prepareAvatar } from "@/lib/image";
+import { trpc } from "@/lib/trpc";
 import { InstallSheet, useInstallAction } from "@/components/InstallPrompt";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-
-const WELLNESS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-wellness-Y3yqX8dgxLnj59BBic4aog.webp";
 
 const container = {
   hidden: { opacity: 0 },
@@ -45,6 +47,26 @@ function SettingsRow({ icon: Icon, label, description, action, iconColor = "text
 export default function Profile() {
   const install = useInstallAction();
   const { user, isAuthenticated, logout } = useAuth();
+  const utils = trpc.useUtils();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const setAvatar = trpc.profile.setAvatar.useMutation({
+    onSuccess: () => { utils.auth.me.invalidate(); toast.success("Photo updated"); },
+    onError: e => toast.error(e.message || "Couldn't save that photo."),
+  });
+  const removeAvatar = trpc.profile.removeAvatar.useMutation({
+    onSuccess: () => { utils.auth.me.invalidate(); toast.success("Photo removed"); },
+    onError: () => toast.error("Couldn't remove the photo."),
+  });
+  const onPickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      setAvatar.mutate({ imageBase64: await prepareAvatar(file) });
+    } catch {
+      toast.error("Couldn't read that photo. Try a JPEG or PNG.");
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
 
   const handleToggle = (feature: string) => {
     toast.success(`${feature} updated`, { description: "Feature coming soon" });
@@ -67,19 +89,21 @@ export default function Profile() {
       <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
         {isAuthenticated && user ? (
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <img
-                src={WELLNESS_IMG}
-                alt="Profile"
-                className="w-16 h-16 rounded-full object-cover border-2 border-primary/20"
-              />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-sage flex items-center justify-center">
-                <Leaf className="w-3 h-3 text-white" />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={setAvatar.isPending}
+              className="relative shrink-0 rounded-full" aria-label="Change profile photo">
+              <Avatar user={user} size={64} className={`border-2 border-primary/20 ${setAvatar.isPending ? "opacity-60" : ""}`} />
+              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center border-2 border-card">
+                <Camera className="w-3 h-3 text-primary-foreground" />
+              </span>
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => onPickPhoto(e.target.files?.[0])} />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-display truncate">{user.name || 'GutSync User'}</h2>
+              <p className="text-xs text-muted-foreground truncate">{user.email || 'Tracking your gut health'}</p>
+              <div className="flex gap-3 mt-1.5 text-xs font-medium">
+                <button type="button" onClick={() => fileRef.current?.click()} className="text-primary">{user.avatarUrl ? "Change photo" : "Add photo"}</button>
+                {user.avatarUrl && <button type="button" onClick={() => removeAvatar.mutate()} className="text-muted-foreground">Remove</button>}
               </div>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-lg font-display">{user.name || 'GutSync User'}</h2>
-              <p className="text-xs text-muted-foreground">{user.email || 'Tracking your gut health'}</p>
             </div>
           </div>
         ) : (

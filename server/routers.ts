@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
-import { storagePut } from "./storage";
+import { storagePut, storageDelete, avatarKeyFromUrl } from "./storage";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
@@ -11,7 +11,7 @@ import {
   saveFoodFiber,
   createWaistLog, getWaistLogs, deleteWaistLog,
   getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
-  setSupplementDose, getSupplementHistory, getLabResults, addLabResults, updateLabResult, deleteLabResult,
+  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, addLabResults, updateLabResult, deleteLabResult,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -238,7 +238,11 @@ function cleanLabRow(r: z.infer<typeof labRowInput>) {
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    /** Only fields the app needs. The full row holds the password hash, which must never reach the browser. */
+    me: publicProcedure.query(opts => {
+      const u = opts.ctx.user;
+      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null } : null;
+    }),
     registerEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string().min(8), name: z.string().optional() })).mutation(async ({ input, ctx }) => {
       const { registerEmail } = await import('./emailAuth');
       const user = await registerEmail(input.email, input.password, input.name);
@@ -559,6 +563,37 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+  }),
+
+  profile: router({
+    /** Replace the profile photo. The browser sends a small square JPEG; we check it really is one before storing. */
+    setAvatar: protectedProcedure
+      .input(z.object({ imageBase64: z.string().max(400_000) }))
+      .mutation(async ({ ctx, input }) => {
+        const buf = Buffer.from(input.imageBase64, "base64");
+        const isJpeg = buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+        if (!isJpeg || buf.length > 250_000) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "That photo couldn't be used. Try a different one." });
+        }
+        let url: string;
+        try {
+          ({ url } = await storagePut(`avatars/${ctx.user.id}/${nanoid()}.jpg`, buf, "image/jpeg"));
+        } catch (e) {
+          console.error("[profile.setAvatar] upload failed:", e);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Couldn't save your photo. Try again in a moment." });
+        }
+        const oldKey = avatarKeyFromUrl(ctx.user.avatarUrl, ctx.user.id);
+        await setUserAvatar(ctx.user.id, url);
+        if (oldKey) await storageDelete(oldKey);
+        return { avatarUrl: url };
+      }),
+
+    removeAvatar: protectedProcedure.mutation(async ({ ctx }) => {
+      const oldKey = avatarKeyFromUrl(ctx.user.avatarUrl, ctx.user.id);
+      await setUserAvatar(ctx.user.id, null);
+      if (oldKey) await storageDelete(oldKey);
+      return { success: true };
+    }),
   }),
 
   supplement: router({

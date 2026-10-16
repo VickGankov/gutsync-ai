@@ -10,6 +10,8 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }).unique(),
   password: varchar("password", { length: 255 }),
   name: text("name"),
+  /** Profile photo (a small square JPEG we store ourselves), or null for the initials fallback. */
+  avatarUrl: varchar("avatarUrl", { length: 500 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

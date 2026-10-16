@@ -37,3 +37,8 @@ This file is the durable context for future Cursor chats in this workspace.
 - Import: photo/screenshot goes to the vision model, text PDFs are read with `unpdf` and the text is sent (scanned PDFs are refused with a "use a photo" message). Output is a draft: values that aren't plain numbers (like "<0.5") or lack a unit are dropped and counted, the user reviews/edits every row, nothing saves until confirmed, the uploaded file is never stored. Counts as one scan. Not yet tried against real Gemini (only a mock).
 - Supplements got an optional dose (`supplements.dose`, copied onto each `supplement_logs.dose` when ticked, so dose changes show in history). Different units for one marker: chart uses the latest entry's unit and says how many older entries it left out.
 - Local only until the owner approves a push.
+
+## 2026-10-16 — Profile photo
+- Users can add a profile photo (Profile page: Change photo / Remove). Shown on Profile and as the Home header button, with an initials fallback (`client/src/components/Avatar.tsx`). Client crops to a 256px square JPEG (`prepareAvatar` in `client/src/lib/image.ts`); `profile.setAvatar` / `removeAvatar` check JPEG magic bytes and a 250 KB cap, store at `avatars/<userId>/<id>.jpg` (served via `/api/media`), and delete the previous file. `users.avatarUrl` added in migration 0030.
+- Security fix: `auth.me` used to return the whole user row including the bcrypt password hash. It now returns only id, email, name, role, avatarUrl.
+- Local only until the owner approves a push.

@@ -41,3 +41,24 @@ export async function prepareImageForUpload(file: File, maxEdge = MAX_EDGE): Pro
     return { base64: await blobToBase64(file), mimeType: file.type || "image/jpeg" };
   }
 }
+
+const AVATAR_PX = 256;
+
+/**
+ * Centre-crop to a square and shrink to 256px JPEG. Re-encoding through a canvas also drops EXIF data
+ * (including any GPS location) from the original photo. Throws if the browser can't read the file.
+ */
+export async function prepareAvatar(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const side = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = AVATAR_PX;
+  canvas.height = AVATAR_PX;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no 2d context");
+  ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, AVATAR_PX, AVATAR_PX);
+  bitmap.close?.();
+  const blob: Blob | null = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.85));
+  if (!blob || blob.size === 0) throw new Error("encode failed");
+  return blobToBase64(blob);
+}

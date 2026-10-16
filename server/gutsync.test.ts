@@ -24,6 +24,7 @@ vi.mock("./db", () => ({
   getSupplementLogs: vi.fn().mockResolvedValue([]),
   setSupplementTaken: vi.fn().mockResolvedValue(undefined),
   setSupplementDose: vi.fn().mockResolvedValue(undefined),
+  setUserAvatar: vi.fn().mockResolvedValue(undefined),
   createWaistLog: vi.fn().mockResolvedValue(3),
   getWaistLogs: vi.fn().mockResolvedValue([]),
   deleteWaistLog: vi.fn().mockResolvedValue(undefined),
@@ -57,9 +58,11 @@ vi.mock("./_core/llm", () => ({
 }));
 
 // Mock the storage module
-vi.mock("./storage", () => ({
+vi.mock("./storage", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./storage")>()),
   storagePut: vi.fn().mockResolvedValue({ url: "https://cdn.example.com/meals/test.jpg", key: "meals/test.jpg" }),
   storageGet: vi.fn(),
+  storageDelete: vi.fn().mockResolvedValue(undefined),
 }));
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
@@ -119,7 +122,7 @@ describe("GutSync Server Procedures", () => {
       const caller = appRouter.createCaller(ctx);
       const result = await caller.auth.me();
       expect(result).toBeDefined();
-      expect(result?.openId).toBe("test-user-123");
+      expect(result).not.toHaveProperty("openId");
       expect(result?.name).toBe("Test User");
     });
 
@@ -246,6 +249,58 @@ describe("GutSync Server Procedures", () => {
       expect(r.mealType).toBe("breakfast");
       expect(r.foods[0].name).toBe("Egg");
       expect(db.incrementScanCount).toHaveBeenCalled();
+    });
+  });
+
+  describe("profile photo and auth.me", () => {
+    const jpegB64 = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]).toString("base64");
+    const ctxWithSecrets = () => {
+      const ctx = createAuthContext();
+      ctx.user = { ...ctx.user!, password: "$2b$10$secret-hash", avatarUrl: "/api/media/avatars/1/old.jpg" } as any;
+      return ctx;
+    };
+
+    it("auth.me never includes the password hash or other internal fields", async () => {
+      const me = await appRouter.createCaller(ctxWithSecrets()).auth.me();
+      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg" });
+      expect(JSON.stringify(me)).not.toContain("secret-hash");
+      expect(await appRouter.createCaller(createUnauthContext()).auth.me()).toBeNull();
+    });
+
+    it("stores a JPEG under the user's own folder, saves the url and deletes the old file", async () => {
+      const storage = await import("./storage");
+      vi.mocked(storage.storagePut).mockResolvedValueOnce({ url: "/api/media/avatars/1/new.jpg", key: "avatars/1/new.jpg" });
+      const r = await appRouter.createCaller(ctxWithSecrets()).profile.setAvatar({ imageBase64: jpegB64 });
+      expect(r.avatarUrl).toBe("/api/media/avatars/1/new.jpg");
+      expect(vi.mocked(storage.storagePut).mock.calls.at(-1)![0]).toMatch(/^avatars\/1\/[A-Za-z0-9_-]+\.jpg$/);
+      expect(db.setUserAvatar).toHaveBeenCalledWith(1, "/api/media/avatars/1/new.jpg");
+      expect(storage.storageDelete).toHaveBeenCalledWith("avatars/1/old.jpg");
+    });
+
+    it("rejects anything that isn't a JPEG or is too big", async () => {
+      const caller = appRouter.createCaller(ctxWithSecrets());
+      await expect(caller.profile.setAvatar({ imageBase64: Buffer.from("<html>not an image</html>").toString("base64") })).rejects.toThrow(/couldn't be used/);
+      const big = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(260_000)]).toString("base64");
+      await expect(caller.profile.setAvatar({ imageBase64: big })).rejects.toThrow();
+    });
+
+    it("hides storage errors behind a friendly message", async () => {
+      const storage = await import("./storage");
+      vi.mocked(storage.storagePut).mockRejectedValueOnce(new Error("getaddrinfo ENOTFOUND bucket.internal"));
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      await expect(appRouter.createCaller(ctxWithSecrets()).profile.setAvatar({ imageBase64: jpegB64 })).rejects.toThrow(/Try again in a moment/);
+      spy.mockRestore();
+    });
+
+    it("removes the photo and its file", async () => {
+      const storage = await import("./storage");
+      await appRouter.createCaller(ctxWithSecrets()).profile.removeAvatar();
+      expect(db.setUserAvatar).toHaveBeenLastCalledWith(1, null);
+      expect(storage.storageDelete).toHaveBeenLastCalledWith("avatars/1/old.jpg");
+    });
+
+    it("needs a login", async () => {
+      await expect(appRouter.createCaller(createUnauthContext()).profile.removeAvatar()).rejects.toThrow();
     });
   });
 
