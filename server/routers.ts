@@ -11,7 +11,7 @@ import {
   saveFoodFiber,
   createWaistLog, getWaistLogs, deleteWaistLog,
   getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
-  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, exportUserData, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
+  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, exportUserData, getNotificationPrefs, saveNotificationPrefs, saveSubscription, getSubscriptions, deleteSubscription, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -58,6 +58,8 @@ import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
 import { SITES, compoundKey, fmtMg } from "../shared/dose";
+import { pushConfigured, vapidPublicKey, sendToUser } from "./reminders";
+import { DEFAULT_MEAL_TIMES, isValidTime, isValidTimeZone, normalizeTimes } from "../shared/reminders";
 import { buildRuns, matchExisting, normalizeMarker, type Run } from "../shared/labs";
 import { dateKeyOf } from "../shared/weekly";
 import { extractLabs, pdfToText } from "./labExtract";
@@ -234,6 +236,8 @@ function cleanLabRow(r: z.infer<typeof labRowInput>, existing: string[] = []) {
 }
 
 // ─── Router ───
+
+const testSentAt = new Map<number, number>();
 
 /** The marker names this user already has, so new entries fold into them. */
 async function existingMarkers(userId: number) {
@@ -650,6 +654,63 @@ export const appRouter = router({
         await setSupplementTaken(ctx.user.id, input.id, input.dateKey, input.taken);
         return { success: true };
       }),
+  }),
+
+  reminders: router({
+    /** Settings plus whether the server can send at all, and how many devices this account has. */
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const [prefs, subs] = await Promise.all([getNotificationPrefs(ctx.user.id), getSubscriptions(ctx.user.id)]);
+      return {
+        available: pushConfigured(),
+        publicKey: vapidPublicKey(),
+        devices: subs.length,
+        prefs: prefs ?? { mealReminders: false, mealTimes: DEFAULT_MEAL_TIMES, symptomCheckins: false, timeZone: "UTC" },
+      };
+    }),
+
+    save: protectedProcedure
+      .input(z.object({
+        mealReminders: z.boolean(),
+        mealTimes: z.array(z.string()).max(10),
+        symptomCheckins: z.boolean(),
+        timeZone: z.string().max(64),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!isValidTimeZone(input.timeZone)) throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown time zone." });
+        if (input.mealTimes.some(t => !isValidTime(t))) throw new TRPCError({ code: "BAD_REQUEST", message: "Use times like 08:00." });
+        const mealTimes = normalizeTimes(input.mealTimes);
+        if (input.mealReminders && mealTimes.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Add at least one reminder time." });
+        await saveNotificationPrefs(ctx.user.id, { mealReminders: input.mealReminders, mealTimes: mealTimes.length ? mealTimes : DEFAULT_MEAL_TIMES, symptomCheckins: input.symptomCheckins, timeZone: input.timeZone });
+        return { success: true };
+      }),
+
+    subscribe: protectedProcedure
+      .input(z.object({
+        endpoint: z.string().url().max(600).startsWith("https://"),
+        p256dh: z.string().min(1).max(200),
+        auth: z.string().min(1).max(100),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await saveSubscription(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    unsubscribe: protectedProcedure
+      .input(z.object({ endpoint: z.string().max(600) }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteSubscription(input.endpoint, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Send a test notification to this account's devices, at most once every 15 seconds. */
+    test: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!pushConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Reminders aren't set up on the server yet." });
+      const last = testSentAt.get(ctx.user.id) ?? 0;
+      if (Date.now() - last < 15_000) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Wait a few seconds and try again." });
+      testSentAt.set(ctx.user.id, Date.now());
+      const delivered = await sendToUser(ctx.user.id, { title: "GutSync test", body: "Notifications are working on this device.", url: "/profile", tag: "test" }, 300);
+      return { delivered };
+    }),
   }),
 
   labs: router({

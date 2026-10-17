@@ -1,5 +1,5 @@
 import { isEmailInList } from "./access";
-import { eq, desc, and, gte, lte, sql, inArray, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, or, sql, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2";
 import { mysqlOptionsFromUrl } from "../shared/dbConnection.mjs";
@@ -16,6 +16,7 @@ import {
   doseLogs, doseSchedules,
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
   waistLogs, supplements, supplementLogs, labResults,
+  pushSubscriptions, notificationPrefs, notificationLog,
 } from "../drizzle/schema";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
@@ -648,4 +649,97 @@ export async function exportUserData(userId: number) {
     supplements: supps, supplementLogs: suppLogs, doseLogs: doses, doseSchedules: schedules,
     labResults: labs, reintroChallenges: challenges,
   };
+}
+
+
+// ─── Reminders ───
+
+export type NotificationPrefs = { mealReminders: boolean; mealTimes: string[]; symptomCheckins: boolean; timeZone: string };
+
+export async function getNotificationPrefs(userId: number): Promise<NotificationPrefs | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [r] = await db.select().from(notificationPrefs).where(eq(notificationPrefs.userId, userId)).limit(1);
+  return r ? { mealReminders: r.mealReminders, mealTimes: r.mealTimes, symptomCheckins: r.symptomCheckins, timeZone: r.timeZone } : null;
+}
+
+export async function saveNotificationPrefs(userId: number, p: NotificationPrefs) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(notificationPrefs).values({ userId, ...p })
+    .onDuplicateKeyUpdate({ set: { mealReminders: p.mealReminders, mealTimes: p.mealTimes, symptomCheckins: p.symptomCheckins, timeZone: p.timeZone } });
+}
+
+export async function listUsersWithReminders() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(notificationPrefs).where(or(eq(notificationPrefs.mealReminders, true), eq(notificationPrefs.symptomCheckins, true)));
+}
+
+export async function saveSubscription(userId: number, sub: { endpoint: string; p256dh: string; auth: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // The same browser can be re-subscribed after signing in as someone else; the endpoint belongs to the latest user.
+  await db.insert(pushSubscriptions).values({ userId, ...sub })
+    .onDuplicateKeyUpdate({ set: { userId, p256dh: sub.p256dh, auth: sub.auth } });
+}
+
+export async function getSubscriptions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+}
+
+export async function deleteSubscription(endpoint: string, userId?: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(pushSubscriptions).where(userId === undefined
+    ? eq(pushSubscriptions.endpoint, endpoint)
+    : and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.userId, userId)));
+}
+
+/** True the first time a (user, key) is claimed, false if it was already sent. */
+export async function claimNotification(userId: number, key: string, kind: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    await db.insert(notificationLog).values({ userId, key, kind });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function releaseNotification(userId: number, key: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notificationLog).where(and(eq(notificationLog.userId, userId), eq(notificationLog.key, key)));
+}
+
+export async function lastNotificationAt(userId: number, kind: string): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [r] = await db.select({ at: notificationLog.sentAt }).from(notificationLog)
+    .where(and(eq(notificationLog.userId, userId), eq(notificationLog.kind, kind))).orderBy(desc(notificationLog.sentAt)).limit(1);
+  return r ? r.at.getTime() : null;
+}
+
+export async function pruneNotificationLog(olderThanMs: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notificationLog).where(lt(notificationLog.sentAt, new Date(Date.now() - olderThanMs)));
+}
+
+export async function getLastMealAt(userId: number): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [r] = await db.select({ at: meals.loggedAt }).from(meals).where(eq(meals.userId, userId)).orderBy(desc(meals.loggedAt)).limit(1);
+  return r?.at ?? null;
+}
+
+export async function getLastSymptomAt(userId: number): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [r] = await db.select({ at: symptoms.loggedAt }).from(symptoms).where(eq(symptoms.userId, userId)).orderBy(desc(symptoms.loggedAt)).limit(1);
+  return r?.at ?? null;
 }

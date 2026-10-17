@@ -1,6 +1,6 @@
-import { Brain, Camera, CreditCard, Database, FlaskConical, Mail, Shield } from "lucide-react";
+import { Bell, Brain, Camera, CreditCard, Database, FlaskConical, Mail, Shield } from "lucide-react";
 
-const updatedAt = "October 16, 2026";
+const updatedAt = "October 17, 2026";
 
 const sections = [
   {
@@ -22,6 +22,11 @@ const sections = [
     icon: FlaskConical,
     title: "Blood Work",
     body: "Blood work you add by hand or import is stored in your account and shown only to you in the app. When you import a report, the photo or the text of the PDF is sent to our AI provider so the values can be read, and GutSync does not keep the file. Only the results you review and confirm are saved. You can delete any result in the app at any time. This is sensitive health information; you choose what to add.",
+  },
+  {
+    icon: Bell,
+    title: "Reminders",
+    body: "If you turn on reminders, GutSync stores your reminder settings and a push address for each device you allow, and sends notifications through your device's push service (such as Google or Apple). Notifications never include what you ate or any health detail. You can turn reminders off in Profile at any time. You can also download a copy of everything you have logged from Profile (Export My Data).",
   },
   {
     icon: CreditCard,

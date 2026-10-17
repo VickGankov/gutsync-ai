@@ -2,13 +2,13 @@
 // Wired to real auth
 
 import { useRef, useState } from "react";
+import RemindersCard from "@/components/RemindersCard";
 import { motion } from "framer-motion";
-import { User, Download, Shield, Bell, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
+import { User, Download, Shield, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import { prepareAvatar } from "@/lib/image";
 import { trpc } from "@/lib/trpc";
 import { InstallSheet, useInstallAction } from "@/components/InstallPrompt";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -66,10 +66,6 @@ export default function Profile() {
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }
-  };
-
-  const handleToggle = (feature: string) => {
-    toast.success(`${feature} updated`, { description: "Feature coming soon" });
   };
 
   const [exporting, setExporting] = useState(false);
@@ -159,35 +155,9 @@ export default function Profile() {
         </div>
       </motion.div>
 
-      {/* Notifications */}
-      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Bell className="w-4 h-4 text-sand-dark" />
-          Notifications
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-foreground">Meal Reminders</p>
-              <p className="text-xs text-muted-foreground">Gentle nudges to log meals</p>
-            </div>
-            <Switch defaultChecked onCheckedChange={() => handleToggle("Meal reminders")} />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-foreground">Symptom Check-ins</p>
-              <p className="text-xs text-muted-foreground">Ask how you feel after high-sensitivity meals</p>
-            </div>
-            <Switch defaultChecked onCheckedChange={() => handleToggle("Symptom check-ins")} />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-foreground">Discovery Alerts</p>
-              <p className="text-xs text-muted-foreground">When a new trigger pattern is found</p>
-            </div>
-            <Switch defaultChecked onCheckedChange={() => handleToggle("Discovery alerts")} />
-          </div>
-        </div>
+      {/* Reminders */}
+      <motion.div variants={item}>
+        <RemindersCard />
       </motion.div>
 
       {/* Add to home screen */}

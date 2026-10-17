@@ -371,3 +371,33 @@ export const labResults = mysqlTable("lab_results", {
   notes: varchar("notes", { length: 200 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (t) => ({ byUserMarker: index("lab_results_user_marker").on(t.userId, t.marker) }));
+
+/** One row per browser/phone that allowed push notifications. */
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  endpoint: varchar("endpoint", { length: 600 }).notNull().unique(),
+  p256dh: varchar("p256dh", { length: 200 }).notNull(),
+  auth: varchar("auth", { length: 100 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({ byUser: index("push_subscriptions_user").on(t.userId) }));
+
+/** Reminder settings, one row per user. Times are local "HH:MM" in `timeZone`. */
+export const notificationPrefs = mysqlTable("notification_prefs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  mealReminders: boolean("mealReminders").notNull().default(false),
+  mealTimes: json("mealTimes").$type<string[]>().notNull(),
+  symptomCheckins: boolean("symptomCheckins").notNull().default(false),
+  timeZone: varchar("timeZone", { length: 64 }).notNull().default("UTC"),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+/** What has been sent, so a reminder is never sent twice (unique per user and key). */
+export const notificationLog = mysqlTable("notification_log", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  key: varchar("key", { length: 80 }).notNull(),
+  kind: varchar("kind", { length: 16 }).notNull(),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+}, (t) => ({ uniq: uniqueIndex("notification_log_user_key").on(t.userId, t.key) }));

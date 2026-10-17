@@ -53,3 +53,11 @@ This file is the durable context for future Cursor chats in this workspace.
 - `formatTimeAgo` counts calendar days, so "Yesterday" matches the day headings (was elapsed 24-48h). Meal tile badge is the highest level among its foods ("High/Moderate/Low sensitivity"), same words as the item chips. Log tab switches (including after saving a meal) update `?tab=` in the URL. Labs "With only N results" sentence is one text string.
 - Could not find any notifications bell button in the code (only the section icon on Profile). The Profile notification switches are placeholders that only show "Feature coming soon".
 - Local only until the owner approves a push.
+
+## 2026-10-17 — Reminders (push)
+- Profile "Reminders" card (`client/src/components/RemindersCard.tsx`) replaces the fake notification switches: meal reminders at user-set times (default 08:00, 12:30, 18:30, editable, max 5) and symptom check-ins. Discovery alerts were dropped on purpose.
+- Rules in `shared/reminders.ts` (tested): meal reminder fires in the 10 min after a chosen time (never sent late), skipped if a meal was logged in the last 90 min; check-in goes 2-4 h after a moderate/high meal, only if nothing was logged since, max one per 2 h, quiet 22:00-07:00. All in the user's own IANA time zone (sent from the phone when saving). Messages are generic, never name foods.
+- Server: `server/reminders.ts` runs a 60 s timer (`startReminderScheduler`, started from `server/_core/index.ts`), claims each reminder in `notification_log` (unique per user+key) so it is sent once, removes devices the push service reports gone (404/410). `reminders` tRPC router: get, save, subscribe, unsubscribe, test. Tables via migration 0031: `push_subscriptions`, `notification_prefs`, `notification_log`. `client/public/service-worker.js` handles `push` and `notificationclick`.
+- Needs Render env vars `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto:...); without the keys the scheduler stays off and the card says reminders aren't set up. Generate with `npx web-push generate-vapid-keys`.
+- iPhone only works from the installed Home Screen app (iOS 16.4+). Real delivery to a phone is untested from the sandbox; only the settings flow, the tick against a real DB, and rules were tested.
+- Local only until the owner approves a push.

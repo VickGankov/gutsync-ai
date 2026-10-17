@@ -26,6 +26,11 @@ vi.mock("./db", () => ({
   setSupplementDose: vi.fn().mockResolvedValue(undefined),
   setUserAvatar: vi.fn().mockResolvedValue(undefined),
   renameLabMarker: vi.fn().mockResolvedValue(undefined),
+  getNotificationPrefs: vi.fn().mockResolvedValue(null),
+  saveNotificationPrefs: vi.fn().mockResolvedValue(undefined),
+  saveSubscription: vi.fn().mockResolvedValue(undefined),
+  getSubscriptions: vi.fn().mockResolvedValue([]),
+  deleteSubscription: vi.fn().mockResolvedValue(undefined),
   exportUserData: vi.fn().mockResolvedValue({ exportedAt: "2026-10-17T00:00:00.000Z", account: { email: "test@example.com" }, meals: [] }),
   getLabResults: vi.fn().mockResolvedValue([{ marker: "LDL cholesterol" }, { marker: "Ferritin" }]),
   addLabResults: vi.fn().mockResolvedValue(1),
@@ -253,6 +258,28 @@ describe("GutSync Server Procedures", () => {
       expect(r.mealType).toBe("breakfast");
       expect(r.foods[0].name).toBe("Egg");
       expect(db.incrementScanCount).toHaveBeenCalled();
+    });
+  });
+
+  describe("reminders", () => {
+    const caller = () => appRouter.createCaller(createAuthContext());
+    it("returns defaults with everything off for a new user", async () => {
+      const r = await caller().reminders.get();
+      expect(r.prefs).toEqual({ mealReminders: false, mealTimes: ["08:00", "12:30", "18:30"], symptomCheckins: false, timeZone: "UTC" });
+      expect(r.devices).toBe(0);
+    });
+    it("saves cleaned times and rejects bad input", async () => {
+      await caller().reminders.save({ mealReminders: true, mealTimes: ["18:30", "08:00", "08:00"], symptomCheckins: false, timeZone: "America/Los_Angeles" });
+      expect(db.saveNotificationPrefs).toHaveBeenLastCalledWith(1, { mealReminders: true, mealTimes: ["08:00", "18:30"], symptomCheckins: false, timeZone: "America/Los_Angeles" });
+      await expect(caller().reminders.save({ mealReminders: true, mealTimes: ["8am"], symptomCheckins: false, timeZone: "UTC" })).rejects.toThrow(/times/i);
+      await expect(caller().reminders.save({ mealReminders: true, mealTimes: [], symptomCheckins: false, timeZone: "UTC" })).rejects.toThrow(/at least one/i);
+      await expect(caller().reminders.save({ mealReminders: false, mealTimes: [], symptomCheckins: false, timeZone: "Mars/Base" })).rejects.toThrow(/time zone/i);
+    });
+    it("only accepts https push endpoints and requires login", async () => {
+      await caller().reminders.subscribe({ endpoint: "https://fcm.googleapis.com/x", p256dh: "k", auth: "a" });
+      expect(db.saveSubscription).toHaveBeenLastCalledWith(1, { endpoint: "https://fcm.googleapis.com/x", p256dh: "k", auth: "a" });
+      await expect(caller().reminders.subscribe({ endpoint: "http://insecure.example/x", p256dh: "k", auth: "a" })).rejects.toThrow();
+      await expect(appRouter.createCaller(createUnauthContext()).reminders.get()).rejects.toThrow();
     });
   });
 
