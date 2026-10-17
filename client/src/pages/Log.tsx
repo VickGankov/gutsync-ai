@@ -5,7 +5,7 @@ import ManualMealSheet from "@/components/ManualMealSheet";
 import { invalidateToday } from "@/lib/invalidateToday";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { attributeSymptoms, formatGap } from "@shared/timeline";
 import { dosesBefore, fmtMg, intervalsByCompound } from "@shared/dose";
 import { Plus, Loader2, Leaf, UtensilsCrossed } from "lucide-react";
@@ -107,11 +107,18 @@ function FollowUpChip({ type, severity, afterMs, positive }: { type: string; sev
 export default function Log() {
   const { isAuthenticated } = useAuth();
   const search = useSearch();
+  const [location, navigate] = useLocation();
   const [tab, setTab] = useState<Tab>(() => readTab(search));
   useEffect(() => { setTab(readTab(search)); }, [search]);
+  // Keep the address bar in step with the visible tab (including when saving a meal moves you to Food).
   const switchTab = (t: Tab) => {
     setTab(t);
     try { localStorage.setItem(TAB_KEY, t); } catch { /* ignore */ }
+    const params = new URLSearchParams(search);
+    if (params.get("tab") !== t) {
+      params.set("tab", t);
+      navigate(`${location}?${params.toString()}`, { replace: true });
+    }
   };
   const [showLogger, setShowLogger] = useState(false);
   const [showMeal, setShowMeal] = useState(false);

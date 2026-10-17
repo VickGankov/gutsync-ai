@@ -154,8 +154,10 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
 
   const emoji = foodEmoji(foods.map((f) => f.name));
   const TypeIcon = TYPE_ICON[mealType];
-  const highFodmap = foods.some((f) => f.fodmap === "high");
-  const allLow = foods.length > 0 && foods.every((f) => f.fodmap === "low");
+  // The meal badge is the highest level among its foods, using the same words as each food's chip.
+  const mealLevel: "high" | "moderate" | "low" | null = foods.length === 0 ? null
+    : foods.some((f) => f.fodmap === "high") ? "high"
+    : foods.some((f) => f.fodmap === "moderate") ? "moderate" : "low";
 
   // Reset confirm delete when tile collapses
   useEffect(() => {
@@ -202,18 +204,11 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {foods.map((f) => f.name).join(", ")}
           </p>
-          {(highFodmap || allLow) && (
+          {mealLevel && (
             <div className="flex gap-1 mt-1">
-              {highFodmap && (
-                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-coral-light/50 text-coral">
-                  High sensitivity
-                </span>
-              )}
-              {allLow && (
-                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-sage-light/50 text-sage-dark">
-                  Low sensitivity
-                </span>
-              )}
+              <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(mealLevel)}`}>
+                {mealLevel} sensitivity
+              </span>
             </div>
           )}
         </div>

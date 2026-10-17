@@ -1,9 +1,9 @@
 // GutSync — Profile Page
 // Wired to real auth
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Shield, Bell, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
+import { User, Download, Shield, Bell, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import { prepareAvatar } from "@/lib/image";
 import { trpc } from "@/lib/trpc";
@@ -70,6 +70,29 @@ export default function Profile() {
 
   const handleToggle = (feature: string) => {
     toast.success(`${feature} updated`, { description: "Feature coming soon" });
+  };
+
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const data = await utils.client.profile.exportData.query();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gutsync-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Your data was downloaded");
+    } catch {
+      toast.error("Couldn't prepare your export. Try again in a moment.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -186,7 +209,11 @@ export default function Profile() {
             <a href="/privacy" className="text-xs font-semibold text-primary">View</a>
           } />
           <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-sage-dark" />
-          <SettingsRow icon={User} label="Export My Data" description="Download all your health data" iconColor="text-primary" />
+          <SettingsRow icon={Download} label="Export My Data" description="Download everything you've logged (JSON file)" iconColor="text-primary" action={
+            <button onClick={handleExport} disabled={exporting} className="text-xs font-semibold text-primary disabled:opacity-60">
+              {exporting ? "Preparing..." : "Download"}
+            </button>
+          } />
         </div>
       </motion.div>
 

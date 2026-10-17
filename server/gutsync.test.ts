@@ -26,6 +26,7 @@ vi.mock("./db", () => ({
   setSupplementDose: vi.fn().mockResolvedValue(undefined),
   setUserAvatar: vi.fn().mockResolvedValue(undefined),
   renameLabMarker: vi.fn().mockResolvedValue(undefined),
+  exportUserData: vi.fn().mockResolvedValue({ exportedAt: "2026-10-17T00:00:00.000Z", account: { email: "test@example.com" }, meals: [] }),
   getLabResults: vi.fn().mockResolvedValue([{ marker: "LDL cholesterol" }, { marker: "Ferritin" }]),
   addLabResults: vi.fn().mockResolvedValue(1),
   createWaistLog: vi.fn().mockResolvedValue(3),
@@ -252,6 +253,16 @@ describe("GutSync Server Procedures", () => {
       expect(r.mealType).toBe("breakfast");
       expect(r.foods[0].name).toBe("Egg");
       expect(db.incrementScanCount).toHaveBeenCalled();
+    });
+  });
+
+  describe("export my data", () => {
+    it("returns the signed-in user's export and requires login", async () => {
+      const out = await appRouter.createCaller(createAuthContext()).profile.exportData();
+      expect(db.exportUserData).toHaveBeenLastCalledWith(1);
+      expect(out.account?.email).toBe("test@example.com");
+      expect(JSON.stringify(out)).not.toContain("password");
+      await expect(appRouter.createCaller(createUnauthContext()).profile.exportData()).rejects.toThrow();
     });
   });
 

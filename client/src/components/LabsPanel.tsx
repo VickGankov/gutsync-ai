@@ -219,7 +219,7 @@ export default function LabsPanel() {
 
               <RunsStrip runs={overlay.data?.runs ?? []} fromKey={fromKey} toKey={toKey} drawDates={points.map(p => p.drawnOn)} />
               {points.length >= 2 && daysBetween(points[0].drawnOn, latest.drawnOn) > 0 && points.length < 3 && (
-                <p className="text-[11px] text-muted-foreground mt-2">With only {points.length} results, treat any pattern as a hint at most.</p>
+                <p className="text-[11px] text-muted-foreground mt-2">{`With only ${points.length} results, treat any pattern as a hint at most.`}</p>
               )}
             </>
           )}

@@ -47,3 +47,9 @@ This file is the durable context for future Cursor chats in this workspace.
 - `normalizeMarker` now treats LDL / LDL-C / LDLC / "LDL Cholesterol Calc" (and HDL likewise) as one marker; ratios and "non-HDL" are kept as typed. `matchExisting` folds a still-unknown name into one the user already has when it differs only by case/spacing/punctuation; applied on import (`labs.extract`), add, addMany and update.
 - Manual fix: "Merge or rename" on a marker (`LabMergeSheet.tsx`, `labs.renameMarker`) moves all its results under another name, so two names from different labs become one chart. Different units after a merge are handled by the existing latest-unit rule. No automatic merge of old data; names already saved separately need the manual merge.
 - Local only until the owner approves a push.
+
+## 2026-10-17 — Bug sweep
+- Export My Data now works: `profile.exportData` (`exportUserData` in `server/db.ts`) returns the user's own meals, symptoms, fitness, doses, supplements, labs and reintro challenges as JSON (no password hash); Profile downloads it as `gutsync-export-<date>.json`.
+- `formatTimeAgo` counts calendar days, so "Yesterday" matches the day headings (was elapsed 24-48h). Meal tile badge is the highest level among its foods ("High/Moderate/Low sensitivity"), same words as the item chips. Log tab switches (including after saving a meal) update `?tab=` in the URL. Labs "With only N results" sentence is one text string.
+- Could not find any notifications bell button in the code (only the section icon on Profile). The Profile notification switches are placeholders that only show "Feature coming soon".
+- Local only until the owner approves a push.

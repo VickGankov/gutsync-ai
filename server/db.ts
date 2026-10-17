@@ -626,3 +626,26 @@ export async function deleteLabResult(userId: number, id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(labResults).where(and(eq(labResults.id, id), eq(labResults.userId, userId)));
 }
+
+
+/** Everything the user has logged, for "Export My Data". Never includes the password hash or other accounts' data. */
+export async function exportUserData(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const mine = <T extends { userId: any }>(t: any) => db.select().from(t).where(eq((t as T).userId, userId));
+  const [account] = await db.select({ email: users.email, name: users.name, createdAt: users.createdAt }).from(users).where(eq(users.id, userId)).limit(1);
+  const [
+    mealRows, symptomRows, fitness, weights, waists, intake, lifts, supps, suppLogs, doses, schedules, labs, challenges,
+  ] = await Promise.all([
+    mine(meals), mine(symptoms), mine(fitnessProfile), mine(weightLogs), mine(waistLogs), mine(intakeLogs), mine(liftLogs),
+    mine(supplements), mine(supplementLogs), mine(doseLogs), mine(doseSchedules), mine(labResults), mine(reintroChallenges),
+  ]);
+  return {
+    exportedAt: new Date().toISOString(),
+    account: account ?? null,
+    meals: mealRows, symptoms: symptomRows, fitnessProfile: fitness,
+    weightLogs: weights, waistLogs: waists, intakeLogs: intake, liftLogs: lifts,
+    supplements: supps, supplementLogs: suppLogs, doseLogs: doses, doseSchedules: schedules,
+    labResults: labs, reintroChallenges: challenges,
+  };
+}

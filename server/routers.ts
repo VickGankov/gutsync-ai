@@ -11,7 +11,7 @@ import {
   saveFoodFiber,
   createWaistLog, getWaistLogs, deleteWaistLog,
   getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
-  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
+  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, exportUserData, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -571,6 +571,9 @@ export const appRouter = router({
   }),
 
   profile: router({
+    /** All of the user's own logged data as one JSON document. */
+    exportData: protectedProcedure.query(async ({ ctx }) => exportUserData(ctx.user.id)),
+
     /** Replace the profile photo. The browser sends a small square JPEG; we check it really is one before storing. */
     setAvatar: protectedProcedure
       .input(z.object({ imageBase64: z.string().max(400_000) }))
