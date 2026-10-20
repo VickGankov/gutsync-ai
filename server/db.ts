@@ -18,6 +18,7 @@ import {
   waistLogs, supplements, supplementLogs, labResults,
   pushSubscriptions, notificationPrefs, notificationLog,
 } from "../drizzle/schema";
+import { resolvePlan, scanLimitFor, type Plan } from "@shared/plans";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
 
@@ -223,6 +224,37 @@ export async function isPremium(userId: number): Promise<boolean> {
   if (!sub || sub.tier !== 'premium') return false;
   if (sub.expiresAt && sub.expiresAt < Date.now()) return false;
   return true;
+}
+
+export interface Entitlement { plan: Plan; unlimited: boolean; dailyLimit: number | null; founderAt: number | null }
+
+/** Works out a user's plan, their daily scan limit (null = unlimited) and when they became a founder. */
+export async function getEntitlement(userId: number): Promise<Entitlement> {
+  const user = await getUserById(userId);
+  const unlimited = !!(ENV.unlimitedEmails && isEmailInList(user?.email, ENV.unlimitedEmails));
+  const sub = await getSubscription(userId);
+  const paid = !!sub && sub.tier === 'premium' && !(sub.expiresAt && sub.expiresAt < Date.now());
+  const founderAt = user?.founderAt ?? null;
+  const plan = resolvePlan({ premium: paid || unlimited, founder: founderAt != null });
+  return { plan, unlimited, dailyLimit: unlimited ? null : scanLimitFor(plan), founderAt };
+}
+
+export async function countFounders(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const r = await db.select({ n: sql<number>`cast(count(*) as signed)` }).from(users).where(sql`${users.founderAt} is not null`);
+  return Number(r[0]?.n ?? 0);
+}
+
+/** Marks a user as a founder if there is room. "already" when they are one. */
+export async function claimFounder(userId: number, limit: number): Promise<"ok" | "already" | "full"> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const [u] = await db.select({ founderAt: users.founderAt }).from(users).where(eq(users.id, userId)).limit(1);
+  if (u?.founderAt != null) return "already";
+  if ((await countFounders()) >= limit) return "full";
+  await db.update(users).set({ founderAt: Date.now() }).where(and(eq(users.id, userId), isNull(users.founderAt)));
+  return "ok";
 }
 
 /** Upsert subscription record (called from RevenueCat webhook or client receipt). */

@@ -4,6 +4,7 @@
 import { useMemo, useRef, useState } from "react";
 import { FlaskConical, Plus, Upload, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyPlanError } from "@shared/plans";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
 import { trpc } from "@/lib/trpc";
 import { prepareImageForUpload } from "@/lib/image";
@@ -128,7 +129,7 @@ export default function LabsPanel() {
       });
     } catch (e: any) {
       const msg = String(e?.message ?? "");
-      toast.error(msg.startsWith("FREE_LIMIT_REACHED") ? "You've used today's free scans. Enter the values by hand, or try again tomorrow." : msg || "Couldn't read that file.");
+      toast.error(msg.startsWith("PREMIUM_REQUIRED") ? friendlyPlanError(msg) : msg.startsWith("FREE_LIMIT_REACHED") ? "You've used today's free scans. Enter the values by hand, or try again tomorrow." : msg || "Couldn't read that file.");
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }

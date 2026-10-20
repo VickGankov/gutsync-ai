@@ -14,6 +14,8 @@ export const users = mysqlTable("users", {
   avatarUrl: varchar("avatarUrl", { length: 500 }),
   /** Foods the user says they suspect (keys from shared/sensitivities.ts). Only used to flag and count. */
   sensitivities: json("sensitivities").$type<string[]>(),
+  /** When the user redeemed the founder invite code (ms since epoch). Null = not a founder. */
+  founderAt: bigint("founderAt", { mode: "number" }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

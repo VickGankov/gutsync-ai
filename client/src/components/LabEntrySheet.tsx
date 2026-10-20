@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyPlanError } from "@shared/plans";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { COMMON_MARKERS } from "@shared/labs";
@@ -39,7 +40,7 @@ export default function LabEntrySheet({ open, onClose, knownMarkers, lastUnitFor
     { marker: marker.trim(), value: v, unit: unit.trim(), refLow: optNum(low), refHigh: optNum(high), drawnOn },
     {
       onSuccess: () => { toast.success("Result saved"); utils.labs.list.invalidate(); setValue(""); setLow(""); setHigh(""); onClose(); },
-      onError: e => toast.error(e.message || "Couldn't save"),
+      onError: e => toast.error(friendlyPlanError(e.message) || "Couldn't save"),
     },
   );
 

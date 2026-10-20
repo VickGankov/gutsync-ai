@@ -4,6 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { storagePut, storageDelete, avatarKeyFromUrl } from "./storage";
+import { ENV } from "./_core/env";
+import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
@@ -26,7 +28,8 @@ import {
   getCorrelationsByUser,
 
   getSubscription,
-  isPremium,
+  getEntitlement,
+  claimFounder,
   upsertSubscription,
   cancelSubscription,
   getTodayScanCount,
@@ -71,7 +74,6 @@ import { TRPCError } from "@trpc/server";
 import type { MealFood } from "../drizzle/schema";
 
 // Free tier: 3 AI scans per day
-const FREE_DAILY_SCAN_LIMIT = 10;
 
 function getRequestBaseUrl(req: { protocol?: string; headers?: Record<string, string | string[] | undefined>; get?: (name: string) => string | undefined }) {
   const origin = req.get?.('origin') || req.headers?.origin;
@@ -207,16 +209,27 @@ async function analyzeMealText(text: string) {
   });
 }
 
-/** Throws FREE_LIMIT_REACHED for free users at their daily limit. Returns whether the user is premium. */
+/**
+ * Throws when the user has used today's scans for their plan. Free users get FREE_LIMIT_REACHED (which opens the
+ * upgrade prompt); founders and premium get a plain message. Returns true when scans are not counted (unlimited).
+ */
 async function enforceScanLimit(userId: number): Promise<boolean> {
-  const premium = await isPremium(userId);
-  if (!premium) {
+  const ent = await getEntitlement(userId);
+  if (ent.dailyLimit !== null) {
     const todayCount = await getTodayScanCount(userId);
-    if (todayCount >= FREE_DAILY_SCAN_LIMIT) {
-      throw new TRPCError({ code: 'FORBIDDEN', message: `FREE_LIMIT_REACHED:${todayCount}` });
+    if (todayCount >= ent.dailyLimit) {
+      if (ent.plan === 'free') throw new TRPCError({ code: 'FORBIDDEN', message: `FREE_LIMIT_REACHED:${todayCount}` });
+      throw new TRPCError({ code: 'FORBIDDEN', message: `You've used today's ${ent.dailyLimit} scans. They reset tomorrow.` });
     }
   }
-  return premium;
+  return ent.unlimited;
+}
+
+/** Throws PREMIUM_REQUIRED:<feature> for free users once the paywall is on. */
+async function requireFeature(userId: number, feature: GatedFeature): Promise<void> {
+  if (!ENV.paywallEnabled) return;
+  const { plan } = await getEntitlement(userId);
+  if (!hasFeature(plan, feature, true)) throw new TRPCError({ code: 'FORBIDDEN', message: `PREMIUM_REQUIRED:${feature}` });
 }
 
 const labRowInput = z.object({
@@ -311,7 +324,7 @@ export const appRouter = router({
         labelMimeType: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const premium = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id);
 
         // Upload the photo and run the AI analysis at the same time.
         // The image is sent inline so the AI provider never has to fetch it from storage.
@@ -337,7 +350,7 @@ export const appRouter = router({
         }
 
         // Increment scan usage for free-tier tracking
-        if (!premium) {
+        if (!unlimited) {
           await incrementScanCount(ctx.user.id);
         }
 
@@ -355,12 +368,12 @@ export const appRouter = router({
     analyzeText: protectedProcedure
       .input(z.object({ text: z.string().trim().min(2).max(600) }))
       .mutation(async ({ ctx, input }) => {
-        const premium = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id);
         const analysis = await analyzeMealText(input.text);
         if (!analysis.foods || analysis.foods.length === 0) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'NO_FOOD_DETECTED' });
         }
-        if (!premium) await incrementScanCount(ctx.user.id);
+        if (!unlimited) await incrementScanCount(ctx.user.id);
         return {
           photoUrl: null,
           mealType: analysis.mealType,
@@ -374,12 +387,12 @@ export const appRouter = router({
     readLabel: protectedProcedure
       .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
-        const premium = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id);
         const label = await readLabelImage(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`);
         if (label.ingredients.length < 2) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'LABEL_NOT_READABLE' });
         }
-        if (!premium) await incrementScanCount(ctx.user.id);
+        if (!unlimited) await incrementScanCount(ctx.user.id);
         const verdict = classifyIngredients(label.ingredients);
         return {
           productName: label.productName || null,
@@ -511,6 +524,7 @@ export const appRouter = router({
         doses: z.tuple([z.string().trim().min(1).max(40), z.string().trim().min(1).max(40), z.string().trim().min(1).max(40)]),
       }))
       .mutation(async ({ ctx, input }) => {
+        await requireFeature(ctx.user.id, "protocol");
         const active = await getActiveReintroChallenge(ctx.user.id);
         if (active) {
           throw new TRPCError({ code: "CONFLICT", message: "Finish or stop your current challenge before starting another." });
@@ -732,6 +746,7 @@ export const appRouter = router({
     add: protectedProcedure
       .input(labRowInput)
       .mutation(async ({ ctx, input }) => {
+        await requireFeature(ctx.user.id, "labs");
         await addLabResults(ctx.user.id, [cleanLabRow(input, await existingMarkers(ctx.user.id))]);
         return { success: true };
       }),
@@ -740,6 +755,7 @@ export const appRouter = router({
     addMany: protectedProcedure
       .input(z.object({ rows: z.array(labRowInput).min(1).max(100) }))
       .mutation(async ({ ctx, input }) => {
+        await requireFeature(ctx.user.id, "labs");
         const existing = await existingMarkers(ctx.user.id);
         const saved = await addLabResults(ctx.user.id, input.rows.map(r => cleanLabRow(r, existing)));
         return { saved };
@@ -773,7 +789,8 @@ export const appRouter = router({
     extract: protectedProcedure
       .input(z.object({ fileBase64: z.string().max(14_000_000), mimeType: z.string().max(60) }))
       .mutation(async ({ ctx, input }) => {
-        const premium = await enforceScanLimit(ctx.user.id);
+        await requireFeature(ctx.user.id, "labs");
+        const unlimited = await enforceScanLimit(ctx.user.id);
         const isPdf = input.mimeType === "application/pdf";
         if (!isPdf && !/^image\/(jpeg|png|webp|heic|heif)$/.test(input.mimeType)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Upload a photo, screenshot or PDF of your report." });
@@ -797,7 +814,7 @@ export const appRouter = router({
         if (result.rows.length === 0) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "No numeric results found in that file. Try a clearer photo, or enter the values by hand." });
         }
-        if (!premium) await incrementScanCount(ctx.user.id);
+        if (!unlimited) await incrementScanCount(ctx.user.id);
         // Fold names into markers the user already tracks, so a new report extends the same chart.
         const existing = await existingMarkers(ctx.user.id);
         return { ...result, rows: result.rows.map(r => ({ ...r, marker: matchExisting(r.marker, existing) })) };
@@ -1084,23 +1101,38 @@ export const appRouter = router({
   subscription: router({
     /** Get the current user's subscription status and scan usage. */
     status: protectedProcedure.query(async ({ ctx }) => {
-      const [sub, todayScans, premium] = await Promise.all([
+      const [sub, todayScans, ent] = await Promise.all([
         getSubscription(ctx.user.id),
         getTodayScanCount(ctx.user.id),
-        isPremium(ctx.user.id),
+        getEntitlement(ctx.user.id),
       ]);
       return {
         tier: sub?.tier ?? 'free',
-        isPremium: premium,
+        plan: ent.plan,
+        isPremium: ent.plan === 'premium',
+        isFounder: ent.founderAt != null,
+        paywallEnabled: ENV.paywallEnabled,
         productId: sub?.productId ?? null,
         platform: sub?.platform ?? null,
         expiresAt: sub?.expiresAt ?? null,
         activatedAt: sub?.activatedAt ?? null,
         todayScans,
-        dailyLimit: FREE_DAILY_SCAN_LIMIT,
-        scansRemaining: premium ? null : Math.max(0, FREE_DAILY_SCAN_LIMIT - todayScans),
+        dailyLimit: ent.dailyLimit,
+        scansRemaining: ent.dailyLimit === null ? null : Math.max(0, ent.dailyLimit - todayScans),
       };
     }),
+
+    /** Redeem the founding-member invite code. Founders get every feature and a higher daily scan limit. */
+    redeemFounder: protectedProcedure
+      .input(z.object({ code: z.string().trim().min(1).max(64) }))
+      .mutation(async ({ ctx, input }) => {
+        if (!ENV.founderCode || !founderCodeMatches(input.code, ENV.founderCode)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: "That code isn't valid." });
+        }
+        const result = await claimFounder(ctx.user.id, ENV.founderLimit);
+        if (result === 'full') throw new TRPCError({ code: 'BAD_REQUEST', message: 'All founding spots are taken.' });
+        return { founder: true, alreadyFounder: result === 'already' };
+      }),
 
     /**
      * Called from the client after a successful RevenueCat purchase.

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import { friendlyPlanError } from "@shared/plans";
 import {
   REINTRO_GROUPS,
   REINTRO_GROUP_INFO,
@@ -99,7 +100,7 @@ export default function Reintro() {
           setPicking(null);
           toast.success("Challenge started", { description: "Eat today's amount, then check in later today or tomorrow morning." });
         },
-        onError: e => toast.error(e.message),
+        onError: e => toast.error(friendlyPlanError(e.message)),
       },
     );
   };

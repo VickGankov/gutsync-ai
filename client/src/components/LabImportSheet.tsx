@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyPlanError } from "@shared/plans";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { dateKeyOf } from "@shared/weekly";
@@ -29,7 +30,7 @@ export default function LabImportSheet({ draft, onClose }: { draft: Draft | null
     { rows: valid.map(r => ({ marker: r.marker.trim(), value: Number(r.value), unit: r.unit.trim(), refLow: optNum(r.refLow), refHigh: optNum(r.refHigh), drawnOn })) },
     {
       onSuccess: res => { toast.success(`${res.saved} result${res.saved === 1 ? "" : "s"} saved`); utils.labs.list.invalidate(); onClose(); },
-      onError: e => toast.error(e.message || "Couldn't save"),
+      onError: e => toast.error(friendlyPlanError(e.message) || "Couldn't save"),
     },
   );
 

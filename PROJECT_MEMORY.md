@@ -81,3 +81,11 @@ This file is the durable context for future Cursor chats in this workspace.
 - New name chosen after finding gutsync.com is a direct competitor (same category). App Store and USPTO checked clear by the user; domain triggerplate.com (3-yr, $45) to be bought/pointed at Render.
 - Display strings renamed everywhere (UI, emails, push, manifest, index.html, native display names, privacy policy, README). Kept on purpose: bundle/app ID `ai.gutsync.app`, localStorage keys `gutsync_*`, product ID `gutsync_premium_monthly`, repo/Render service names, image asset filenames.
 - Still to do after the domain is live: add domain in Render, Google redirect URI + `APP_BASE_URL`, Resend domain + `RESEND_FROM_EMAIL`, update og:url/og:image in client/index.html, replace icons/og-image.png if they contain the old name.
+
+## Plans, founders and paywall switch (2026-10-20, local until pushed)
+- Decisions with Vick: free tier stays free forever (10 scans/day); 30 founders get every feature + 20 scans/day, permanent; premium $12/mo (to be sold through Stripe on the web, not built yet) gets labs, reintroduction protocol and 50 scans/day. Free keeps meal logging, symptoms, insights, dietary profile, reminders.
+- `shared/plans.ts` holds limits/features/`resolvePlan`/`founderCodeMatches`/`friendlyPlanError`. `server/db.ts`: `getEntitlement`, `claimFounder`, `countFounders`. `users.founderAt` (migration 0033).
+- Env: `FOUNDER_CODE` (redeem code; empty disables), `FOUNDER_LIMIT` (default 30), `PAYWALL_ENABLED` ("true" locks labs mutations + reintro.start for free users; default off until Stripe exists). `UNLIMITED_EMAILS` still means no scan cap.
+- Scan enforcement now applies to every plan (free gets FREE_LIMIT_REACHED which opens the upgrade sheet; founder/premium get a plain "used today's N scans" message).
+- UI: `FounderCard` on Profile (redeem box / founder badge), Home drawer shows "Founding member".
+- Next: Terms of Service, privacy policy update (Stripe, Google, reminders), refund policy, not-medical-advice disclaimer, then Stripe checkout + webhook + customer portal, then turn PAYWALL_ENABLED on.

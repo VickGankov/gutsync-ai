@@ -1,4 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { ENV } from "./_core/env";
+import { scanLimitFor, type Plan } from "@shared/plans";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -43,6 +45,8 @@ vi.mock("./db", () => ({
   // Subscription mocks (default: free tier, 0 scans used)
   getSubscription: vi.fn().mockResolvedValue(null),
   isPremium: vi.fn().mockResolvedValue(false),
+  getEntitlement: vi.fn().mockResolvedValue({ plan: "free", unlimited: false, dailyLimit: 10, founderAt: null }),
+  claimFounder: vi.fn().mockResolvedValue("ok"),
   upsertSubscription: vi.fn().mockResolvedValue(undefined),
   cancelSubscription: vi.fn().mockResolvedValue(undefined),
   getTodayScanCount: vi.fn().mockResolvedValue(0),
@@ -76,6 +80,8 @@ vi.mock("./storage", async (importOriginal) => ({
 }));
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+
+const ent = (plan: Plan, unlimited = false) => ({ plan, unlimited, dailyLimit: unlimited ? null : scanLimitFor(plan), founderAt: plan === "founder" ? 1 : null });
 
 function createAuthContext(): TrpcContext {
   const user: AuthenticatedUser = {
@@ -545,7 +551,7 @@ describe("Triggerplate Server Procedures", () => {
   describe("subscription.status", () => {
     it("returns free tier status with scan counts", async () => {
       vi.mocked(db.getSubscription).mockResolvedValue(null);
-      vi.mocked(db.isPremium).mockResolvedValue(false);
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
       vi.mocked(db.getTodayScanCount).mockResolvedValue(1);
 
       const ctx = createAuthContext();
@@ -559,14 +565,14 @@ describe("Triggerplate Server Procedures", () => {
       expect(result.scansRemaining).toBe(9);
     });
 
-    it("returns premium status with null scansRemaining", async () => {
+    it("returns premium status with the 50 a day limit", async () => {
       vi.mocked(db.getSubscription).mockResolvedValue({
         id: 1, userId: 1, tier: "premium", rcCustomerId: "rc_123",
         productId: "gutsync_premium_monthly", platform: "ios",
         expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
         activatedAt: Date.now(), createdAt: new Date(), updatedAt: new Date(),
       } as any);
-      vi.mocked(db.isPremium).mockResolvedValue(true);
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("premium"));
       vi.mocked(db.getTodayScanCount).mockResolvedValue(10);
 
       const ctx = createAuthContext();
@@ -575,7 +581,74 @@ describe("Triggerplate Server Procedures", () => {
 
       expect(result.tier).toBe("premium");
       expect(result.isPremium).toBe(true);
-      expect(result.scansRemaining).toBeNull(); // unlimited
+      expect(result.dailyLimit).toBe(50);
+      expect(result.scansRemaining).toBe(40);
+    });
+
+    it("returns founder status with the 20 a day limit", async () => {
+      vi.mocked(db.getSubscription).mockResolvedValue(null);
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("founder"));
+      vi.mocked(db.getTodayScanCount).mockResolvedValue(5);
+      const result = await appRouter.createCaller(createAuthContext()).subscription.status();
+      expect(result.plan).toBe("founder");
+      expect(result.isFounder).toBe(true);
+      expect(result.isPremium).toBe(false);
+      expect(result.scansRemaining).toBe(15);
+    });
+  });
+
+  describe("subscription.redeemFounder", () => {
+    const withCode = (code: string, limit = 30) => { ENV.founderCode = code; ENV.founderLimit = limit; };
+    afterEach(() => { ENV.founderCode = ""; ENV.founderLimit = 30; });
+
+    it("rejects a wrong code and an unset code", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      withCode("early-bird");
+      await expect(caller.subscription.redeemFounder({ code: "nope" })).rejects.toThrow(/valid/);
+      withCode("");
+      await expect(caller.subscription.redeemFounder({ code: "anything" })).rejects.toThrow(/valid/);
+      expect(db.claimFounder).not.toHaveBeenCalledWith(1, expect.anything());
+    });
+
+    it("grants founder on the right code, ignoring case", async () => {
+      withCode("Early-Bird", 30);
+      vi.mocked(db.claimFounder).mockResolvedValue("ok");
+      const r = await appRouter.createCaller(createAuthContext()).subscription.redeemFounder({ code: " early-bird " });
+      expect(r).toEqual({ founder: true, alreadyFounder: false });
+      expect(db.claimFounder).toHaveBeenCalledWith(1, 30);
+    });
+
+    it("says so when the founding spots are gone", async () => {
+      withCode("early-bird");
+      vi.mocked(db.claimFounder).mockResolvedValue("full");
+      await expect(appRouter.createCaller(createAuthContext()).subscription.redeemFounder({ code: "early-bird" })).rejects.toThrow(/taken/);
+    });
+  });
+
+  describe("plan limits and the paywall", () => {
+    afterEach(() => { ENV.paywallEnabled = false; });
+
+    it("stops a founder at 20 with a plain message, not the upgrade prompt", async () => {
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("founder"));
+      vi.mocked(db.getTodayScanCount).mockResolvedValue(20);
+      const b64 = Buffer.from("x").toString("base64");
+      const p = appRouter.createCaller(createAuthContext()).meals.analyzePhoto({ imageBase64: b64, mimeType: "image/jpeg" });
+      await expect(p).rejects.toThrow(/20 scans/);
+    });
+
+    it("locks labs for free users only when the paywall is on", async () => {
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
+      const row = { rows: [{ marker: "LDL", value: 100, unit: "mg/dL", drawnOn: "2026-10-01" }] } as any;
+      ENV.paywallEnabled = true;
+      await expect(appRouter.createCaller(createAuthContext()).labs.addMany(row)).rejects.toThrow(/PREMIUM_REQUIRED:labs/);
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("founder"));
+      await expect(appRouter.createCaller(createAuthContext()).labs.addMany(row)).resolves.toBeDefined();
+    });
+
+    it("locks the protocol for free users when the paywall is on", async () => {
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
+      ENV.paywallEnabled = true;
+      await expect(appRouter.createCaller(createAuthContext()).reintro.start({ foodGroup: "lactose" as any, testFood: "milk", doses: ["a", "b", "c"] })).rejects.toThrow(/PREMIUM_REQUIRED:protocol/);
     });
   });
 
@@ -606,7 +679,7 @@ describe("Triggerplate Server Procedures", () => {
 
   describe("meals.analyzePhoto — free tier limit enforcement", () => {
     it("blocks scan when free limit is reached", async () => {
-      vi.mocked(db.isPremium).mockResolvedValue(false);
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
       vi.mocked(db.getTodayScanCount).mockResolvedValue(10); // at limit
 
       const ctx = createAuthContext();
@@ -618,8 +691,8 @@ describe("Triggerplate Server Procedures", () => {
       ).rejects.toThrow(/FREE_LIMIT_REACHED/);
     });
 
-    it("allows scan for premium users regardless of count", async () => {
-      vi.mocked(db.isPremium).mockResolvedValue(true);
+    it("does not count scans for unlimited accounts", async () => {
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("premium", true));
       vi.mocked(db.getTodayScanCount).mockResolvedValue(99); // way over limit
       vi.mocked(db.createMeal).mockResolvedValue(8);
 
@@ -634,7 +707,7 @@ describe("Triggerplate Server Procedures", () => {
     });
 
     it("increments scan count for free-tier users after successful scan", async () => {
-      vi.mocked(db.isPremium).mockResolvedValue(false);
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
       vi.mocked(db.getTodayScanCount).mockResolvedValue(1); // 1 of 10 used
       vi.mocked(db.createMeal).mockResolvedValue(9);
 

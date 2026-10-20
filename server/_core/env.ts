@@ -5,6 +5,11 @@ export const ENV = {
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   // Comma-separated emails that get unlimited scans (treated as premium).
   unlimitedEmails: process.env.UNLIMITED_EMAILS ?? "",
+  // Founding-member invite code (leave empty to disable) and how many people may redeem it.
+  founderCode: process.env.FOUNDER_CODE ?? "",
+  founderLimit: Number(process.env.FOUNDER_LIMIT ?? 30) || 30,
+  // When "true", free users lose the gated features (labs, protocol). Off until payments exist.
+  paywallEnabled: process.env.PAYWALL_ENABLED === "true",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",

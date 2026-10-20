@@ -928,7 +928,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
             )}
 
             {/* Scan counter badge for free tier */}
-            {subStatus && !subStatus.isPremium && step === "upload" && (
+            {subStatus && subStatus.plan === "free" && step === "upload" && (
               <div className="mt-4 space-y-2">
                 {(subStatus.scansRemaining ?? 0) === 1 && (
                   <div className="bg-sand/20 border border-sand text-sand-dark rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2">
