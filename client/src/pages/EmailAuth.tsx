@@ -31,6 +31,28 @@ const FEATURES = [
   },
 ];
 
+const GOOGLE_ERRORS: Record<string, string> = {
+  google_cancelled: 'Google sign-in was cancelled.',
+  google_unverified: "That Google account's email isn't verified, so we can't use it.",
+  google_other_method: 'That email is already registered with another sign-in method.',
+  google_unavailable: 'Google sign-in is not available right now.',
+  google_failed: "Couldn't sign in with Google. Please try again.",
+};
+function googleErrorMessage(code: string | null): string {
+  return code && GOOGLE_ERRORS[code] ? GOOGLE_ERRORS[code] : '';
+}
+
+function GoogleG() {
+  return (
+    <svg viewBox="0 0 48 48" className="w-5 h-5" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/>
+      <path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/>
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+    </svg>
+  );
+}
+
 function isReturning(): boolean {
   try {
     return !!localStorage.getItem(RETURNING_KEY) || !!localStorage.getItem('gutsync_onboarded');
@@ -47,13 +69,15 @@ export default function EmailAuth() {
   const [confirm, setConfirm] = useState('');
   const [name, setName] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => googleErrorMessage(new URLSearchParams(window.location.search).get('error')));
   const [, setLocation] = useLocation();
   const formRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
   const register = trpc.auth.registerEmail.useMutation();
   const login = trpc.auth.loginEmail.useMutation();
+  const providers = trpc.auth.providers.useQuery(undefined, { staleTime: 5 * 60_000 });
+  const googleHref = `/api/auth/google?next=${encodeURIComponent(new URLSearchParams(window.location.search).get('next') || '/')}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +118,17 @@ export default function EmailAuth() {
       <p className="text-center text-sm text-muted-foreground mb-6">
         {mode === 'login' ? 'Sign in to keep logging' : 'Free while in beta'}
       </p>
+
+      {providers.data?.google && (
+        <>
+          <a href={googleHref} className="flex items-center justify-center gap-2.5 w-full rounded-md border border-border bg-white py-2.5 text-sm font-medium text-foreground hover:bg-muted/40">
+            <GoogleG /> Continue with Google
+          </a>
+          <div className="flex items-center gap-3 my-5">
+            <div className="h-px flex-1 bg-border" /><span className="text-xs text-muted-foreground">or use email</span><div className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === 'signup' && (

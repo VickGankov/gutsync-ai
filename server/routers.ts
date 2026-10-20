@@ -58,6 +58,7 @@ import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
 import { SITES, compoundKey, fmtMg } from "../shared/dose";
+import { googleConfigured } from "./googleAuth";
 import { pushConfigured, vapidPublicKey, sendToUser } from "./reminders";
 import { cleanSensitivities } from "../shared/sensitivities";
 import { DEFAULT_MEAL_TIMES, isValidTime, isValidTimeZone, normalizeTimes } from "../shared/reminders";
@@ -253,6 +254,8 @@ export const appRouter = router({
       const u = opts.ctx.user;
       return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities) } : null;
     }),
+    /** Which sign-in methods the server has set up, so the sign-in page only shows buttons that work. */
+    providers: publicProcedure.query(() => ({ google: googleConfigured() })),
     registerEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string().min(8), name: z.string().optional() })).mutation(async ({ input, ctx }) => {
       const { registerEmail } = await import('./emailAuth');
       const user = await registerEmail(input.email, input.password, input.name);

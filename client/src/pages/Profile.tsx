@@ -1,7 +1,7 @@
 // GutSync — Profile Page
 // Wired to real auth
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import RemindersCard from "@/components/RemindersCard";
 import DietaryProfile from "@/components/DietaryProfile";
 import { motion } from "framer-motion";
@@ -68,6 +68,17 @@ export default function Profile() {
       if (fileRef.current) fileRef.current.value = "";
     }
   };
+
+  // After Google sign-in linked an email-and-password account, say so once: its password was removed.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notice") === "google-linked") {
+      toast.success("Signed in with Google", { description: "This account now uses Google. Its old password was removed. Use Forgot password if you want one again.", duration: 9000 });
+      params.delete("notice");
+      const q = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (q ? `?${q}` : ""));
+    }
+  }, []);
 
   const [exporting, setExporting] = useState(false);
   const handleExport = async () => {

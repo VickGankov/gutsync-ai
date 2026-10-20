@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startReminderScheduler } from "../reminders";
+import { registerGoogleAuthRoutes } from "../googleAuth";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,6 +38,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback (disabled for email-only auth)
   // registerOAuthRoutes(app);
+  registerGoogleAuthRoutes(app);
   // Meal photos stored in a private bucket: redirect to a short-lived signed URL.
   app.get(`${MEDIA_ROUTE}/*`, async (req, res) => {
     const key = decodeURIComponent(req.path.slice(MEDIA_ROUTE.length + 1));

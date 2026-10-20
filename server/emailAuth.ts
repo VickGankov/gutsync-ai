@@ -114,7 +114,10 @@ export async function loginEmail(email: string, password: string) {
   if (result.length === 0) throw new Error("Invalid credentials");
   
   const user = result[0];
-  if (!user.password) throw new Error("Invalid credentials");
+  if (!user.password) {
+    if (user.loginMethod === 'google') throw new Error("This account uses Google. Tap Continue with Google.");
+    throw new Error("Invalid credentials");
+  }
   
   const match = await bcrypt.compare(password, user.password);
   if (!match) throw new Error("Invalid credentials");
