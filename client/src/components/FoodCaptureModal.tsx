@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import Paywall from "@/components/Paywall";
+import { sensitivitiesIn, sensitivityLabel } from "@shared/sensitivities";
 
 export interface FoodCaptureModalProps {
   open: boolean;
@@ -94,6 +95,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const readLabel = trpc.meals.readLabel.useMutation();
   const logManual = trpc.meals.logManual.useMutation();
   const { data: subStatus } = trpc.subscription.status.useQuery(undefined, { retry: false });
+  const mySensitivities = trpc.auth.me.useQuery().data?.sensitivities ?? [];
 
   const runAnalysis = useCallback(async (file: File, label?: File | null) => {
     const url = URL.createObjectURL(file);
@@ -702,7 +704,14 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                               ))}
                             </div>
                           ) : (
-                            fodmapBadge(food.fodmap)
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {fodmapBadge(food.fodmap)}
+                              {sensitivitiesIn(food, mySensitivities).map(k => (
+                                <span key={k} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                  You flagged: {sensitivityLabel(k)}
+                                </span>
+                              ))}
+                            </div>
                           )}
 
                           {editingIndex === i ? (

@@ -11,7 +11,7 @@ import {
   saveFoodFiber,
   createWaistLog, getWaistLogs, deleteWaistLog,
   getSupplements, addSupplement, archiveSupplement, getSupplementLogs, setSupplementTaken,
-  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, exportUserData, getNotificationPrefs, saveNotificationPrefs, saveSubscription, getSubscriptions, deleteSubscription, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
+  setSupplementDose, setUserAvatar, getSupplementHistory, getLabResults, exportUserData, setUserSensitivities, getNotificationPrefs, saveNotificationPrefs, saveSubscription, getSubscriptions, deleteSubscription, addLabResults, updateLabResult, renameLabMarker, deleteLabResult,
   updateMeal,
   deleteMeal,
   getMealsByUser,
@@ -59,6 +59,7 @@ import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsig
 import { ofMeals, pct } from "../shared/triggers";
 import { SITES, compoundKey, fmtMg } from "../shared/dose";
 import { pushConfigured, vapidPublicKey, sendToUser } from "./reminders";
+import { cleanSensitivities } from "../shared/sensitivities";
 import { DEFAULT_MEAL_TIMES, isValidTime, isValidTimeZone, normalizeTimes } from "../shared/reminders";
 import { buildRuns, matchExisting, normalizeMarker, type Run } from "../shared/labs";
 import { dateKeyOf } from "../shared/weekly";
@@ -250,7 +251,7 @@ export const appRouter = router({
     /** Only fields the app needs. The full row holds the password hash, which must never reach the browser. */
     me: publicProcedure.query(opts => {
       const u = opts.ctx.user;
-      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null } : null;
+      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities) } : null;
     }),
     registerEmail: publicProcedure.input(z.object({ email: z.string().email(), password: z.string().min(8), name: z.string().optional() })).mutation(async ({ input, ctx }) => {
       const { registerEmail } = await import('./emailAuth');
@@ -575,6 +576,15 @@ export const appRouter = router({
   }),
 
   profile: router({
+    /** Foods the user says they suspect. Unknown keys are dropped. */
+    setSensitivities: protectedProcedure
+      .input(z.object({ keys: z.array(z.string().max(30)).max(20) }))
+      .mutation(async ({ ctx, input }) => {
+        const keys = cleanSensitivities(input.keys);
+        await setUserSensitivities(ctx.user.id, keys);
+        return { keys };
+      }),
+
     /** All of the user's own logged data as one JSON document. */
     exportData: protectedProcedure.query(async ({ ctx }) => exportUserData(ctx.user.id)),
 

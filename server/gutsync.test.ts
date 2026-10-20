@@ -26,6 +26,7 @@ vi.mock("./db", () => ({
   setSupplementDose: vi.fn().mockResolvedValue(undefined),
   setUserAvatar: vi.fn().mockResolvedValue(undefined),
   renameLabMarker: vi.fn().mockResolvedValue(undefined),
+  setUserSensitivities: vi.fn().mockResolvedValue(undefined),
   getNotificationPrefs: vi.fn().mockResolvedValue(null),
   saveNotificationPrefs: vi.fn().mockResolvedValue(undefined),
   saveSubscription: vi.fn().mockResolvedValue(undefined),
@@ -283,6 +284,15 @@ describe("GutSync Server Procedures", () => {
     });
   });
 
+  describe("dietary profile", () => {
+    it("saves only known sensitivities, once each", async () => {
+      const r = await appRouter.createCaller(createAuthContext()).profile.setSensitivities({ keys: ["gluten", "nope", "lactose", "gluten"] });
+      expect(r.keys).toEqual(["lactose", "gluten"]);
+      expect(db.setUserSensitivities).toHaveBeenLastCalledWith(1, ["lactose", "gluten"]);
+      await expect(appRouter.createCaller(createUnauthContext()).profile.setSensitivities({ keys: [] })).rejects.toThrow();
+    });
+  });
+
   describe("export my data", () => {
     it("returns the signed-in user's export and requires login", async () => {
       const out = await appRouter.createCaller(createAuthContext()).profile.exportData();
@@ -316,7 +326,7 @@ describe("GutSync Server Procedures", () => {
 
     it("auth.me never includes the password hash or other internal fields", async () => {
       const me = await appRouter.createCaller(ctxWithSecrets()).auth.me();
-      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg" });
+      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [] });
       expect(JSON.stringify(me)).not.toContain("secret-hash");
       expect(await appRouter.createCaller(createUnauthContext()).auth.me()).toBeNull();
     });

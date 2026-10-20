@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { invalidateToday } from "@/lib/invalidateToday";
 import { foodEmoji } from "@/lib/foodEmoji";
+import { sensitivitiesIn, sensitivityLabel } from "@shared/sensitivities";
 
 const TYPE_ICON = { breakfast: Coffee, lunch: Sandwich, dinner: Utensils, snack: Cookie } as const;
 
@@ -152,6 +153,8 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
     return "bg-sage-light/60 text-sage-dark";
   };
 
+  const mySens = trpc.auth.me.useQuery().data?.sensitivities ?? [];
+  const flagged = Array.from(new Set(foods.flatMap((f) => sensitivitiesIn(f, mySens))));
   const emoji = foodEmoji(foods.map((f) => f.name));
   const TypeIcon = TYPE_ICON[mealType];
   // The meal badge is the highest level among its foods, using the same words as each food's chip.
@@ -205,10 +208,15 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
             {foods.map((f) => f.name).join(", ")}
           </p>
           {mealLevel && (
-            <div className="flex gap-1 mt-1">
+            <div className="flex flex-wrap gap-1 mt-1">
               <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(mealLevel)}`}>
                 {mealLevel} sensitivity
               </span>
+              {flagged.length > 0 && (
+                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                  You flagged: {flagged.map(sensitivityLabel).join(", ")}
+                </span>
+              )}
             </div>
           )}
         </div>

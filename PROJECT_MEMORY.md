@@ -61,3 +61,9 @@ This file is the durable context for future Cursor chats in this workspace.
 - Needs Render env vars `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto:...); without the keys the scheduler stays off and the card says reminders aren't set up. Generate with `npx web-push generate-vapid-keys`.
 - iPhone only works from the installed Home Screen app (iOS 16.4+). Real delivery to a phone is untested from the sandbox; only the settings flow, the tick against a real DB, and rules were tested.
 - Local only until the owner approves a push.
+
+## 2026-10-19 — Foods I suspect (dietary profile made real)
+- The old Profile "Dietary Profile" chips were hardcoded text that did nothing, with a false line about prioritising detection. Replaced by `client/src/components/DietaryProfile.tsx`: tap-to-select list (lactose/dairy, gluten, garlic & onion, fructose, sugar alcohols & polyols, beans & lentils) saved in `users.sensitivities` (JSON, migration 0032), set via `profile.setSensitivities`, returned by `auth.me`, included in the data export.
+- Uses: (1) "You flagged: X" badge on meal tiles and on scan review rows, from `sensitivitiesIn` in `shared/sensitivities.ts` (approximate keyword match on food names, hidden ingredients and ingredient lists, with look-alike exclusions such as almond milk, gluten-free bread, green beans); (2) Insights "Foods you flagged" card (`declaredStats`): meals containing it followed by any negative symptom within 6 h vs the user's other meals, from the last 50 meals/symptoms, with a "too few meals" note under 3 exposures.
+- Deliberately separate from data-driven triggers: declared sensitivities never create a "trigger" and do not feed `computeTriggers`. Not yet used by the reintroduction challenge.
+- Local only until the owner approves a push.

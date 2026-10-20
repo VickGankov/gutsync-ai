@@ -634,7 +634,7 @@ export async function exportUserData(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const mine = <T extends { userId: any }>(t: any) => db.select().from(t).where(eq((t as T).userId, userId));
-  const [account] = await db.select({ email: users.email, name: users.name, createdAt: users.createdAt }).from(users).where(eq(users.id, userId)).limit(1);
+  const [account] = await db.select({ email: users.email, name: users.name, createdAt: users.createdAt, sensitivities: users.sensitivities }).from(users).where(eq(users.id, userId)).limit(1);
   const [
     mealRows, symptomRows, fitness, weights, waists, intake, lifts, supps, suppLogs, doses, schedules, labs, challenges,
   ] = await Promise.all([
@@ -742,4 +742,10 @@ export async function getLastSymptomAt(userId: number): Promise<number | null> {
   if (!db) return null;
   const [r] = await db.select({ at: symptoms.loggedAt }).from(symptoms).where(eq(symptoms.userId, userId)).orderBy(desc(symptoms.loggedAt)).limit(1);
   return r?.at ?? null;
+}
+
+export async function setUserSensitivities(userId: number, keys: string[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ sensitivities: keys }).where(eq(users.id, userId));
 }

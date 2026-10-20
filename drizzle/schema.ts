@@ -12,6 +12,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   /** Profile photo (a small square JPEG we store ourselves), or null for the initials fallback. */
   avatarUrl: varchar("avatarUrl", { length: 500 }),
+  /** Foods the user says they suspect (keys from shared/sensitivities.ts). Only used to flag and count. */
+  sensitivities: json("sensitivities").$type<string[]>(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

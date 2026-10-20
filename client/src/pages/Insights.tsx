@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Link } from "wouter";
 import { ofMeals, pct, MIN_EXPOSURES } from "@shared/triggers";
+import { declaredStats } from "@shared/sensitivities";
 
 const barColors = ['oklch(0.7 0.12 25)', 'oklch(0.55 0.1 155)', 'oklch(0.75 0.04 80)', 'oklch(0.65 0.08 80)'];
 
@@ -183,6 +184,13 @@ export default function Insights() {
   const meals = mealsQuery.data ?? [];
   const symptoms = symptomsQuery.data ?? [];
 
+  // Foods the user flagged on Profile: counted separately from the patterns found in their logs.
+  const mySensitivities = trpc.auth.me.useQuery().data?.sensitivities ?? [];
+  const flagged = useMemo(
+    () => declaredStats(mySensitivities, meals as any[], symptoms as any[]),
+    [mySensitivities.join(","), meals, symptoms],
+  );
+
   // Compute symptom frequency data
   const symptomChartData = useMemo(() => {
     const freq: Record<string, number> = {};
@@ -281,6 +289,40 @@ export default function Insights() {
               </div>
             )}
           </motion.div>
+
+          {/* Foods you flagged */}
+          {flagged.length > 0 && (
+            <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold">Foods you flagged</h3>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                You chose these, so they are shown apart from the patterns found in your logs. A "symptom after" means any symptom within 6 hours of the meal.
+              </p>
+              <div className="space-y-3">
+                {flagged.map(f => (
+                  <div key={f.key}>
+                    <p className="text-sm font-medium">{f.label}</p>
+                    {f.exposures === 0 ? (
+                      <p className="text-xs text-muted-foreground">No meals with this in your recent logs yet.</p>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground">
+                          {ofMeals(f.hits, f.exposures)} followed by a symptom ({pct(f.hits / f.exposures)})
+                          {f.otherMeals > 0 && <> vs {pct(f.otherHits / f.otherMeals)} of your other meals ({ofMeals(f.otherHits, f.otherMeals)})</>}
+                        </p>
+                        {f.exposures < MIN_EXPOSURES && (
+                          <p className="text-[11px] text-amber-700 mt-0.5">Only {f.exposures} meal{f.exposures === 1 ? "" : "s"} so far, too few to say anything.</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3">Based on your last 50 meals and symptoms.</p>
+            </motion.div>
+          )}
 
           {/* Symptom Frequency Chart */}
           {symptomChartData.length > 0 && (

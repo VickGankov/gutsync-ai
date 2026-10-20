@@ -3,6 +3,7 @@
 
 import { useRef, useState } from "react";
 import RemindersCard from "@/components/RemindersCard";
+import DietaryProfile from "@/components/DietaryProfile";
 import { motion } from "framer-motion";
 import { User, Download, Shield, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
 import Avatar from "@/components/Avatar";
@@ -135,24 +136,9 @@ export default function Profile() {
         )}
       </motion.div>
 
-      {/* Dietary Profile */}
-      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Apple className="w-4 h-4 text-coral" />
-          Dietary Profile
-        </h3>
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
-            {['Food Sensitivities', 'Digestive Health', 'Lactose Sensitive', 'Gluten Sensitive'].map((tag) => (
-              <span key={tag} className="text-xs px-3 py-1.5 rounded-full bg-muted border border-border text-foreground font-medium">
-                {tag}
-              </span>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Your profile helps prioritize relevant ingredient detection and trigger analysis.
-          </p>
-        </div>
+      {/* Foods I suspect */}
+      <motion.div variants={item}>
+        <DietaryProfile />
       </motion.div>
 
       {/* Reminders */}
