@@ -1,4 +1,4 @@
-// GutSync — Types & Utility Functions
+// Triggerplate — Types & Utility Functions
 // These types mirror the database schema for frontend use
 
 export interface FoodItem {

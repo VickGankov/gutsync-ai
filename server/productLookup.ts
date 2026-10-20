@@ -8,7 +8,7 @@ export interface ProductMatch { name: string; ingredients: string[] }
 export interface ProductCacheRow { productKey: string; name: string; ingredients: string[]; found: boolean; createdAt: Date }
 
 const SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
-const USER_AGENT = "GutSync/1.0 (https://gutsync-ai.onrender.com; vasil.gankov@gmail.com)";
+const USER_AGENT = "Triggerplate/1.0 (https://gutsync-ai.onrender.com; vasil.gankov@gmail.com)";
 const MISS_RETRY_MS = 7 * 24 * 3600 * 1000;
 const STOP = new Set(["the", "and", "with", "flavored", "flavor", "natural", "beverage", "drink", "water", "enhanced"]);
 

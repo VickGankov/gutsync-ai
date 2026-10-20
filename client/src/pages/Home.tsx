@@ -1,4 +1,4 @@
-// GutSync — Home Dashboard
+// Triggerplate — Home Dashboard
 // Minimalistic design: tap meal tile to expand, clean edit/delete
 
 import { invalidateToday } from "@/lib/invalidateToday";
@@ -161,7 +161,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 <Crown className={`w-5 h-5 ${subStatus.data?.isPremium ? "text-amber-500" : "text-muted-foreground"}`} />
                 <div>
                   <p className="text-sm font-semibold">
-                    {subStatus.data?.isPremium ? "GutSync Premium" : "Free Plan"}
+                    {subStatus.data?.isPremium ? "Triggerplate Premium" : "Free Plan"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {subStatus.data?.isPremium
@@ -241,7 +241,7 @@ export default function Home() {
           <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
             <div className="h-48 bg-gradient-to-br from-sage-light via-sage-light/60 to-sand/50 flex flex-col items-center justify-center text-center px-6">
               <Leaf className="w-10 h-10 text-sage-dark mb-3" />
-              <h1 className="text-foreground text-2xl font-display">GutSync</h1>
+              <h1 className="text-foreground text-2xl font-display">Triggerplate</h1>
               <p className="text-muted-foreground text-sm mt-1">Discover your personal food triggers</p>
             </div>
           </motion.div>
@@ -456,7 +456,7 @@ export default function Home() {
             <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="font-display text-lg mb-1">Start tracking</h3>
             <p className="text-sm text-muted-foreground">
-              Tap the camera button below to log your first meal. GutSync will help identify food triggers and hidden ingredients.
+              Tap the camera button below to log your first meal. Triggerplate will help identify food triggers and hidden ingredients.
             </p>
           </motion.div>
         )}

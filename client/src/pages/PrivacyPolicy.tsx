@@ -6,12 +6,12 @@ const sections = [
   {
     icon: Database,
     title: "Information We Collect",
-    body: "GutSync collects the account details you provide (or, if you choose Continue with Google, the name and verified email address Google shares with us; we never see your Google password), meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working. If you use the optional tracking features, it also stores the body and health information you enter, such as weight, waist, strength lifts, protein and water intake, supplements, medication or peptide dose logs, and blood work results. This is sensitive health information; you choose what to log, and you can leave any of it blank.",
+    body: "Triggerplate collects the account details you provide (or, if you choose Continue with Google, the name and verified email address Google shares with us; we never see your Google password), meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working. If you use the optional tracking features, it also stores the body and health information you enter, such as weight, waist, strength lifts, protein and water intake, supplements, medication or peptide dose logs, and blood work results. This is sensitive health information; you choose what to log, and you can leave any of it blank.",
   },
   {
     icon: Brain,
     title: "How We Use Information",
-    body: "We use your data to analyze meals, save your logs, estimate food-symptom patterns, enforce scan limits, process password resets, manage subscriptions, and improve reliability. GutSync is not a medical device and does not provide medical diagnosis or treatment.",
+    body: "We use your data to analyze meals, save your logs, estimate food-symptom patterns, enforce scan limits, process password resets, manage subscriptions, and improve reliability. Triggerplate is not a medical device and does not provide medical diagnosis or treatment.",
   },
   {
     icon: Camera,
@@ -21,17 +21,17 @@ const sections = [
   {
     icon: FlaskConical,
     title: "Blood Work",
-    body: "Blood work you add by hand or import is stored in your account and shown only to you in the app. When you import a report, the photo or the text of the PDF is sent to our AI provider so the values can be read, and GutSync does not keep the file. Only the results you review and confirm are saved. You can delete any result in the app at any time. This is sensitive health information; you choose what to add.",
+    body: "Blood work you add by hand or import is stored in your account and shown only to you in the app. When you import a report, the photo or the text of the PDF is sent to our AI provider so the values can be read, and Triggerplate does not keep the file. Only the results you review and confirm are saved. You can delete any result in the app at any time. This is sensitive health information; you choose what to add.",
   },
   {
     icon: Bell,
     title: "Reminders",
-    body: "If you turn on reminders, GutSync stores your reminder settings and a push address for each device you allow, and sends notifications through your device's push service (such as Google or Apple). Notifications never include what you ate or any health detail. You can turn reminders off in Profile at any time. You can also download a copy of everything you have logged from Profile (Export My Data).",
+    body: "If you turn on reminders, Triggerplate stores your reminder settings and a push address for each device you allow, and sends notifications through your device's push service (such as Google or Apple). Notifications never include what you ate or any health detail. You can turn reminders off in Profile at any time. You can also download a copy of everything you have logged from Profile (Export My Data).",
   },
   {
     icon: CreditCard,
     title: "Payments",
-    body: "Purchases and subscription status are handled through RevenueCat and the applicable app store. GutSync does not store full payment card numbers.",
+    body: "Purchases and subscription status are handled through RevenueCat and the applicable app store. Triggerplate does not store full payment card numbers.",
   },
   {
     icon: Shield,
@@ -41,7 +41,7 @@ const sections = [
   {
     icon: Mail,
     title: "Your Choices",
-    body: "You can choose what meals and symptoms to log. To request access, correction, export, or deletion of your data, contact support through the app store listing or the support channel provided for GutSync.",
+    body: "You can choose what meals and symptoms to log. To request access, correction, export, or deletion of your data, contact support through the app store listing or the support channel provided for Triggerplate.",
   },
 ];
 
@@ -55,9 +55,9 @@ export default function PrivacyPolicy() {
 
         <section className="mt-6 rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Privacy Policy</p>
-          <h1 className="mt-3 text-3xl tracking-tight">GutSync Privacy Policy</h1>
+          <h1 className="mt-3 text-3xl tracking-tight">Triggerplate Privacy Policy</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Last updated: {updatedAt}. This policy explains what GutSync collects, how it is used, and the choices you
+            Last updated: {updatedAt}. This policy explains what Triggerplate collects, how it is used, and the choices you
             have when using the app.
           </p>
         </section>

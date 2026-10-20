@@ -97,7 +97,7 @@ async function analyzeFood(imageUrl: string): Promise<{
     messages: [
       {
         role: "system",
-        content: `You are GutSync, a specialized food analysis assistant for people with IBS and gut health issues.
+        content: `You are Triggerplate, a specialized food analysis assistant for people with IBS and gut health issues.
 Analyze the food photo and return a JSON object with:
 - foods: array of food items, each with { name, category, fodmap, hiddenIngredients, proteinGrams }
   - category: one of "protein", "carb", "fat", "vegetable", "fruit", "dairy", "grain", "other"
@@ -721,7 +721,7 @@ export const appRouter = router({
       const last = testSentAt.get(ctx.user.id) ?? 0;
       if (Date.now() - last < 15_000) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Wait a few seconds and try again." });
       testSentAt.set(ctx.user.id, Date.now());
-      const delivered = await sendToUser(ctx.user.id, { title: "GutSync test", body: "Notifications are working on this device.", url: "/profile", tag: "test" }, 300);
+      const delivered = await sendToUser(ctx.user.id, { title: "Triggerplate test", body: "Notifications are working on this device.", url: "/profile", tag: "test" }, 300);
       return { delivered };
     }),
   }),

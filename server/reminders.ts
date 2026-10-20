@@ -19,7 +19,7 @@ let vapidSet = false;
 /** The real sender. Throws an error with `.statusCode` when the push service rejects the subscription. */
 export const webPushSender: PushSender = async (sub, payload, ttl) => {
   if (!vapidSet) {
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:support@gutsync.app", process.env.VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:support@triggerplate.com", process.env.VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
     vapidSet = true;
   }
   await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(payload), { TTL: ttl });
@@ -42,7 +42,7 @@ export async function sendToUser(userId: number, payload: PushPayload, ttlSecond
 }
 
 const MEAL_COPY: PushPayload = { title: "Time to log your meal?", body: "Tap to add what you ate.", url: "/log?tab=food", tag: "meal-reminder" };
-const CHECKIN_COPY: PushPayload = { title: "How are you feeling?", body: "A quick check-in helps GutSync spot patterns.", url: "/log?tab=symptoms", tag: "symptom-checkin" };
+const CHECKIN_COPY: PushPayload = { title: "How are you feeling?", body: "A quick check-in helps Triggerplate spot patterns.", url: "/log?tab=symptoms", tag: "symptom-checkin" };
 
 /** One pass over everyone who has reminders on. Safe to call repeatedly: each reminder is claimed once in the log. */
 export async function runReminderTick(now = Date.now(), send: PushSender = webPushSender) {

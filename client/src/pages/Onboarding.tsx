@@ -1,4 +1,4 @@
-// GutSync — Onboarding Flow
+// Triggerplate — Onboarding Flow
 // Design: Organic Minimalism — warm, calming, step-by-step introduction
 
 import { useState } from "react";
@@ -19,7 +19,7 @@ const steps = [
   {
     image: HERO_IMG,
     icon: Leaf,
-    title: "Welcome to GutSync",
+    title: "Welcome to Triggerplate",
     subtitle: "Your personal food sensitivity tracker",
     description: "Discover which foods trigger your bloating, pain, and discomfort — without keeping a tedious food diary.",
   },
@@ -42,7 +42,7 @@ const steps = [
     icon: Sparkles,
     title: "Discover Your Patterns",
     subtitle: "Smart correlation engine",
-    description: "After a few days of tracking, GutSync finds complex trigger patterns you'd miss on your own — like 'you only bloat when combining dairy with high-fructan vegetables.'",
+    description: "After a few days of tracking, Triggerplate finds complex trigger patterns you'd miss on your own — like 'you only bloat when combining dairy with high-fructan vegetables.'",
   },
 ];
 

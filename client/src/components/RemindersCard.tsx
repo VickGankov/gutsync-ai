@@ -112,7 +112,7 @@ export default function RemindersCard() {
   });
 
   const note = iosNeedsInstall
-    ? "On iPhone, add GutSync to your Home Screen first (Profile, Add to Home Screen), then open it from there to turn reminders on."
+    ? "On iPhone, add Triggerplate to your Home Screen first (Profile, Add to Home Screen), then open it from there to turn reminders on."
     : unsupported ? "This browser can't show notifications. Try Chrome on Android, or the installed app on iPhone."
     : blocked ? "Notifications are blocked for this site. Allow them in your browser settings, then come back."
     : q.data && !q.data.available ? "Reminders aren't switched on for this server yet."

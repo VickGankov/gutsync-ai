@@ -1,4 +1,4 @@
-// Foods you suspect. GutSync flags them in your meals and counts how your own logs compare.
+// Foods you suspect. Triggerplate flags them in your meals and counts how your own logs compare.
 // It never decides on its own that something is a trigger.
 
 import { Apple } from "lucide-react";
@@ -33,7 +33,7 @@ export default function DietaryProfile() {
         Foods I suspect
       </h3>
       <p className="text-xs text-muted-foreground mb-3">
-        Tap any you already think bother you. GutSync will flag them in your meals and show how your own logs compare. Your logs, not this list, decide what counts as a trigger.
+        Tap any you already think bother you. Triggerplate will flag them in your meals and show how your own logs compare. Your logs, not this list, decide what counts as a trigger.
       </p>
       <div className="flex flex-wrap gap-2">
         {SENSITIVITIES.map(s => {

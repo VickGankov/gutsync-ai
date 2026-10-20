@@ -1,4 +1,4 @@
-// GutSync — Profile Page
+// Triggerplate — Profile Page
 // Wired to real auth
 
 import { useEffect, useRef, useState } from "react";
@@ -90,7 +90,7 @@ export default function Profile() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `gutsync-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `triggerplate-export-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -129,7 +129,7 @@ export default function Profile() {
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => onPickPhoto(e.target.files?.[0])} />
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-display truncate">{user.name || 'GutSync User'}</h2>
+              <h2 className="text-lg font-display truncate">{user.name || 'Triggerplate User'}</h2>
               <p className="text-xs text-muted-foreground truncate">{user.email || 'Tracking your gut health'}</p>
               <div className="flex gap-3 mt-1.5 text-xs font-medium">
                 <button type="button" onClick={() => fileRef.current?.click()} className="text-primary">{user.avatarUrl ? "Change photo" : "Add photo"}</button>
@@ -159,7 +159,7 @@ export default function Profile() {
 
       {/* Add to home screen */}
       <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
-        <SettingsRow icon={Smartphone} label="Add to Home Screen" description={install.installed ? "GutSync is installed on this device" : "Open GutSync like an app, full-screen"} action={
+        <SettingsRow icon={Smartphone} label="Add to Home Screen" description={install.installed ? "Triggerplate is installed on this device" : "Open Triggerplate like an app, full-screen"} action={
           install.installed ? <span className="text-xs font-semibold text-muted-foreground">Installed</span> : <button onClick={install.start} className="text-xs font-semibold text-primary">Add</button>
         } />
         <InstallSheet open={install.sheetOpen} onClose={install.closeSheet} platform={install.platform} />
@@ -172,7 +172,7 @@ export default function Profile() {
           Privacy & Data
         </h3>
         <div className="space-y-1 divide-y divide-border/50">
-          <SettingsRow icon={Shield} label="Privacy Policy" description="How GutSync handles your data" iconColor="text-sage-dark" action={
+          <SettingsRow icon={Shield} label="Privacy Policy" description="How Triggerplate handles your data" iconColor="text-sage-dark" action={
             <a href="/privacy" className="text-xs font-semibold text-primary">View</a>
           } />
           <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-sage-dark" />
@@ -200,7 +200,7 @@ export default function Profile() {
 
       {/* App Info */}
       <motion.div variants={item} className="text-center py-4">
-        <p className="text-xs text-muted-foreground">GutSync v1.0.0</p>
+        <p className="text-xs text-muted-foreground">Triggerplate v1.0.0</p>
         <p className="text-[11px] text-muted-foreground mt-1">Discover your personal food triggers</p>
       </motion.div>
     </motion.div>

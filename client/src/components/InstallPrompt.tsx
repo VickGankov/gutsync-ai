@@ -36,7 +36,7 @@ export function InstallSheet({ open, onClose, platform }: { open: boolean; onClo
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 pb-8" onClick={onClose}>
       <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-border/50" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-3">
-          <h2 className="text-lg font-semibold">Add GutSync to your home screen</h2>
+          <h2 className="text-lg font-semibold">Add Triggerplate to your home screen</h2>
           <button onClick={onClose} aria-label="Close" className="p-1 text-muted-foreground"><X className="w-5 h-5" /></button>
         </div>
         {inApp ? (
@@ -47,13 +47,13 @@ export function InstallSheet({ open, onClose, platform }: { open: boolean; onClo
           <ol className="space-y-3 text-sm">
             <li className="flex gap-3"><Share className="w-5 h-5 text-primary shrink-0" /><span>Tap the <b>Share</b> button in Safari's toolbar.</span></li>
             <li className="flex gap-3"><PlusSquare className="w-5 h-5 text-primary shrink-0" /><span>Scroll down and tap <b>Add to Home Screen</b>.</span></li>
-            <li className="flex gap-3"><Smartphone className="w-5 h-5 text-primary shrink-0" /><span>Tap <b>Add</b>. GutSync now opens full-screen from your home screen.</span></li>
+            <li className="flex gap-3"><Smartphone className="w-5 h-5 text-primary shrink-0" /><span>Tap <b>Add</b>. Triggerplate now opens full-screen from your home screen.</span></li>
           </ol>
         ) : platform === "android" ? (
           <ol className="space-y-3 text-sm">
             <li className="flex gap-3"><MoreVertical className="w-5 h-5 text-primary shrink-0" /><span>Tap the <b>⋮ menu</b> in Chrome.</span></li>
             <li className="flex gap-3"><PlusSquare className="w-5 h-5 text-primary shrink-0" /><span>Tap <b>Install app</b> (or <b>Add to Home screen</b>).</span></li>
-            <li className="flex gap-3"><Smartphone className="w-5 h-5 text-primary shrink-0" /><span>Confirm. GutSync now opens full-screen from your home screen.</span></li>
+            <li className="flex gap-3"><Smartphone className="w-5 h-5 text-primary shrink-0" /><span>Confirm. Triggerplate now opens full-screen from your home screen.</span></li>
           </ol>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -80,7 +80,7 @@ export default function InstallBanner() {
       <div className="mb-4 flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
         <Smartphone className="w-5 h-5 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">Open GutSync from your home screen</p>
+          <p className="text-sm font-medium">Open Triggerplate from your home screen</p>
           <p className="text-xs text-muted-foreground">Full-screen, one tap, no browser bar.</p>
         </div>
         <Button size="sm" onClick={start}>Add</Button>

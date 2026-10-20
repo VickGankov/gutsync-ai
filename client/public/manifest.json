@@ -1,7 +1,7 @@
 {
   "id": "ai.gutsync.app",
-  "name": "GutSync",
-  "short_name": "GutSync",
+  "name": "Triggerplate",
+  "short_name": "Triggerplate",
   "description": "Your personal food sensitivity tracker. Discover which foods trigger your bloating, pain, and discomfort \u2014 without keeping a tedious food diary.",
   "start_url": "/",
   "scope": "/",

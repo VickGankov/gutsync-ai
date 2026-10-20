@@ -1,4 +1,4 @@
-// GutSync — Progress Page
+// Triggerplate — Progress Page
 // Protein / water targets, weigh-ins, and lift tracking.
 
 import { motion } from "framer-motion";

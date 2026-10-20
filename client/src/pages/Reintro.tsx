@@ -1,4 +1,4 @@
-// GutSync — FODMAP Reintroduction Challenge
+// Triggerplate — FODMAP Reintroduction Challenge
 // Test one FODMAP group over 3 days with increasing amounts, check in daily,
 // and build a personal tolerance map.
 
@@ -131,7 +131,7 @@ export default function Reintro() {
   };
 
   const shareSummary = async () => {
-    const lines = ["GutSync — FODMAP reintroduction results", ""];
+    const lines = ["Triggerplate — FODMAP reintroduction results", ""];
     for (const g of REINTRO_GROUPS) {
       const c = latestByGroup.get(g);
       const info = REINTRO_GROUP_INFO[g];

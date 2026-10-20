@@ -1,5 +1,5 @@
 /**
- * GutSync — Paywall Component
+ * Triggerplate — Paywall Component
  * Shows premium upgrade options when the free scan limit is reached.
  * Integrates with RevenueCat Capacitor SDK for native purchases.
  */
@@ -106,7 +106,7 @@ export default function Paywall({ isOpen, onClose, onSuccess, scansUsed = 10, da
             platform: /android/i.test(navigator.userAgent) ? 'android' : 'ios',
           });
           await utils.subscription.status.invalidate();
-          toast.success("Welcome to GutSync Premium! 🎉");
+          toast.success("Welcome to Triggerplate Premium! 🎉");
           onSuccess();
         }
       } else {
@@ -118,7 +118,7 @@ export default function Paywall({ isOpen, onClose, onSuccess, scansUsed = 10, da
           expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
         });
         await utils.subscription.status.invalidate();
-        toast.success("Welcome to GutSync Premium! 🎉");
+        toast.success("Welcome to Triggerplate Premium! 🎉");
         onSuccess();
       }
     } catch (err: unknown) {

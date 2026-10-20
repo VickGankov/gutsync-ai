@@ -1,4 +1,4 @@
-// GutSync — Food Capture Modal
+// Triggerplate — Food Capture Modal
 // Supports camera capture and gallery upload, with editable AI results
 
 import { invalidateToday } from "@/lib/invalidateToday";

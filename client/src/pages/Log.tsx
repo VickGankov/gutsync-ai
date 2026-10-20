@@ -179,7 +179,7 @@ export default function Log() {
           toast.success(`${label} logged`, {
             description: isPositive 
               ? `Great! We'll track which foods contribute to this.`
-              : `Severity ${severity}/5 — GutSync will check meals from the last 48 hours`,
+              : `Severity ${severity}/5 — Triggerplate will check meals from the last 48 hours`,
           });
           setShowLogger(false);
           setSelectedType(null);

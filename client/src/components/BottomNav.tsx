@@ -1,4 +1,4 @@
-// GutSync — Bottom Navigation
+// Triggerplate — Bottom Navigation
 // Centered scan FAB with long-press to upload from gallery
 
 import { useLocation, Link } from "wouter";

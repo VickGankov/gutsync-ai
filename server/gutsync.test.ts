@@ -115,7 +115,7 @@ function createUnauthContext(): TrpcContext {
   };
 }
 
-describe("GutSync Server Procedures", () => {
+describe("Triggerplate Server Procedures", () => {
   let db: typeof import("./db");
 
   beforeEach(async () => {

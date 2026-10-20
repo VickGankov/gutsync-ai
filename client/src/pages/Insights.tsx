@@ -1,4 +1,4 @@
-// GutSync — Insights Page
+// Triggerplate — Insights Page
 // Triggers are found by counting (shared/triggers.ts). The AI only explains a pattern, on demand.
 
 import { motion } from "framer-motion";

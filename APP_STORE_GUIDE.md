@@ -1,6 +1,6 @@
-# GutSync — App Store Submission Guide
+# Triggerplate — App Store Submission Guide
 
-This guide walks you through building and publishing GutSync to both the **Apple App Store** and **Google Play Store** using Capacitor. The project is already configured — follow the steps below on your local machine.
+This guide walks you through building and publishing Triggerplate to both the **Apple App Store** and **Google Play Store** using Capacitor. The project is already configured — follow the steps below on your local machine.
 
 ---
 
@@ -92,7 +92,7 @@ Connect your iPhone via USB. In Xcode, select your device from the top device pi
 
 | Field | Value |
 |---|---|
-| Name | GutSync |
+| Name | Triggerplate |
 | Bundle ID | ai.gutsync.app |
 | SKU | gutsync-ai-001 |
 | Primary Language | English (U.S.) |
@@ -156,7 +156,7 @@ Connect your Android phone via USB with **Developer Mode** and **USB Debugging**
 
 | Field | Value |
 |---|---|
-| App name | GutSync |
+| App name | Triggerplate |
 | Default language | English (United States) |
 | App or game | App |
 | Free or paid | Free |
@@ -183,13 +183,13 @@ Your invisible gut health detective — powered by AI
 
 ### Full Description
 ```
-GutSync is the effortless gut health tracker that does the hard work for you.
+Triggerplate is the effortless gut health tracker that does the hard work for you.
 
 Simply photograph your meals and our AI instantly identifies every food item, 
 detects hidden ingredients like garlic powder and high-fructose corn syrup, and 
 analyzes FODMAP levels — all in seconds.
 
-WHAT MAKES GUTSYNC DIFFERENT
+WHAT MAKES TRIGGERPLATE DIFFERENT
 • No manual logging — just take a photo
 • Detects hidden trigger ingredients your eyes can't see
 • Helps connect meals, ingredients, and symptoms over time
@@ -224,7 +224,7 @@ digestive health, food intolerance, AI nutrition, symptom tracker
 
 **App loads a blank white screen:** Confirm the `server.url` in `capacitor.config.ts` is set to your live production URL and the server is running.
 
-**Camera not working on device:** Ensure you granted camera permissions when prompted. On iOS, go to Settings → GutSync → Camera and toggle it on.
+**Camera not working on device:** Ensure you granted camera permissions when prompted. On iOS, go to Settings → Triggerplate → Camera and toggle it on.
 
 ---
 
@@ -239,4 +239,4 @@ Once live, remember to:
 
 ---
 
-*Generated for GutSync v1.0 — March 2026*
+*Generated for Triggerplate v1.0 — March 2026*

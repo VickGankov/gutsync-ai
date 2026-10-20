@@ -82,7 +82,7 @@ self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'GutSync', {
+    self.registration.showNotification(data.title || 'Triggerplate', {
       body: data.body || '',
       icon: '/icon-192.png',
       badge: '/favicon-32.png',

@@ -1,4 +1,4 @@
-# GutSync
+# Triggerplate
 
 **A mobile-first food sensitivity tracker that uses AI-powered photo analysis to help users with IBS and chronic bloating identify dietary triggers.** Users snap a photo of their meal, the AI identifies foods and hidden ingredients with FODMAP ratings, and over time the app discovers correlations between specific foods and symptoms.
 
@@ -31,7 +31,7 @@
 
 ## Architecture Overview
 
-GutSync follows a monorepo structure with a React frontend and Express backend communicating exclusively through tRPC. The backend connects to a MySQL/TiDB database via Drizzle ORM and uses S3 for photo storage. AI analysis is performed server-side using the platform's built-in LLM service (vision-capable model).
+Triggerplate follows a monorepo structure with a React frontend and Express backend communicating exclusively through tRPC. The backend connects to a MySQL/TiDB database via Drizzle ORM and uses S3 for photo storage. AI analysis is performed server-side using the platform's built-in LLM service (vision-capable model).
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -198,7 +198,7 @@ pnpm db:push    # Generates SQL + runs migration (drizzle-kit generate && drizzl
 
 ## Authentication System
 
-GutSync uses **email/password authentication only**. The original Manus OAuth was removed and replaced with a custom email auth system. There is no Google login, no social login, and no OAuth redirect.
+Triggerplate uses **email/password authentication only**. The original Manus OAuth was removed and replaced with a custom email auth system. There is no Google login, no social login, and no OAuth redirect.
 
 ### How It Works
 
@@ -524,7 +524,7 @@ The following items from `todo.md` are not yet completed:
 |----------|------|
 | Medium | Update correlation analysis to show "beneficial foods" alongside trigger foods |
 | Medium | Write tests for positive outcome logging and correlation |
-| Low | Update VITE_APP_TITLE to "GutSync" (user action in Settings panel) |
+| Low | Update VITE_APP_TITLE to "Triggerplate" (user action in Settings panel) |
 | Low | Upload new logo and update VITE_APP_LOGO (user action in Settings panel) |
 | Low | Update favicon with new logo (user action in Settings panel) |
 

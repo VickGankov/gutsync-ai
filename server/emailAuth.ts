@@ -38,9 +38,9 @@ function smtpConfigured() {
 }
 
 async function sendPasswordResetEmail(email: string, resetUrl: string) {
-  const subject = 'Reset your GutSync password';
-  const html = `<p>You requested a password reset for GutSync.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't ask for this, you can ignore this email.</p>`;
-  const text = `You requested a password reset for GutSync.\n\nReset your password: ${resetUrl}\n\nThis link expires in 1 hour. If you didn't ask for this, you can ignore this email.`;
+  const subject = 'Reset your Triggerplate password';
+  const html = `<p>You requested a password reset for Triggerplate.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour. If you didn't ask for this, you can ignore this email.</p>`;
+  const text = `You requested a password reset for Triggerplate.\n\nReset your password: ${resetUrl}\n\nThis link expires in 1 hour. If you didn't ask for this, you can ignore this email.`;
 
   if (smtpConfigured()) {
     const nodemailer = await import('nodemailer');
@@ -52,7 +52,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
     await transport.sendMail({
-      from: process.env.SMTP_FROM || `GutSync <${process.env.SMTP_USER}>`,
+      from: process.env.SMTP_FROM || `Triggerplate <${process.env.SMTP_USER}>`,
       to: email,
       subject,
       text,

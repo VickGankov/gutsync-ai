@@ -220,9 +220,9 @@ export default function EmailAuth() {
   );
 
   const pitch = (
-    <section aria-label="What GutSync does" className="w-full">
+    <section aria-label="What Triggerplate does" className="w-full">
       {returning && (
-        <h2 className="text-lg font-semibold text-center mb-1">What GutSync does</h2>
+        <h2 className="text-lg font-semibold text-center mb-1">What Triggerplate does</h2>
       )}
       <div className="-mx-4 px-4 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 items-start [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {FEATURES.map(f => (
@@ -248,7 +248,7 @@ export default function EmailAuth() {
       <div className="w-full max-w-md mx-auto flex flex-col gap-8">
         <header className="text-center">
           <img src="/favicon.svg" alt="" className="w-16 h-16 mx-auto rounded-2xl shadow-sm" />
-          <h1 className="text-3xl font-bold mt-3">GutSync</h1>
+          <h1 className="text-3xl font-bold mt-3">Triggerplate</h1>
           <span className="inline-block mt-1 text-[10px] uppercase tracking-wide font-semibold text-primary bg-primary/10 rounded-full px-2 py-0.5">
             Beta
           </span>
@@ -280,7 +280,7 @@ export default function EmailAuth() {
         )}
 
         <footer className="text-center text-xs text-muted-foreground pb-4 space-y-1">
-          <p>GutSync is a personal log and pattern finder. It does not diagnose or treat anything and is not medical advice.</p>
+          <p>Triggerplate is a personal log and pattern finder. It does not diagnose or treat anything and is not medical advice.</p>
           <p>
             <button onClick={() => setLocation('/privacy')} className="underline">Privacy policy</button>
           </p>

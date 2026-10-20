@@ -76,3 +76,8 @@ This file is the durable context for future Cursor chats in this workspace.
 - Needs Render env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `APP_BASE_URL` (must match the origin registered with Google). Redirect URI to register: `<APP_BASE_URL>/api/auth/google/callback`. When the custom domain arrives: add its callback to the Google client, change `APP_BASE_URL`; users get signed out once because the cookie belongs to the domain. Consent screen must be published before non-test users can sign in. `GOOGLE_AUTH_URL`/`GOOGLE_TOKEN_URL` exist only so tests can point at a fake Google.
 - Tested end to end against a fake Google (new user, returning user, linking, cancel, bad state, unverified email, wrong audience, redirect safety); the real Google handshake and iPhone Home Screen app are untested. Apple sign-in would be required if a native iOS app is ever shipped with Google sign-in.
 - Local only until the owner approves a push.
+
+## Rename: GutSync → Triggerplate (2026-10-20, local until pushed)
+- New name chosen after finding gutsync.com is a direct competitor (same category). App Store and USPTO checked clear by the user; domain triggerplate.com (3-yr, $45) to be bought/pointed at Render.
+- Display strings renamed everywhere (UI, emails, push, manifest, index.html, native display names, privacy policy, README). Kept on purpose: bundle/app ID `ai.gutsync.app`, localStorage keys `gutsync_*`, product ID `gutsync_premium_monthly`, repo/Render service names, image asset filenames.
+- Still to do after the domain is live: add domain in Render, Google redirect URI + `APP_BASE_URL`, Resend domain + `RESEND_FROM_EMAIL`, update og:url/og:image in client/index.html, replace icons/og-image.png if they contain the old name.
