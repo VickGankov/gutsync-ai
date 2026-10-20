@@ -139,7 +139,8 @@ export async function analyzeWithCache(imageUrl: string, deps: Deps, log: (msg: 
       const fiberTenths = typeof f.fiberPer100gTenths === "number" ? f.fiberPer100gTenths : lookedUp.get(i.key)?.fiberPer100gTenths;
       return {
         name: displayName(i.name), category: f.category, fodmap: f.fodmap, hiddenIngredients: f.hiddenIngredients,
-        proteinGrams: proteinForPortion(f.proteinPer100gTenths, i.grams),
+        // A protein amount the person stated (typed entry) beats the per-100 g estimate.
+        proteinGrams: i.labelProteinG > 0 ? Math.round(i.labelProteinG) : proteinForPortion(f.proteinPer100gTenths, i.grams),
         ...(typeof fiberTenths === "number" ? { fiberGrams: fiberForPortion(fiberTenths, i.grams) } : {}),
       };
     });
@@ -178,6 +179,7 @@ const IDENTIFY_TEXT_PROMPT = IDENTIFY_PROMPT
   .replace("every distinct food or drink item visible, including visible sauces and dressings", "every distinct food or drink item mentioned, including sauces and dressings")
   .replace("grams or mL of that item in the visible portion", "grams or mL of that item: use any quantity the person gave (e.g. 2 eggs, a cup of rice, 12 oz coffee), otherwise a typical single serving")
   .replace("- labelIngredients: if the product's ingredient list is legible anywhere in the photo, transcribe it exactly as printed, one entry per ingredient. Otherwise an empty array. Never guess ingredients.", "- labelIngredients: always an empty array for a typed description. Never guess ingredients.")
+  .replace("- labelProteinG: grams of protein per container or serving shown on a nutrition label or front panel for what is being consumed; 0 if not visible.", "- labelProteinG: grams of protein the person explicitly stated for that item (e.g. \"a shake with 25g of protein\" is 25 for the shake). Only a number they wrote for that item; never estimate. 0 if they gave none.")
   .replace("If there is no food in the photo, return an empty foods array.", "If the text does not describe any food or drink, return an empty foods array.");
 
 const IDENTIFY_FORMAT = {

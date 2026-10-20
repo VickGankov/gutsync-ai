@@ -282,4 +282,9 @@ describe("typed meal description", () => {
     expect(r.foods[0]).toMatchObject({ name: "Egg", fiberGrams: 0 });
     expect(r.mealType).toBe("breakfast");
   });
+  it("uses a protein amount the person stated instead of the per-100 g estimate", async () => {
+    const d = deps({ identify: vi.fn().mockResolvedValue({ foods: [{ name: "chicken breast", grams: 100, ...G, labelProteinG: 25 }], mealType: "lunch", summary: "x" }) });
+    const r = await analyzeWithCache("img", d, quiet);
+    expect(r.foods[0].proteinGrams).toBe(25);
+  });
 });
