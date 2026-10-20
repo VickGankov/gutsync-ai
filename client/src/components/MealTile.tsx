@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { getFODMAPExplanation } from "@/lib/fodmapExplanations";
 import { invalidateToday } from "@/lib/invalidateToday";
 import { foodEmoji } from "@/lib/foodEmoji";
-import { sensitivitiesIn, sensitivityLabel } from "@shared/sensitivities";
+import { sensitivitiesIn, sensitivityShort } from "@shared/sensitivities";
 
 const TYPE_ICON = { breakfast: Coffee, lunch: Sandwich, dinner: Utensils, snack: Cookie } as const;
 
@@ -24,18 +24,16 @@ const item = {
 function IngredientsDisclosure({ food }: { food: FoodItem }) {
   const list = food.ingredients ?? [];
   const triggers = food.hiddenIngredients ?? [];
+  // Nothing to show: no ingredient list and no flagged ingredients, so no empty section.
+  if (list.length === 0 && triggers.length === 0) return null;
   return (
     <details className="group mt-1" onClick={(e) => e.stopPropagation()}>
       <summary className="cursor-pointer select-none text-[11px] font-medium text-primary list-none flex items-center gap-1">
         <span className="inline-block transition-transform group-open:rotate-90">›</span>
-        Ingredients{list.length ? ` (${list.length})` : ""}
+        {list.length ? `Ingredients (${list.length})` : `Flagged ingredients (${triggers.length})`}
       </summary>
       <div className="mt-1 ml-3 space-y-1.5">
-        {list.length > 0 ? (
-          <p className="text-[11px] leading-snug text-muted-foreground">{list.join(", ")}</p>
-        ) : (
-          <p className="text-[11px] leading-snug text-muted-foreground">No ingredient list on file for this item.</p>
-        )}
+        {list.length > 0 && <p className="text-[11px] leading-snug text-muted-foreground">{list.join(", ")}</p>}
         {triggers.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {triggers.map((t, i) => (
@@ -214,7 +212,7 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
               </span>
               {flagged.length > 0 && (
                 <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                  You flagged: {flagged.map(sensitivityLabel).join(", ")}
+                  Contains {flagged.map(k => sensitivityShort(k).toLowerCase()).join(", ")}
                 </span>
               )}
             </div>
@@ -243,8 +241,13 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
                 {foods.map((f, idx) => (
                   <div key={`detail-${f.name}-${idx}`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-foreground">{f.name}</span>
-                      <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-foreground min-w-0 truncate">{f.name}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {sensitivitiesIn(f, mySens).map((k) => (
+                          <span key={k} className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                            {sensitivityShort(k)}
+                          </span>
+                        ))}
                         <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${fodmapColor(f.fodmap)}`}>
                           {f.fodmap}
                         </span>

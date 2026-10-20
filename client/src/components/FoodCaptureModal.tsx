@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import Paywall from "@/components/Paywall";
-import { sensitivitiesIn, sensitivityLabel } from "@shared/sensitivities";
+import { sensitivitiesIn, sensitivityShort } from "@shared/sensitivities";
 
 export interface FoodCaptureModalProps {
   open: boolean;
@@ -708,7 +708,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                               {fodmapBadge(food.fodmap)}
                               {sensitivitiesIn(food, mySensitivities).map(k => (
                                 <span key={k} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                  You flagged: {sensitivityLabel(k)}
+                                  {sensitivityShort(k)}
                                 </span>
                               ))}
                             </div>
