@@ -16,6 +16,9 @@ export const users = mysqlTable("users", {
   sensitivities: json("sensitivities").$type<string[]>(),
   /** When the user redeemed the founder invite code (ms since epoch). Null = not a founder. */
   founderAt: bigint("founderAt", { mode: "number" }),
+  /** Version of the Terms the user last agreed to, and when. Null until they confirm 18+ and agree. */
+  termsVersion: varchar("termsVersion", { length: 16 }),
+  termsAcceptedAt: bigint("termsAcceptedAt", { mode: "number" }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

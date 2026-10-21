@@ -5,6 +5,8 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { storagePut, storageDelete, avatarKeyFromUrl } from "./storage";
 import { ENV } from "./_core/env";
+import { LEGAL_VERSION } from "@shared/legal";
+import bcrypt from "bcrypt";
 import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -30,6 +32,8 @@ import {
   getSubscription,
   getEntitlement,
   claimFounder,
+  recordTermsAcceptance,
+  deleteUserAccount,
   upsertSubscription,
   cancelSubscription,
   getTodayScanCount,
@@ -265,7 +269,7 @@ export const appRouter = router({
     /** Only fields the app needs. The full row holds the password hash, which must never reach the browser. */
     me: publicProcedure.query(opts => {
       const u = opts.ctx.user;
-      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities) } : null;
+      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities), termsAccepted: u.termsVersion === LEGAL_VERSION, hasPassword: !!u.password } : null;
     }),
     /** Which sign-in methods the server has set up, so the sign-in page only shows buttons that work. */
     providers: publicProcedure.query(() => ({ google: googleConfigured() })),
@@ -594,6 +598,36 @@ export const appRouter = router({
 
   profile: router({
     /** Foods the user says they suspect. Unknown keys are dropped. */
+    /** Confirms the user is 18+ and agrees to the Terms and Privacy Policy (required before using the app). */
+    acceptTerms: protectedProcedure
+      .input(z.object({ adult: z.literal(true), agreed: z.literal(true) }))
+      .mutation(async ({ ctx }) => {
+        await recordTermsAcceptance(ctx.user.id, LEGAL_VERSION);
+        return { success: true } as const;
+      }),
+
+    /** Permanently deletes the account and all of its data. Needs the word DELETE and, for password accounts, the password. */
+    deleteAccount: protectedProcedure
+      .input(z.object({ confirm: z.string().max(20), password: z.string().max(200).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.confirm.trim().toUpperCase() !== "DELETE") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Type DELETE to confirm." });
+        }
+        if (ctx.user.password) {
+          if (!input.password || !(await bcrypt.compare(input.password, ctx.user.password))) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "That password is not correct." });
+          }
+        }
+        const sub = await getSubscription(ctx.user.id);
+        if (sub?.tier === "premium" && !(sub.expiresAt && sub.expiresAt < Date.now())) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Cancel your subscription first so you are not billed again, then delete your account." });
+        }
+        const keys = await deleteUserAccount(ctx.user.id);
+        await Promise.all(keys.map(k => storageDelete(k)));
+        ctx.res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(ctx.req), maxAge: -1 });
+        return { success: true } as const;
+      }),
+
     setSensitivities: protectedProcedure
       .input(z.object({ keys: z.array(z.string().max(30)).max(20) }))
       .mutation(async ({ ctx, input }) => {

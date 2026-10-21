@@ -19,7 +19,7 @@ const sections: LegalSection[] = [
   ]},
   { title: "Your rights", body: [
     "You can confirm whether we are collecting your consumer health data and get access to it, including a list of who it is shared with. You can withdraw consent to our collection or use, ask us to delete your data, and appeal a decision about a request.",
-    `Most of this you can do in the app: export your data and delete entries in Profile. For anything else, or to delete your whole account, email ${SUPPORT_EMAIL}. We respond within 45 days. If you disagree with our answer, reply and ask for an appeal; we will review it and reply within 45 days.`,
+    `Most of this you can do in the app: export your data, delete entries, or delete your whole account in Profile. For anything else, email ${SUPPORT_EMAIL}. We respond within 45 days. If you disagree with our answer, reply and ask for an appeal; we will review it and reply within 45 days.`,
   ]},
   { title: "Consent", body: [
     "We collect this data only because you enter it, and share it only as described here to run the service. You can withdraw consent at any time by stopping use, deleting your data, or contacting us.",

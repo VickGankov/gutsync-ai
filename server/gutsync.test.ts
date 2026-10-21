@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ENV } from "./_core/env";
+import bcrypt from "bcrypt";
+import { LEGAL_VERSION } from "@shared/legal";
 import { scanLimitFor, type Plan } from "@shared/plans";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
@@ -47,6 +49,8 @@ vi.mock("./db", () => ({
   isPremium: vi.fn().mockResolvedValue(false),
   getEntitlement: vi.fn().mockResolvedValue({ plan: "free", unlimited: false, dailyLimit: 10, founderAt: null }),
   claimFounder: vi.fn().mockResolvedValue("ok"),
+  recordTermsAcceptance: vi.fn().mockResolvedValue(undefined),
+  deleteUserAccount: vi.fn().mockResolvedValue(["meals/1/a.jpg", "avatars/1/b.jpg"]),
   upsertSubscription: vi.fn().mockResolvedValue(undefined),
   cancelSubscription: vi.fn().mockResolvedValue(undefined),
   getTodayScanCount: vi.fn().mockResolvedValue(0),
@@ -332,7 +336,7 @@ describe("Triggerplate Server Procedures", () => {
 
     it("auth.me never includes the password hash or other internal fields", async () => {
       const me = await appRouter.createCaller(ctxWithSecrets()).auth.me();
-      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [] });
+      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [], termsAccepted: false, hasPassword: true });
       expect(JSON.stringify(me)).not.toContain("secret-hash");
       expect(await appRouter.createCaller(createUnauthContext()).auth.me()).toBeNull();
     });
@@ -649,6 +653,62 @@ describe("Triggerplate Server Procedures", () => {
       vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
       ENV.paywallEnabled = true;
       await expect(appRouter.createCaller(createAuthContext()).reintro.start({ foodGroup: "lactose" as any, testFood: "milk", doses: ["a", "b", "c"] })).rejects.toThrow(/PREMIUM_REQUIRED:protocol/);
+    });
+  });
+
+  describe("terms acceptance and account deletion", () => {
+    const withPassword = async () => {
+      const ctx = createAuthContext();
+      ctx.user = { ...ctx.user!, password: await bcrypt.hash("right-password", 4) } as any;
+      return ctx;
+    };
+
+    it("auth.me reports whether the current terms were accepted", async () => {
+      const ctx = createAuthContext();
+      expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(false);
+      ctx.user = { ...ctx.user!, termsVersion: LEGAL_VERSION } as any;
+      expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(true);
+      ctx.user = { ...ctx.user!, termsVersion: "2020-01-01" } as any;
+      expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(false);
+    });
+
+    it("records acceptance only when both boxes are ticked", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await expect(caller.profile.acceptTerms({ adult: false, agreed: true } as any)).rejects.toThrow();
+      await expect(caller.profile.acceptTerms({ adult: true, agreed: false } as any)).rejects.toThrow();
+      await caller.profile.acceptTerms({ adult: true, agreed: true });
+      expect(db.recordTermsAcceptance).toHaveBeenCalledWith(1, LEGAL_VERSION);
+    });
+
+    it("refuses to delete without the word DELETE", async () => {
+      await expect(appRouter.createCaller(createAuthContext()).profile.deleteAccount({ confirm: "nope" })).rejects.toThrow(/DELETE/);
+      expect(db.deleteUserAccount).not.toHaveBeenCalled();
+    });
+
+    it("needs the right password for email accounts", async () => {
+      const caller = appRouter.createCaller(await withPassword());
+      await expect(caller.profile.deleteAccount({ confirm: "DELETE" })).rejects.toThrow(/password/);
+      await expect(caller.profile.deleteAccount({ confirm: "DELETE", password: "wrong" })).rejects.toThrow(/password/);
+      expect(db.deleteUserAccount).not.toHaveBeenCalled();
+    });
+
+    it("will not delete while a paid subscription is active", async () => {
+      vi.mocked(db.getSubscription).mockResolvedValue({ tier: "premium", expiresAt: Date.now() + 86_400_000 } as any);
+      await expect(appRouter.createCaller(createAuthContext()).profile.deleteAccount({ confirm: "DELETE" })).rejects.toThrow(/Cancel your subscription/);
+      expect(db.deleteUserAccount).not.toHaveBeenCalled();
+      vi.mocked(db.getSubscription).mockResolvedValue(null);
+    });
+
+    it("deletes the account, removes its stored photos and clears the session", async () => {
+      vi.mocked(db.getSubscription).mockResolvedValue(null);
+      const storage = await import("./storage");
+      const ctx = await withPassword();
+      const r = await appRouter.createCaller(ctx).profile.deleteAccount({ confirm: " delete ", password: "right-password" });
+      expect(r.success).toBe(true);
+      expect(db.deleteUserAccount).toHaveBeenCalledWith(1);
+      expect(storage.storageDelete).toHaveBeenCalledWith("meals/1/a.jpg");
+      expect(storage.storageDelete).toHaveBeenCalledWith("avatars/1/b.jpg");
+      expect((ctx.res as any).clearCookie).toHaveBeenCalled();
     });
   });
 

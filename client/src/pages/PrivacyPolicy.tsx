@@ -28,7 +28,7 @@ const sections: LegalSection[] = [
     "We may disclose information if the law requires it or to protect people's safety or the service. If the business changes hands, your data may transfer to the new owner, who must honor this policy.",
   ]},
   { title: "Retention and deletion", body: [
-    "We keep your data while your account is active. You can download a copy anytime in Profile (Export My Data) and delete individual entries in the app. To delete your whole account and its data, email " + SUPPORT_EMAIL + ". We will delete it within 45 days, except for limited records we must keep for legal, tax, or fraud-prevention reasons.",
+    "We keep your data while your account is active. You can download a copy anytime in Profile (Export My Data), delete individual entries in the app, and delete your whole account in Profile (Delete Account). Deleting your account permanently removes your logs, photos, labs, settings, and account details right away. Backups kept by our hosting providers may take a short time to age out, and we may keep limited records we must retain for legal, tax, or fraud-prevention reasons. If you cannot use the app, email " + SUPPORT_EMAIL + " and we will delete your data within 45 days.",
   ]},
   { title: "Your choices and rights", body: [
     "You can access, correct, export, or delete your data, withdraw consent for optional processing such as reminders, and ask questions about this policy by contacting " + SUPPORT_EMAIL + ". Washington residents have additional rights over consumer health data, described in the Consumer Health Data Privacy Policy.",

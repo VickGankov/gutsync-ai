@@ -17,7 +17,9 @@ import {
   fitnessProfile, weightLogs, intakeLogs, liftLogs,
   waistLogs, supplements, supplementLogs, labResults,
   pushSubscriptions, notificationPrefs, notificationLog,
+  passwordResetTokens,
 } from "../drizzle/schema";
+import { avatarKeyFromUrl } from "./storage";
 import { resolvePlan, scanLimitFor, type Plan } from "@shared/plans";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
@@ -683,6 +685,45 @@ export async function exportUserData(userId: number) {
   };
 }
 
+
+// ─── Terms and account deletion ───
+
+export async function recordTermsAcceptance(userId: number, version: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ termsVersion: version, termsAcceptedAt: Date.now() }).where(eq(users.id, userId));
+}
+
+/** Storage keys of the user's meal photos, for cleanup after the rows are gone. */
+export function mealPhotoKeys(photoUrls: (string | null)[], userId: number): string[] {
+  const keys: string[] = [];
+  for (const u of photoUrls) {
+    const m = u?.match(/meals\/(\d+)\/[A-Za-z0-9_-]+\.jpg/);
+    if (m && Number(m[1]) === userId) keys.push(m[0]);
+  }
+  return keys;
+}
+
+/** Permanently removes the account and everything it owns. Returns the photo keys to delete from storage. */
+export async function deleteUserAccount(userId: number): Promise<string[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [u] = await db.select({ avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, userId)).limit(1);
+  const photos = await db.select({ photoUrl: meals.photoUrl }).from(meals).where(eq(meals.userId, userId));
+  const keys = mealPhotoKeys(photos.map(p => p.photoUrl), userId);
+  const avatarKey = avatarKeyFromUrl(u?.avatarUrl, userId);
+  if (avatarKey) keys.push(avatarKey);
+  await db.transaction(async tx => {
+    const owned = [
+      meals, symptoms, correlations, subscriptions, scanUsage, passwordResetTokens, reintroChallenges, fitnessProfile,
+      weightLogs, waistLogs, supplements, supplementLogs, intakeLogs, liftLogs, triggerExplanations, doseLogs,
+      doseSchedules, labResults, pushSubscriptions, notificationPrefs, notificationLog,
+    ];
+    for (const t of owned) await tx.delete(t).where(eq((t as any).userId, userId));
+    await tx.delete(users).where(eq(users.id, userId));
+  });
+  return keys;
+}
 
 // ─── Reminders ───
 

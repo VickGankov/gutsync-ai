@@ -27,3 +27,17 @@ describe("media keys", () => {
     expect(normalizeKey("//meals/1/a.jpg")).toBe("meals/1/a.jpg");
   });
 });
+
+import { mealPhotoKeys } from "./db";
+describe("mealPhotoKeys", () => {
+  it("keeps only this user's meal photo keys", () => {
+    const urls = [
+      "/api/media/meals/7/abc_DEF-1.jpg",
+      "https://cdn.example.com/meals/7/xyz.jpg",
+      "/api/media/meals/8/other.jpg",
+      "https://example.com/not-ours.jpg",
+      null,
+    ];
+    expect(mealPhotoKeys(urls, 7)).toEqual(["meals/7/abc_DEF-1.jpg", "meals/7/xyz.jpg"]);
+  });
+});

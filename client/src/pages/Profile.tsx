@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import RemindersCard from "@/components/RemindersCard";
 import DietaryProfile from "@/components/DietaryProfile";
 import FounderCard from "@/components/FounderCard";
+import DeleteAccount from "@/components/DeleteAccount";
 import { motion } from "framer-motion";
 import { User, Download, Shield, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
 import Avatar from "@/components/Avatar";
@@ -192,6 +193,7 @@ export default function Profile() {
               {exporting ? "Preparing..." : "Download"}
             </button>
           } />
+          <DeleteAccount hasPassword={!!user?.hasPassword} />
         </div>
       </motion.div>
 

@@ -18,6 +18,7 @@ import Reintro from "./pages/Reintro";
 import Progress from "./pages/Progress";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
+import TermsGate from "./components/TermsGate";
 import Refunds from "./pages/Refunds";
 import Disclaimer from "./pages/Disclaimer";
 import HealthDataPrivacy from "./pages/HealthDataPrivacy";
@@ -34,7 +35,7 @@ function buildAuthPath(pathname: string) {
 }
 
 function Router() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [location, setLocation] = useLocation();
   const isProtectedPath = useMemo(() => PROTECTED_PATHS.has(location), [location]);
   const authSearchParams =
@@ -76,6 +77,11 @@ function Router() {
 
   if (isAuthenticated && location === AUTH_ROUTE && !isAuthActionRoute) {
     return null;
+  }
+
+  // Anyone signed in who has not confirmed 18+ and the Terms must do so first (the legal pages stay readable).
+  if (isAuthenticated && user && user.termsAccepted === false && !isPublicInfoPage) {
+    return <TermsGate />;
   }
 
   return (

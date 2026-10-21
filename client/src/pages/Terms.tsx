@@ -33,7 +33,7 @@ const sections: LegalSection[] = [
     "We work to keep Triggerplate running but do not promise it will always be available or error-free. We may change, add, or remove features. You can export your data from Profile at any time, and you can stop using the service whenever you like.",
   ]},
   { title: "9. Ending your account", body: [
-    "You may stop using Triggerplate at any time. We may suspend or end accounts that break these terms or put the service or others at risk. To have your account and data deleted, contact us at " + SUPPORT_EMAIL + ". Cancel any paid plan first so you are not billed again.",
+    "You may stop using Triggerplate at any time. We may suspend or end accounts that break these terms or put the service or others at risk. You can delete your account and data yourself in Profile (Delete Account); if you cannot, contact us at " + SUPPORT_EMAIL + ". Cancel any paid plan first so you are not billed again.",
   ]},
   { title: "10. Disclaimers and limits of liability", body: [
     "Triggerplate is provided \"as is\" and \"as available\". To the fullest extent the law allows, we do not make warranties of any kind, including about accuracy of food or health information, and we are not liable for indirect, incidental, special, or consequential damages, or for decisions you make based on the app. Our total liability for any claim is limited to the amount you paid us in the 12 months before the claim, or $50 if you paid nothing.",
