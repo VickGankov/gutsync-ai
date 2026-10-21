@@ -5,8 +5,10 @@
 
 import { FOLLOW_UP_WINDOW_MS } from "./timeline";
 
-export const MIN_EXPOSURES = 3;
-export const MIN_HITS = 2;
+// A pattern needs enough repeats to be more than coincidence. Even then it is only "possible":
+// see shared/triggerConfirm.ts for how a food becomes confirmed.
+export const MIN_EXPOSURES = 5;
+export const MIN_HITS = 3;
 /** The symptom must follow this much more often after the food than after other meals. */
 export const MIN_LIFT = 0.25;
 

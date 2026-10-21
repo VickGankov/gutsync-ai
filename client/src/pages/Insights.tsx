@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Link } from "wouter";
 import { ofMeals, pct, MIN_EXPOSURES } from "@shared/triggers";
+import type { Confirmation } from "@shared/triggerConfirm";
 import { declaredStats } from "@shared/sensitivities";
 
 const barColors = ['oklch(0.7 0.12 25)', 'oklch(0.55 0.1 155)', 'oklch(0.75 0.04 80)', 'oklch(0.65 0.08 80)'];
@@ -40,6 +41,7 @@ interface TriggerData {
   avgSeverity: number;
   hitsNearDose: number;
   status: "trigger" | "watching";
+  confirmation?: Confirmation | null;
 }
 
 type Explanation = { shows: string; why: string; confidence: string; nextStep: string; seeProfessional: string };
@@ -55,6 +57,36 @@ function WatchingRow({ t }: { t: TriggerData }) {
       </p>
       <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t.exposures}/{MIN_EXPOSURES} meals</span>
     </div>
+  );
+}
+
+/** Every pattern starts as "possible". Only your own finished reintroduction test can confirm it. */
+function StatusChip({ c }: { c?: Confirmation | null }) {
+  if (c?.state === "confirmed") {
+    return (
+      <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-coral-light/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-coral">
+        Confirmed · your {c.label} test reacted
+      </p>
+    );
+  }
+  if (c?.state === "retest") {
+    return (
+      <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-sand/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sand-dark">
+        Possible · retest {c.label} (stress or poor sleep logged)
+      </p>
+    );
+  }
+  if (c?.state === "tolerated") {
+    return (
+      <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-sage-light/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage-dark">
+        You tested {c.label} and tolerated it
+      </p>
+    );
+  }
+  return (
+    <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      Possible · not confirmed
+    </p>
   );
 }
 
@@ -76,6 +108,7 @@ function TriggerCard({ t }: { t: TriggerData }) {
   return (
     <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
       <div className="p-4">
+        <StatusChip c={t.confirmation} />
         <div className="flex items-start gap-3">
           <div className={`w-14 h-14 rounded-2xl ${tone.bg} flex flex-col items-center justify-center shrink-0`}>
             <span className={`text-base font-bold font-mono leading-none ${tone.text}`}>{pct(t.rate)}</span>
@@ -261,7 +294,7 @@ export default function Insights() {
           <motion.div variants={item} className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="text-lg">Likely Triggers</h2>
+              <h2 className="text-lg">Possible Triggers</h2>
             </div>
             {triggers.length > 0 ? (
               <div className="space-y-3">
@@ -272,7 +305,7 @@ export default function Insights() {
                 <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
                 <h3 className="font-display text-lg mb-1">No clear triggers yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  A food needs to show up in at least {MIN_EXPOSURES} meals, with a symptom after it more often than after your other meals, before it counts. Keep logging.
+                  A food needs to show up in at least {MIN_EXPOSURES} meals, with a symptom after it more often than after your other meals, before it even counts as possible. Keep logging.
                 </p>
               </div>
             )}
@@ -408,7 +441,7 @@ export default function Insights() {
               <p className="text-sm text-foreground leading-relaxed">
                 You've logged <strong>{meals.length} meals</strong> and <strong>{symptoms.length} symptoms</strong>.
                 {triggers.length > 0
-                  ? ` ${triggers.length} likely trigger${triggers.length === 1 ? '' : 's'} so far. Open one to see what it means.`
+                  ? ` ${triggers.length} possible trigger${triggers.length === 1 ? '' : 's'} so far. A pattern is only confirmed once you test it with a reintroduction challenge.`
                   : ' Keep logging to see which foods stand out.'}
               </p>
             </motion.div>

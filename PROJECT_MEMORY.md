@@ -116,3 +116,8 @@ This file is the durable context for future Cursor chats in this workspace.
 ## Onboarding images (2026-10-21)
 - The four onboarding images were hotlinked from a third-party CloudFront host that stopped loading (broken-image icon on triggerplate.com). Now self-hosted: step 1 shows the app icon (`/icon-512.png`) on a green gradient; steps 2–4 use `/landing/scan.webp`, `today.webp`, `triggers.webp`. Don't hotlink images from external hosts.
 - Onboarding is responsive: phone = picture on top; desktop (lg+) = split screen, picture in a framed card on the left half, text and buttons on the right.
+
+## Possible vs confirmed triggers (2026-10-21, local until pushed)
+- Trigger detection now needs `MIN_EXPOSURES = 5` meals and `MIN_HITS = 3` (was 3 and 2) plus the same lift over other meals; foods seen 1–4 times stay under "Still watching". Prompted by a Reddit comment about overfitting on tiny samples.
+- Every card on Insights now carries a status chip, and the section is "Possible Triggers". A pattern becomes **Confirmed** only when the user finished a reintroduction challenge for the matching group with outcome limit/avoid and no stress/poor-sleep flag (`shared/triggerConfirm.ts`, wired in `insights.triggers`). Low-confidence reaction → "Possible · retest"; tolerated → "You tested X and tolerated it".
+- Matching food → challenge group is a keyword heuristic (`KEYWORDS` in triggerConfirm.ts); extend it when adding foods. Not yet done: Reintro page doesn't link back to a trigger, and the AI explanation prompt isn't told the confirmation state.

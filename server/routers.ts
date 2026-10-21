@@ -9,6 +9,7 @@ import { LEGAL_VERSION } from "@shared/legal";
 import { checkBirthDate } from "@shared/profileStats";
 import bcrypt from "bcrypt";
 import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
+import { confirmationFor, type FinishedChallenge } from "@shared/triggerConfirm";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
@@ -1097,8 +1098,14 @@ export const appRouter = router({
 
     /** Triggers found by counting (no AI): see shared/triggers.ts. */
     triggers: protectedProcedure.query(async ({ ctx }) => {
-      const { triggers, mealCount, symptomCount } = await loadTriggers(ctx.user.id);
-      return { mealCount, symptomCount, triggers: triggers.map(t => ({ ...t, key: triggerKey(t) })) };
+      const [{ triggers, mealCount, symptomCount }, challenges] = await Promise.all([
+        loadTriggers(ctx.user.id),
+        getReintroChallenges(ctx.user.id),
+      ]);
+      return {
+        mealCount, symptomCount,
+        triggers: triggers.map(t => ({ ...t, key: triggerKey(t), confirmation: confirmationFor(t.names, challenges as FinishedChallenge[]) })),
+      };
     }),
 
     /** AI write-up for one trigger, built from the counts and cached until they change. */
