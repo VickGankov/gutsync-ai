@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ageOn, checkBirthDate, parseBirthDate, suggestTargets } from "@shared/profileStats";
+import { ageOn, checkBirthDate, parseBirthDate } from "@shared/profileStats";
 
 const NOW = new Date("2026-10-21T12:00:00Z");
 
@@ -22,17 +22,5 @@ describe("birth date", () => {
     expect(checkBirthDate("2027-01-01", NOW)).toBe("future");
     expect(checkBirthDate("1890-01-01", NOW)).toBe("implausible");
     expect(checkBirthDate("nonsense", NOW)).toBe("invalid");
-  });
-});
-
-describe("suggestTargets", () => {
-  it("scales protein by goal and rounds to 5 g", () => {
-    expect(suggestTargets(180, "build")).toEqual({ proteinG: 145, waterMl: 2700 });
-    expect(suggestTargets(180, "maintain").proteinG).toBe(100);
-    expect(suggestTargets(180, "general").proteinG).toBe(80);
-  });
-  it("keeps targets inside sane bounds", () => {
-    expect(suggestTargets(60, "general").waterMl).toBe(1500);
-    expect(suggestTargets(800, "build").proteinG).toBe(500);
   });
 });

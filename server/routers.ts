@@ -6,7 +6,7 @@ import { invokeLLM } from "./_core/llm";
 import { storagePut, storageDelete, avatarKeyFromUrl } from "./storage";
 import { ENV } from "./_core/env";
 import { LEGAL_VERSION } from "@shared/legal";
-import { checkBirthDate, suggestTargets, type FitnessGoal } from "@shared/profileStats";
+import { checkBirthDate } from "@shared/profileStats";
 import bcrypt from "bcrypt";
 import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
 import { z } from "zod";
@@ -36,8 +36,6 @@ import {
   recordTermsAcceptance,
   deleteUserAccount,
   setBirthDate,
-  setFitnessSettings,
-  getLatestWeightLb,
   upsertSubscription,
   cancelSubscription,
   getTodayScanCount,
@@ -273,7 +271,7 @@ export const appRouter = router({
     /** Only fields the app needs. The full row holds the password hash, which must never reach the browser. */
     me: publicProcedure.query(opts => {
       const u = opts.ctx.user;
-      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities), termsAccepted: u.termsVersion === LEGAL_VERSION && !!u.birthDate, hasPassword: !!u.password, birthDate: u.birthDate ?? null, fitnessEnabled: !!u.fitnessEnabled, fitnessGoal: u.fitnessGoal ?? null } : null;
+      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities), termsAccepted: u.termsVersion === LEGAL_VERSION && !!u.birthDate, hasPassword: !!u.password, birthDate: u.birthDate ?? null } : null;
     }),
     /** Which sign-in methods the server has set up, so the sign-in page only shows buttons that work. */
     providers: publicProcedure.query(() => ({ google: googleConfigured() })),
@@ -630,13 +628,6 @@ export const appRouter = router({
         return { success: true } as const;
       }),
 
-    /** Turns fitness tracking (protein, water, weight, strength) on or off and sets the goal. Data is kept when turned off. */
-    setFitness: protectedProcedure
-      .input(z.object({ enabled: z.boolean(), goal: z.enum(["maintain", "build", "general"]).nullable().optional() }))
-      .mutation(async ({ ctx, input }) => {
-        await setFitnessSettings(ctx.user.id, input.enabled, input.goal);
-        return { success: true } as const;
-      }),
 
     /** Permanently deletes the account and all of its data. Needs the word DELETE and, for password accounts, the password. */
     deleteAccount: protectedProcedure
@@ -975,12 +966,6 @@ export const appRouter = router({
       };
     }),
 
-    /** Suggested daily protein and water from the latest weigh-in and the chosen goal (null until a weight is logged). */
-    suggestedTargets: protectedProcedure.query(async ({ ctx }) => {
-      const weightLb = await getLatestWeightLb(ctx.user.id);
-      const goal = (ctx.user.fitnessGoal ?? "general") as FitnessGoal;
-      return { weightLb, goal, suggestion: weightLb ? suggestTargets(weightLb, goal) : null };
-    }),
 
     setProfile: protectedProcedure
       .input(z.object({

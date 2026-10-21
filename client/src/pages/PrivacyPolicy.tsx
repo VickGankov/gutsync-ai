@@ -7,7 +7,7 @@ const sections: LegalSection[] = [
   { title: "What we collect", body: [
     "Account details: your name, email address, and date of birth (used to confirm you are 18 or older and to fit messages and insights to your age), a password if you sign up with email (stored only as a hash), or the name and verified email Google shares if you choose Continue with Google. We never see your Google password.",
     "What you log: meal photos and descriptions, food logs, symptoms, supplements, medication or peptide dose logs, and, if you use the optional tracking features, body and fitness figures (such as weight, waist, strength lifts, protein and water) and blood work results. Much of this is sensitive health information. You choose what to log and can leave anything blank.",
-    "Settings: reminder times, your dietary profile (foods you suspect), whether fitness tracking is on and your fitness goal, and a push address for each device you allow notifications on.",
+    "Settings: reminder times, your dietary profile (foods you suspect), and a push address for each device you allow notifications on.",
     "Plan and usage: your plan (free, founding member, or paid), daily scan counts, and basic technical data needed to keep the service secure and working.",
   ]},
   { title: "How we use it", body: [

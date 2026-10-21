@@ -21,9 +21,6 @@ export const users = mysqlTable("users", {
   termsAcceptedAt: bigint("termsAcceptedAt", { mode: "number" }),
   /** Date of birth as YYYY-MM-DD. Required at sign-up (18+); used for age-aware messaging. */
   birthDate: varchar("birthDate", { length: 10 }),
-  /** Whether the user turned on fitness tracking (protein, water, weight, strength), and their goal. */
-  fitnessEnabled: boolean("fitnessEnabled").default(false).notNull(),
-  fitnessGoal: varchar("fitnessGoal", { length: 16 }).$type<"maintain" | "build" | "general">(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

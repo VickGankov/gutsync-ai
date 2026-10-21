@@ -47,7 +47,6 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
   const d = new Date(now);
   const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
-  const fitnessOn = !!trpc.auth.me.useQuery().data?.fitnessEnabled;
   const fitness = trpc.fitness.summary.useQuery({ days: 1, tzOffsetMinutes: d.getTimezoneOffset() });
   const proteinG = fitness.data ? fitness.data.today?.proteinG ?? 0 : null;
   const proteinTarget = fitness.data?.targets.proteinTargetG ?? null;
@@ -60,7 +59,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
   const s = summarizeToday({
     now, startOfDay, hour: d.getHours(), meals, symptoms,
-    proteinG: fitnessOn ? proteinG : null, proteinTargetG: fitnessOn ? proteinTarget : null, reintroCheckInPending,
+    proteinG, proteinTargetG: proteinTarget, reintroCheckInPending,
   });
 
   const lastMealText = s.lastMealAt && now - s.lastMealAt < 48 * 3_600_000 ? `Last meal ${formatTimeAgo(s.lastMealAt).toLowerCase()}.` : "";
@@ -97,22 +96,22 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
       <div className="grid grid-cols-2 gap-2 mt-4 relative">
         <Tile href="/log?tab=food" icon={<UtensilsCrossed className="w-3 h-3" />} label="Meals" value={String(s.mealsToday)} />
         <Tile href="/log?tab=symptoms" icon={<Activity className="w-3 h-3" />} label="Symptoms" value={String(s.symptomsToday)} />
-        {fitnessOn && <Tile
+        <Tile
           href="/progress"
           icon={<Dumbbell className="w-3 h-3" />}
           label="Protein"
           unit="g"
           value={proteinG === null ? "–" : proteinTarget ? `${proteinG} / ${proteinTarget}` : `${proteinG}`}
           progress={proteinG !== null && proteinTarget ? proteinG / proteinTarget : undefined}
-        />}
-        {fitnessOn && <Tile
+        />
+        <Tile
           href="/progress"
           icon={<Droplets className="w-3 h-3" />}
           label="Water"
           unit="gal"
           value={waterMl === null ? "–" : waterTargetMl ? `${formatGal(waterMl)} / ${formatGalTarget(waterTargetMl)}` : formatGal(waterMl)}
           progress={waterMl !== null && waterTargetMl ? waterMl / waterTargetMl : undefined}
-        />}
+        />
         {showFiber && (
           <Tile
             href="/progress"

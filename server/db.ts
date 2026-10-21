@@ -668,7 +668,7 @@ export async function exportUserData(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const mine = <T extends { userId: any }>(t: any) => db.select().from(t).where(eq((t as T).userId, userId));
-  const [account] = await db.select({ email: users.email, name: users.name, createdAt: users.createdAt, sensitivities: users.sensitivities, birthDate: users.birthDate, fitnessGoal: users.fitnessGoal }).from(users).where(eq(users.id, userId)).limit(1);
+  const [account] = await db.select({ email: users.email, name: users.name, createdAt: users.createdAt, sensitivities: users.sensitivities, birthDate: users.birthDate }).from(users).where(eq(users.id, userId)).limit(1);
   const [
     mealRows, symptomRows, fitness, weights, waists, intake, lifts, supps, suppLogs, doses, schedules, labs, challenges,
   ] = await Promise.all([
@@ -700,19 +700,7 @@ export async function setBirthDate(userId: number, birthDate: string) {
   await db.update(users).set({ birthDate }).where(eq(users.id, userId));
 }
 
-export async function setFitnessSettings(userId: number, enabled: boolean, goal: "maintain" | "build" | "general" | null | undefined) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(users).set({ fitnessEnabled: enabled, ...(goal !== undefined ? { fitnessGoal: goal } : {}) }).where(eq(users.id, userId));
-}
 
-/** Most recent weigh-in in pounds, or null. */
-export async function getLatestWeightLb(userId: number): Promise<number | null> {
-  const db = await getDb();
-  if (!db) return null;
-  const [r] = await db.select({ w: weightLogs.weightLb10 }).from(weightLogs).where(eq(weightLogs.userId, userId)).orderBy(desc(weightLogs.loggedAt)).limit(1);
-  return r ? r.w / 10 : null;
-}
 
 /** Storage keys of the user's meal photos, for cleanup after the rows are gone. */
 export function mealPhotoKeys(photoUrls: (string | null)[], userId: number): string[] {

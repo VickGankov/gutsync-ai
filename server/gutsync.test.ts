@@ -51,8 +51,6 @@ vi.mock("./db", () => ({
   claimFounder: vi.fn().mockResolvedValue("ok"),
   recordTermsAcceptance: vi.fn().mockResolvedValue(undefined),
   setBirthDate: vi.fn().mockResolvedValue(undefined),
-  setFitnessSettings: vi.fn().mockResolvedValue(undefined),
-  getLatestWeightLb: vi.fn().mockResolvedValue(null),
   deleteUserAccount: vi.fn().mockResolvedValue(["meals/1/a.jpg", "avatars/1/b.jpg"]),
   upsertSubscription: vi.fn().mockResolvedValue(undefined),
   cancelSubscription: vi.fn().mockResolvedValue(undefined),
@@ -339,7 +337,7 @@ describe("Triggerplate Server Procedures", () => {
 
     it("auth.me never includes the password hash or other internal fields", async () => {
       const me = await appRouter.createCaller(ctxWithSecrets()).auth.me();
-      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [], termsAccepted: false, hasPassword: true, birthDate: null, fitnessEnabled: false, fitnessGoal: null });
+      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [], termsAccepted: false, hasPassword: true, birthDate: null });
       expect(JSON.stringify(me)).not.toContain("secret-hash");
       expect(await appRouter.createCaller(createUnauthContext()).auth.me()).toBeNull();
     });
@@ -703,23 +701,6 @@ describe("Triggerplate Server Procedures", () => {
       const young = new Date(Date.now() - 10 * 365 * 86_400_000).toISOString().slice(0, 10);
       await expect(caller.profile.setBirthDate({ birthDate: young })).rejects.toThrow(/18/);
       expect(db.deleteUserAccount).not.toHaveBeenCalled();
-    });
-
-    it("turns fitness tracking on or off and stores the goal", async () => {
-      const caller = appRouter.createCaller(createAuthContext());
-      await caller.profile.setFitness({ enabled: true, goal: "build" });
-      expect(db.setFitnessSettings).toHaveBeenLastCalledWith(1, true, "build");
-      await caller.profile.setFitness({ enabled: false });
-      expect(db.setFitnessSettings).toHaveBeenLastCalledWith(1, false, undefined);
-    });
-
-    it("suggests targets from the latest weight and goal, or none without a weight", async () => {
-      const ctx = createAuthContext();
-      ctx.user = { ...ctx.user!, fitnessGoal: "build" } as any;
-      vi.mocked(db.getLatestWeightLb).mockResolvedValueOnce(180);
-      expect(await appRouter.createCaller(ctx).fitness.suggestedTargets()).toEqual({ weightLb: 180, goal: "build", suggestion: { proteinG: 145, waterMl: 2700 } });
-      vi.mocked(db.getLatestWeightLb).mockResolvedValueOnce(null);
-      expect((await appRouter.createCaller(ctx).fitness.suggestedTargets()).suggestion).toBeNull();
     });
 
     it("refuses to delete without the word DELETE", async () => {
