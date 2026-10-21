@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { ageOn, checkBirthDate } from "@shared/profileStats";
+import BirthDateSelect from "@/components/BirthDateSelect";
 
 function formatDob(s: string) {
   const [y, m, d] = s.split("-").map(Number);
@@ -39,11 +40,10 @@ export default function AboutYou() {
         </button>
       </div>
       {editing && (
-        <div className="mt-3 flex gap-2">
-          <input type="date" value={dob} max={new Date().toISOString().slice(0, 10)} onChange={e => setDob(e.target.value)}
-            className="flex-1 min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm" aria-label="Date of birth" />
+        <div className="mt-3">
+          <BirthDateSelect value={dob} onChange={setDob} idPrefix="edit-dob" />
           <button type="button" disabled={!dobOk || saveDob.isPending} onClick={() => saveDob.mutate({ birthDate: dob })}
-            className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50">Save</button>
+            className="mt-3 w-full rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-50">Save</button>
         </div>
       )}
     </div>

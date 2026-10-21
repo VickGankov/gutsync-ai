@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { checkBirthDate } from "@shared/profileStats";
+import BirthDateSelect from "@/components/BirthDateSelect";
 
 export default function TermsGate() {
   const utils = trpc.useUtils();
@@ -13,7 +14,6 @@ export default function TermsGate() {
   const [birthDate, setBirthDate] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [blocked, setBlocked] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
   const check = birthDate ? checkBirthDate(birthDate) : null;
   const accept = trpc.profile.acceptTerms.useMutation({
     onSuccess: () => utils.auth.me.invalidate(),
@@ -48,15 +48,8 @@ export default function TermsGate() {
           and to make messages and insights fit your age.
         </p>
 
-        <label className="mt-5 block text-sm font-medium" htmlFor="dob">Date of birth</label>
-        <input
-          id="dob"
-          type="date"
-          value={birthDate}
-          max={today}
-          onChange={e => setBirthDate(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-        />
+        <p className="mt-5 text-sm font-medium" id="dob-label">Date of birth</p>
+        <BirthDateSelect value={birthDate} onChange={setBirthDate} />
         {problem && <p className="mt-1 text-xs text-coral">{problem}</p>}
 
         <label className="mt-4 flex items-start gap-3 text-sm leading-6">
