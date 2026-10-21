@@ -65,7 +65,7 @@ function StatusChip({ c }: { c?: Confirmation | null }) {
   if (c?.state === "confirmed") {
     return (
       <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-coral-light/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-coral">
-        Confirmed · your {c.label} test reacted
+        Matches your {c.label} test · you reacted
       </p>
     );
   }
@@ -79,7 +79,7 @@ function StatusChip({ c }: { c?: Confirmation | null }) {
   if (c?.state === "tolerated") {
     return (
       <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-sage-light/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage-dark">
-        You tested {c.label} and tolerated it
+        Matches your {c.label} test · you tolerated it
       </p>
     );
   }
