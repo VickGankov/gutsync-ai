@@ -1,81 +1,50 @@
-import { Bell, Brain, Camera, CreditCard, Database, FlaskConical, Mail, Shield } from "lucide-react";
+import LegalLayout, { SUPPORT_EMAIL, type LegalSection } from "@/legal/LegalLayout";
 
-const updatedAt = "October 20, 2026";
-
-const sections = [
-  {
-    icon: Database,
-    title: "Information We Collect",
-    body: "Triggerplate collects the account details you provide (or, if you choose Continue with Google, the name and verified email address Google shares with us; we never see your Google password), meal photos you choose to upload, food logs, symptom entries, generated insights, subscription status, and basic technical data needed to keep the app secure and working. If you use the optional tracking features, it also stores the body and health information you enter, such as weight, waist, strength lifts, protein and water intake, supplements, medication or peptide dose logs, and blood work results. This is sensitive health information; you choose what to log, and you can leave any of it blank.",
-  },
-  {
-    icon: Brain,
-    title: "How We Use Information",
-    body: "We use your data to analyze meals, save your logs, estimate food-symptom patterns, enforce scan limits, process password resets, manage subscriptions, and improve reliability. Triggerplate is not a medical device and does not provide medical diagnosis or treatment.",
-  },
-  {
-    icon: Camera,
-    title: "Meal Photos",
-    body: "Meal photos are uploaded only when you choose to scan or save them. They may be processed by AI and storage providers so the app can identify foods and preserve your meal history.",
-  },
-  {
-    icon: FlaskConical,
-    title: "Blood Work",
-    body: "Blood work you add by hand or import is stored in your account and shown only to you in the app. When you import a report, the photo or the text of the PDF is sent to our AI provider so the values can be read, and Triggerplate does not keep the file. Only the results you review and confirm are saved. You can delete any result in the app at any time. This is sensitive health information; you choose what to add.",
-  },
-  {
-    icon: Bell,
-    title: "Reminders",
-    body: "If you turn on reminders, Triggerplate stores your reminder settings and a push address for each device you allow, and sends notifications through your device's push service (such as Google or Apple). Notifications never include what you ate or any health detail. You can turn reminders off in Profile at any time. You can also download a copy of everything you have logged from Profile (Export My Data).",
-  },
-  {
-    icon: CreditCard,
-    title: "Payments",
-    body: "Purchases and subscription status are handled through RevenueCat and the applicable app store. Triggerplate does not store full payment card numbers.",
-  },
-  {
-    icon: Shield,
-    title: "Sharing and Retention",
-    body: "We do not sell your personal health information. We share data with service providers only as needed to operate the app, including hosting, database, storage, AI analysis, email delivery, and subscription verification. We retain data while your account is active or as needed for legal and operational reasons.",
-  },
-  {
-    icon: Mail,
-    title: "Your Choices",
-    body: "You can choose what meals and symptoms to log. To request access, correction, export, or deletion of your data, contact support through the app store listing or the support channel provided for Triggerplate.",
-  },
+const sections: LegalSection[] = [
+  { title: "Who we are", body: [
+    "Triggerplate is operated by Vick Gankov in Washington State, USA. This policy explains what we collect, how we use it, who we share it with, and the choices you have. Health information is covered in more detail in our Consumer Health Data Privacy Policy.",
+  ]},
+  { title: "What we collect", body: [
+    "Account details: your name and email address, a password if you sign up with email (stored only as a hash), or the name and verified email Google shares if you choose Continue with Google. We never see your Google password.",
+    "What you log: meal photos and descriptions, food logs, symptoms, supplements, medication or peptide dose logs, and, if you use the optional tracking features, body and fitness figures (such as weight, waist, strength lifts, protein and water) and blood work results. Much of this is sensitive health information. You choose what to log and can leave anything blank.",
+    "Settings: reminder times, your dietary profile (foods you suspect), and a push address for each device you allow notifications on.",
+    "Plan and usage: your plan (free, founding member, or paid), daily scan counts, and basic technical data needed to keep the service secure and working.",
+  ]},
+  { title: "How we use it", body: [
+    "To analyze meals, save your logs, estimate food-symptom patterns, run reminders, enforce scan limits, send password-reset and account emails, process subscriptions, keep the service secure, and fix bugs. We do not sell your personal information and we do not use your health information for advertising.",
+  ]},
+  { title: "Meal photos and blood work", body: [
+    "Photos are uploaded only when you choose to scan or save them. They are sent to our AI provider so foods can be identified and are stored so your meal history stays available.",
+    "When you import a lab report, the photo or the text of the PDF is sent to our AI provider so values can be read. We do not keep the file itself. Only the results you review and confirm are saved to your account. You can delete any result in the app.",
+  ]},
+  { title: "Reminders", body: [
+    "If you turn on reminders we store your reminder settings and a push address for each device you allow, and send notifications through your device's push service (such as Google or Apple). Notifications never include what you ate or any health detail. Turn reminders off in Profile at any time.",
+  ]},
+  { title: "Payments", body: [
+    "Paid plans are processed by Stripe. Stripe collects and holds your card details; we do not store full card numbers and only receive your plan status and a customer reference.",
+  ]},
+  { title: "Who we share data with", body: [
+    "We share data only with service providers that help us run Triggerplate, and only as needed: Render (hosting), TiDB Cloud (database), Cloudflare (photo storage), Google (AI analysis and, if you choose it, sign-in), Resend (email delivery), and Stripe (payments). They process it on our behalf to provide those services.",
+    "We may disclose information if the law requires it or to protect people's safety or the service. If the business changes hands, your data may transfer to the new owner, who must honor this policy.",
+  ]},
+  { title: "Retention and deletion", body: [
+    "We keep your data while your account is active. You can download a copy anytime in Profile (Export My Data) and delete individual entries in the app. To delete your whole account and its data, email " + SUPPORT_EMAIL + ". We will delete it within 45 days, except for limited records we must keep for legal, tax, or fraud-prevention reasons.",
+  ]},
+  { title: "Your choices and rights", body: [
+    "You can access, correct, export, or delete your data, withdraw consent for optional processing such as reminders, and ask questions about this policy by contacting " + SUPPORT_EMAIL + ". Washington residents have additional rights over consumer health data, described in the Consumer Health Data Privacy Policy.",
+  ]},
+  { title: "Security", body: [
+    "Data is encrypted in transit, and access to our systems is restricted. No service is perfectly secure, so please use a strong, unique password and tell us if you suspect a problem.",
+  ]},
+  { title: "Children", body: [
+    "Triggerplate is for adults 18 and over. We do not knowingly collect information from anyone under 18. If you believe a child has an account, contact us and we will delete it.",
+  ]},
+  { title: "Changes", body: [
+    "If we change this policy in a meaningful way we will tell you in the app or by email before it takes effect. The date at the top shows the latest version.",
+  ]},
+  { title: "Contact", body: [`Privacy questions or requests: ${SUPPORT_EMAIL}.`] },
 ];
 
 export default function PrivacyPolicy() {
-  return (
-    <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-2xl">
-        <a href="/profile" className="text-sm font-medium text-primary">
-          Back to Profile
-        </a>
-
-        <section className="mt-6 rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Privacy Policy</p>
-          <h1 className="mt-3 text-3xl tracking-tight">Triggerplate Privacy Policy</h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Last updated: {updatedAt}. This policy explains what Triggerplate collects, how it is used, and the choices you
-            have when using the app.
-          </p>
-        </section>
-
-        <div className="mt-5 space-y-4">
-          {sections.map(({ icon: Icon, title, body }) => (
-            <section key={title} className="rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-primary">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <h2 className="text-base font-semibold">{title}</h2>
-              </div>
-              <p className="text-sm leading-6 text-muted-foreground">{body}</p>
-            </section>
-          ))}
-        </div>
-      </div>
-    </main>
-  );
+  return <LegalLayout label="Privacy Policy" title="Triggerplate Privacy Policy" intro="This explains what Triggerplate collects, how it is used, and the choices you have." sections={sections} />;
 }

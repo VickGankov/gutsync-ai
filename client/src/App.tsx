@@ -17,11 +17,15 @@ import Profile from "./pages/Profile";
 import Reintro from "./pages/Reintro";
 import Progress from "./pages/Progress";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/Terms";
+import Refunds from "./pages/Refunds";
+import Disclaimer from "./pages/Disclaimer";
+import HealthDataPrivacy from "./pages/HealthDataPrivacy";
 import ResetPassword from "./pages/ResetPassword";
 
 const AUTH_ROUTE = "/auth";
 const PROTECTED_PATHS = new Set(["/", "/log", "/insights", "/reintro", "/progress", "/profile"]);
-const PUBLIC_INFO_PATHS = new Set(["/privacy"]);
+const PUBLIC_INFO_PATHS = new Set(["/privacy", "/terms", "/refunds", "/disclaimer", "/health-data-privacy"]);
 
 function buildAuthPath(pathname: string) {
   return pathname && pathname !== "/"
@@ -89,6 +93,10 @@ function Router() {
         <Route path="/progress" component={Progress} />
         <Route path="/profile" component={Profile} />
         <Route path="/privacy" component={PrivacyPolicy} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/refunds" component={Refunds} />
+        <Route path="/disclaimer" component={Disclaimer} />
+        <Route path="/health-data-privacy" component={HealthDataPrivacy} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

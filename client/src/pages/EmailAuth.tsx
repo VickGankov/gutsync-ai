@@ -281,8 +281,11 @@ export default function EmailAuth() {
 
         <footer className="text-center text-xs text-muted-foreground pb-4 space-y-1">
           <p>Triggerplate is a personal log and pattern finder. It does not diagnose or treat anything and is not medical advice.</p>
+          <p>By continuing you agree to our <button onClick={() => setLocation('/terms')} className="underline">Terms</button> and <button onClick={() => setLocation('/privacy')} className="underline">Privacy Policy</button>.</p>
           <p>
-            <button onClick={() => setLocation('/privacy')} className="underline">Privacy policy</button>
+            <button onClick={() => setLocation('/health-data-privacy')} className="underline">Health data policy</button>
+            {" · "}
+            <button onClick={() => setLocation('/disclaimer')} className="underline">Medical disclaimer</button>
           </p>
         </footer>
       </div>

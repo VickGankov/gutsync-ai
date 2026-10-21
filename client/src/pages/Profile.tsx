@@ -177,6 +177,15 @@ export default function Profile() {
           <SettingsRow icon={Shield} label="Privacy Policy" description="How Triggerplate handles your data" iconColor="text-sage-dark" action={
             <a href="/privacy" className="text-xs font-semibold text-primary">View</a>
           } />
+          <SettingsRow icon={Shield} label="Terms of Service" description="The rules for using Triggerplate" iconColor="text-sage-dark" action={
+            <a href="/terms" className="text-xs font-semibold text-primary">View</a>
+          } />
+          <SettingsRow icon={Shield} label="Health Data Policy" description="How your health information is handled" iconColor="text-sage-dark" action={
+            <a href="/health-data-privacy" className="text-xs font-semibold text-primary">View</a>
+          } />
+          <SettingsRow icon={Shield} label="Medical Disclaimer" description="What Triggerplate is and is not" iconColor="text-sage-dark" action={
+            <a href="/disclaimer" className="text-xs font-semibold text-primary">View</a>
+          } />
           <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-sage-dark" />
           <SettingsRow icon={Download} label="Export My Data" description="Download everything you've logged (JSON file)" iconColor="text-primary" action={
             <button onClick={handleExport} disabled={exporting} className="text-xs font-semibold text-primary disabled:opacity-60">

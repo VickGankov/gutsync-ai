@@ -89,3 +89,8 @@ This file is the durable context for future Cursor chats in this workspace.
 - Scan enforcement now applies to every plan (free gets FREE_LIMIT_REACHED which opens the upgrade sheet; founder/premium get a plain "used today's N scans" message).
 - UI: `FounderCard` on Profile (redeem box / founder badge), Home drawer shows "Founding member".
 - Next: Terms of Service, privacy policy update (Stripe, Google, reminders), refund policy, not-medical-advice disclaimer, then Stripe checkout + webhook + customer portal, then turn PAYWALL_ENABLED on.
+
+## Legal pages (2026-10-21, local until pushed)
+- New shared layout `client/src/legal/LegalLayout.tsx` (also exports `SUPPORT_EMAIL` = support@triggerplate.com and `LEGAL_UPDATED`). Pages: `/terms`, `/privacy` (rewritten), `/health-data-privacy` (Washington My Health My Data Act notice), `/refunds`, `/disclaimer`. Linked from Profile → Privacy & Data and the sign-in footer ("By continuing you agree…").
+- Drafted by Claude, NOT lawyer-reviewed. Assumptions to confirm: operator is Vick Gankov personally; 18+ only, US only; WA law/King County; founders keep access unless abused or unused 12 months; refund = full refund of first payment within 7 days, no proration after; price change notice 30 days; account deletion by email within 45 days.
+- Gaps: support@triggerplate.com mailbox/forwarding must exist before publishing; no in-app account deletion yet (recommended); the 45-day deletion promise needs a real process; Stripe/billing-portal wording assumes Stripe is live; verify Google's Gemini data-use terms before adding any "not used for training" claim.
