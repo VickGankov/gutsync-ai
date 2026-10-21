@@ -7,6 +7,12 @@ describe("plans", () => {
     expect(resolvePlan({ premium: false, founder: true })).toBe("founder");
     expect(resolvePlan({ premium: false, founder: false })).toBe("free");
   });
+  it("testers get every feature at the free scan limit, below founders", () => {
+    expect(resolvePlan({ premium: false, founder: false, tester: true })).toBe("tester");
+    expect(resolvePlan({ premium: false, founder: true, tester: true })).toBe("founder");
+    expect(scanLimitFor("tester")).toBe(SCAN_LIMITS.free);
+    expect(hasFeature("tester", "labs", true)).toBe(true);
+  });
   it("uses the agreed scan limits", () => {
     expect([scanLimitFor("free"), scanLimitFor("founder"), scanLimitFor("premium")]).toEqual([10, 20, 50]);
     expect(SCAN_LIMITS.free).toBeLessThan(SCAN_LIMITS.founder);

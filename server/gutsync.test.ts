@@ -49,6 +49,7 @@ vi.mock("./db", () => ({
   isPremium: vi.fn().mockResolvedValue(false),
   getEntitlement: vi.fn().mockResolvedValue({ plan: "free", unlimited: false, dailyLimit: 10, founderAt: null }),
   claimFounder: vi.fn().mockResolvedValue("ok"),
+  redeemInviteCode: vi.fn().mockResolvedValue({ status: "invalid" }),
   recordTermsAcceptance: vi.fn().mockResolvedValue(undefined),
   setBirthDate: vi.fn().mockResolvedValue(undefined),
   deleteUserAccount: vi.fn().mockResolvedValue(["meals/1/a.jpg", "avatars/1/b.jpg"]),
@@ -627,6 +628,35 @@ describe("Triggerplate Server Procedures", () => {
       withCode("early-bird");
       vi.mocked(db.claimFounder).mockResolvedValue("full");
       await expect(appRouter.createCaller(createAuthContext()).subscription.redeemFounder({ code: "early-bird" })).rejects.toThrow(/taken/);
+    });
+  });
+
+  describe("subscription.redeemInvite", () => {
+    afterEach(() => { ENV.founderCode = ""; });
+    const call = (code: string) => appRouter.createCaller(createAuthContext()).subscription.redeemInvite({ code });
+
+    it("grants the plan on a table code", async () => {
+      vi.mocked(db.redeemInviteCode).mockResolvedValue({ status: "ok", plan: "tester" });
+      expect(await call("reddit-1")).toEqual({ plan: "tester", already: false });
+      expect(db.redeemInviteCode).toHaveBeenCalledWith(1, "reddit-1");
+    });
+    it("reports an already-held plan without error", async () => {
+      vi.mocked(db.redeemInviteCode).mockResolvedValue({ status: "already", plan: "founder" });
+      expect(await call("x")).toEqual({ plan: "founder", already: true });
+    });
+    it("gives a readable error for full, expired and unknown codes", async () => {
+      vi.mocked(db.redeemInviteCode).mockResolvedValue({ status: "full" });
+      await expect(call("x")).rejects.toThrow(/no spots/);
+      vi.mocked(db.redeemInviteCode).mockResolvedValue({ status: "expired" });
+      await expect(call("x")).rejects.toThrow(/expired/);
+      vi.mocked(db.redeemInviteCode).mockResolvedValue({ status: "invalid" });
+      await expect(call("x")).rejects.toThrow(/valid/);
+    });
+    it("still honours the old FOUNDER_CODE env code", async () => {
+      ENV.founderCode = "early-bird";
+      vi.mocked(db.redeemInviteCode).mockResolvedValue({ status: "invalid" });
+      vi.mocked(db.claimFounder).mockResolvedValue("ok");
+      expect(await call("Early-Bird")).toEqual({ plan: "founder", already: false });
     });
   });
 

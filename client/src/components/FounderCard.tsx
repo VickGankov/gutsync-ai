@@ -1,4 +1,4 @@
-// Founding members: redeem an invite code for every feature and a higher daily scan limit.
+// Redeem an invite code (founder or beta tester) for every feature; shows the member's status once redeemed.
 
 import { useState } from "react";
 import { Crown } from "lucide-react";
@@ -10,11 +10,11 @@ export default function FounderCard() {
   const utils = trpc.useUtils();
   const status = trpc.subscription.status.useQuery(undefined, { retry: false });
   const [code, setCode] = useState("");
-  const redeem = trpc.subscription.redeemFounder.useMutation({
-    onSuccess: async () => {
+  const redeem = trpc.subscription.redeemInvite.useMutation({
+    onSuccess: async r => {
       setCode("");
       await utils.subscription.status.invalidate();
-      toast.success("Welcome, founding member. Everything is unlocked.");
+      toast.success(r.plan === "founder" ? "Welcome, founding member. Everything is unlocked." : "Welcome, beta tester. Everything is unlocked.");
     },
     onError: e => toast.error(e.message || "Couldn't redeem that code."),
   });
@@ -32,6 +32,17 @@ export default function FounderCard() {
       </div>
     );
   }
+  if (status.data.isTester) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-5 flex items-center gap-3">
+        <Crown className="w-5 h-5 text-amber-500 shrink-0" />
+        <div>
+          <p className="text-sm font-semibold">Beta tester</p>
+          <p className="text-xs text-muted-foreground">All features unlocked · {SCAN_LIMITS.tester} scans a day. Thanks for helping test.</p>
+        </div>
+      </div>
+    );
+  }
   if (status.data.isPremium) return null;
 
   return (
@@ -39,8 +50,8 @@ export default function FounderCard() {
       className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5"
       onSubmit={e => { e.preventDefault(); if (code.trim()) redeem.mutate({ code }); }}
     >
-      <p className="text-sm font-semibold mb-1">Have a founder code?</p>
-      <p className="text-xs text-muted-foreground mb-3">Founding members get every feature and {SCAN_LIMITS.founder} scans a day.</p>
+      <p className="text-sm font-semibold mb-1">Have an invite code?</p>
+      <p className="text-xs text-muted-foreground mb-3">An invite unlocks every feature. Founding members also get {SCAN_LIMITS.founder} scans a day.</p>
       <div className="flex gap-2">
         <input
           value={code}

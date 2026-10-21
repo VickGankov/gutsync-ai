@@ -33,6 +33,7 @@ import {
   getSubscription,
   getEntitlement,
   claimFounder,
+  redeemInviteCode,
   recordTermsAcceptance,
   deleteUserAccount,
   setBirthDate,
@@ -1169,6 +1170,7 @@ export const appRouter = router({
         plan: ent.plan,
         isPremium: ent.plan === 'premium',
         isFounder: ent.founderAt != null,
+        isTester: ent.founderAt == null && ent.testerAt != null,
         paywallEnabled: ENV.paywallEnabled,
         productId: sub?.productId ?? null,
         platform: sub?.platform ?? null,
@@ -1190,6 +1192,28 @@ export const appRouter = router({
         const result = await claimFounder(ctx.user.id, ENV.founderLimit);
         if (result === 'full') throw new TRPCError({ code: 'BAD_REQUEST', message: 'All founding spots are taken.' });
         return { founder: true, alreadyFounder: result === 'already' };
+      }),
+
+    /**
+     * Redeem an invite code (typed in Profile or arriving through an invite link). Codes live in the invite_codes
+     * table; the old FOUNDER_CODE env var still works as a founder code.
+     */
+    redeemInvite: protectedProcedure
+      .input(z.object({ code: z.string().trim().min(1).max(64) }))
+      .mutation(async ({ ctx, input }) => {
+        const r = await redeemInviteCode(ctx.user.id, input.code);
+        if (r.status === 'ok' || r.status === 'already') {
+          return { plan: r.plan, already: r.status === 'already' };
+        }
+        if (r.status === 'invalid' && ENV.founderCode && founderCodeMatches(input.code, ENV.founderCode)) {
+          const legacy = await claimFounder(ctx.user.id, ENV.founderLimit);
+          if (legacy === 'full') throw new TRPCError({ code: 'BAD_REQUEST', message: 'All founding spots are taken.' });
+          return { plan: 'founder' as const, already: legacy === 'already' };
+        }
+        const message = r.status === 'full' ? 'That invite has no spots left.'
+          : r.status === 'expired' ? 'That invite has expired.'
+          : "That code isn't valid.";
+        throw new TRPCError({ code: 'BAD_REQUEST', message });
       }),
 
     /**

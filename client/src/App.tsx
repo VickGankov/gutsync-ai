@@ -19,6 +19,7 @@ import Progress from "./pages/Progress";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import TermsGate from "./components/TermsGate";
+import InviteRedeemer from "./components/InviteRedeemer";
 import Refunds from "./pages/Refunds";
 import Disclaimer from "./pages/Disclaimer";
 import HealthDataPrivacy from "./pages/HealthDataPrivacy";
@@ -86,6 +87,7 @@ function Router() {
 
   return (
     <>
+      {isAuthenticated && user?.termsAccepted ? <InviteRedeemer /> : null}
       <Switch>
         <Route path={AUTH_ROUTE} component={EmailAuth} />
         <Route path="/forgot-password" component={ForgotPassword} />

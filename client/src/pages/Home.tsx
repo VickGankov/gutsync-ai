@@ -154,24 +154,24 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 </div>
               </div>
               <div className={`flex items-center gap-3 rounded-2xl p-4 mb-5 ${
-                (subStatus.data?.isPremium || subStatus.data?.isFounder)
+                (subStatus.data?.isPremium || subStatus.data?.isFounder || subStatus.data?.isTester)
                   ? "bg-amber-50 border border-amber-200"
                   : "bg-muted border border-border/50"
               }`}>
-                <Crown className={`w-5 h-5 ${(subStatus.data?.isPremium || subStatus.data?.isFounder) ? "text-amber-500" : "text-muted-foreground"}`} />
+                <Crown className={`w-5 h-5 ${(subStatus.data?.isPremium || subStatus.data?.isFounder || subStatus.data?.isTester) ? "text-amber-500" : "text-muted-foreground"}`} />
                 <div>
                   <p className="text-sm font-semibold">
-                    {subStatus.data?.isPremium ? "Triggerplate Premium" : subStatus.data?.isFounder ? "Founding member" : "Free Plan"}
+                    {subStatus.data?.isPremium ? "Triggerplate Premium" : subStatus.data?.isFounder ? "Founding member" : subStatus.data?.isTester ? "Beta tester" : "Free Plan"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {subStatus.data?.isPremium
                       ? "Labs, protocol and extra scans"
-                      : subStatus.data?.isFounder
-                        ? `All features · ${subStatus.data?.scansRemaining ?? 20} scans left today`
+                      : (subStatus.data?.isFounder || subStatus.data?.isTester)
+                        ? `All features · ${subStatus.data?.scansRemaining ?? 10} scans left today`
                         : `${subStatus.data?.scansRemaining ?? 10} scans remaining today`}
                   </p>
                 </div>
-                {!subStatus.data?.isPremium && !subStatus.data?.isFounder && (
+                {!subStatus.data?.isPremium && !subStatus.data?.isFounder && !subStatus.data?.isTester && (
                   <Link href="/profile">
                     <button type="button" onClick={onClose} className="ml-auto text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
                       Upgrade

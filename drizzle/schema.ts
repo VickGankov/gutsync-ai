@@ -16,6 +16,7 @@ export const users = mysqlTable("users", {
   sensitivities: json("sensitivities").$type<string[]>(),
   /** When the user redeemed the founder invite code (ms since epoch). Null = not a founder. */
   founderAt: bigint("founderAt", { mode: "number" }),
+  testerAt: bigint("testerAt", { mode: "number" }),
   /** Version of the Terms the user last agreed to, and when. Null until they confirm 18+ and agree. */
   termsVersion: varchar("termsVersion", { length: 16 }),
   termsAcceptedAt: bigint("termsAcceptedAt", { mode: "number" }),
@@ -410,3 +411,15 @@ export const notificationLog = mysqlTable("notification_log", {
   kind: varchar("kind", { length: 16 }).notNull(),
   sentAt: timestamp("sentAt").defaultNow().notNull(),
 }, (t) => ({ uniq: uniqueIndex("notification_log_user_key").on(t.userId, t.key) }));
+
+/** Invite codes. Each grants a plan ("founder" or "tester"), up to `cap` redemptions, until `expiresAt` (ms; null = never). */
+export const inviteCodes = mysqlTable("invite_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  plan: varchar("plan", { length: 16 }).notNull(),
+  cap: int("cap").notNull(),
+  redeemed: int("redeemed").notNull().default(0),
+  expiresAt: bigint("expiresAt", { mode: "number" }),
+  label: varchar("label", { length: 120 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

@@ -8,6 +8,9 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 import "./lib/install";
+import { captureInviteFromUrl } from "./lib/invite";
+
+captureInviteFromUrl();
 
 const queryClient = new QueryClient();
 

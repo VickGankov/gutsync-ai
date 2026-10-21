@@ -104,3 +104,11 @@ This file is the durable context for future Cursor chats in this workspace.
 - Gate asks for a date of birth (must be 18+) instead of an 18+ checkbox; an under-18 date deletes the just-created account and keeps nothing (`profile.acceptTerms`). `users.birthDate` (YYYY-MM-DD), migration 0035. Helpers in `shared/profileStats.ts` (`checkBirthDate`, `ageOn`). Profile → "About you" (`AboutYou.tsx`) shows/edits it; adults only.
 - An optional "fitness tracking" switch (hide Progress Today/Body tabs, Home protein/water, suggested targets from weight and goal) was built and then removed at Vick's request before it shipped; it can be recovered from git history (commit f4ad94e, if still reachable). Height and sex are not collected.
 - Age is not used in any analysis yet; candidates: age-aware red-flag wording (new symptoms after ~45–50), insight context.
+- DOB input is an iOS-style scroll wheel (`BirthDateSelect.tsx`: three scroll-snap columns; emits a date only after all three were scrolled).
+
+## Invite codes + beta tester tier (2026-10-21, local until pushed)
+- Plans now: free (10 scans/day) · tester (all features, 10/day, no founder status) · founder (all features, 20/day) · premium. Testers are for people recruited from public communities (e.g. subreddits); founders stay hand-picked.
+- `invite_codes` table (migration 0036: `code`, `plan` founder|tester, `cap`, `redeemed`, `expiresAt`, `label`) + `users.testerAt`. `redeemInviteCode` (db.ts) enforces the cap in a single UPDATE; founder code upgrades a tester, tester code never downgrades a founder. `subscription.redeemInvite` also still accepts the old `FOUNDER_CODE` env var as a founder code (`redeemFounder` kept for compatibility, no longer used by the UI).
+- Create/list codes from a shell with `DATABASE_URL` set: `node scripts/invite.mjs create <code> <founder|tester> <cap> [days] [label]`, `list`, `delete <code>`. It prints the invite link `https://triggerplate.com/?invite=<code>`.
+- Invite links: `lib/invite.ts` saves `?invite=` to localStorage at app start (survives sign-up redirects); `InviteRedeemer` redeems it after sign-in + terms and toasts. Profile card ("Have an invite code?") still accepts typed codes and shows Founding member / Beta tester status.
+- `plan` is a reserved word in Dolt (local test DB), so quote it in raw SQL.

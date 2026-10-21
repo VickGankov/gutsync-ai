@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2";
 import { mysqlOptionsFromUrl } from "../shared/dbConnection.mjs";
 import {
-  InsertUser, users,
+  InsertUser, users, inviteCodes,
   InsertMeal, meals, type MealFood,
   InsertSymptom, symptoms,
   InsertCorrelation, correlations,
@@ -228,7 +228,7 @@ export async function isPremium(userId: number): Promise<boolean> {
   return true;
 }
 
-export interface Entitlement { plan: Plan; unlimited: boolean; dailyLimit: number | null; founderAt: number | null }
+export interface Entitlement { plan: Plan; unlimited: boolean; dailyLimit: number | null; founderAt: number | null; testerAt: number | null }
 
 /** Works out a user's plan, their daily scan limit (null = unlimited) and when they became a founder. */
 export async function getEntitlement(userId: number): Promise<Entitlement> {
@@ -237,8 +237,9 @@ export async function getEntitlement(userId: number): Promise<Entitlement> {
   const sub = await getSubscription(userId);
   const paid = !!sub && sub.tier === 'premium' && !(sub.expiresAt && sub.expiresAt < Date.now());
   const founderAt = user?.founderAt ?? null;
-  const plan = resolvePlan({ premium: paid || unlimited, founder: founderAt != null });
-  return { plan, unlimited, dailyLimit: unlimited ? null : scanLimitFor(plan), founderAt };
+  const testerAt = user?.testerAt ?? null;
+  const plan = resolvePlan({ premium: paid || unlimited, founder: founderAt != null, tester: testerAt != null });
+  return { plan, unlimited, dailyLimit: unlimited ? null : scanLimitFor(plan), founderAt, testerAt };
 }
 
 export async function countFounders(): Promise<number> {
@@ -257,6 +258,41 @@ export async function claimFounder(userId: number, limit: number): Promise<"ok" 
   if ((await countFounders()) >= limit) return "full";
   await db.update(users).set({ founderAt: Date.now() }).where(and(eq(users.id, userId), isNull(users.founderAt)));
   return "ok";
+}
+
+export type InviteResult =
+  | { status: "ok" | "already"; plan: "founder" | "tester" }
+  | { status: "invalid" | "expired" | "full" };
+
+/**
+ * Redeems an invite code from the invite_codes table. A founder code upgrades a tester; a tester code never
+ * downgrades a founder. The cap is enforced in one UPDATE so two people can't take the last spot together.
+ */
+export async function redeemInviteCode(userId: number, typed: string): Promise<InviteResult> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const code = typed.trim().toLowerCase();
+  if (!code) return { status: "invalid" };
+  const [row] = await db.select().from(inviteCodes).where(sql`lower(${inviteCodes.code}) = ${code}`).limit(1);
+  if (!row || (row.plan !== "founder" && row.plan !== "tester")) return { status: "invalid" };
+  const plan = row.plan as "founder" | "tester";
+  const now = Date.now();
+  if (row.expiresAt != null && row.expiresAt <= now) return { status: "expired" };
+
+  const [u] = await db.select({ founderAt: users.founderAt, testerAt: users.testerAt }).from(users).where(eq(users.id, userId)).limit(1);
+  if (u?.founderAt != null) return { status: "already", plan: "founder" };
+  if (plan === "tester" && u?.testerAt != null) return { status: "already", plan: "tester" };
+
+  const claimed: any = await db.update(inviteCodes).set({ redeemed: sql`${inviteCodes.redeemed} + 1` }).where(and(
+    eq(inviteCodes.id, row.id),
+    sql`${inviteCodes.redeemed} < ${inviteCodes.cap}`,
+    or(isNull(inviteCodes.expiresAt), sql`${inviteCodes.expiresAt} > ${now}`),
+  ));
+  const affected = Number((claimed?.[0] ?? claimed)?.affectedRows ?? 0);
+  if (affected < 1) return { status: "full" };
+
+  await db.update(users).set(plan === "founder" ? { founderAt: now } : { testerAt: now }).where(eq(users.id, userId));
+  return { status: "ok", plan };
 }
 
 /** Upsert subscription record (called from RevenueCat webhook or client receipt). */
