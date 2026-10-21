@@ -61,80 +61,96 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex justify-center">
-     {/* Phone-width column so the slides look the same on a desktop browser */}
-     <div className="w-full max-w-md min-h-screen flex flex-col">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -30 }}
-          transition={{ duration: 0.3 }}
-          className="flex-1 flex flex-col"
-        >
-          {/* Image */}
-          <div className="relative h-[45vh] max-h-[400px] overflow-hidden bg-gradient-to-b from-primary/15 to-background">
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+      {/* Desktop: the picture gets its own half of the screen */}
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-background p-12">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-center"
+          >
             {step.image ? (
               <img
                 src={step.image}
                 alt={step.title}
-                className="w-full h-full object-cover object-top"
+                className="max-h-[78vh] w-auto max-w-[440px] rounded-3xl border border-border/40 bg-card shadow-2xl object-contain"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <img src="/icon-512.png" alt="Triggerplate" className="w-28 h-28 rounded-3xl shadow-lg" />
-              </div>
+              <img src="/icon-512.png" alt="Triggerplate" className="w-44 h-44 rounded-[2.5rem] shadow-xl" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
-          </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-          {/* Content */}
-          <div className="flex-1 px-6 -mt-8 relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-              <step.icon className="w-6 h-6 text-primary" />
-            </div>
-            <h1 className="text-2xl tracking-tight mb-1">{step.title}</h1>
-            <p className="text-sm font-medium text-primary mb-3">{step.subtitle}</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Bottom controls */}
-      <div className="px-6 pb-8 pt-4">
-        {/* Progress dots */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === currentStep ? 'w-6 bg-primary' : 'w-1.5 bg-border'
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="flex gap-3">
-          {!isLast && (
-            <Button
-              variant="outline"
-              className="rounded-xl h-12 px-6"
-              onClick={onComplete}
+      <div className="flex-1 flex flex-col lg:w-1/2 lg:items-center lg:justify-center">
+        <div className="w-full max-w-md lg:max-w-lg flex-1 lg:flex-none flex flex-col mx-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 lg:flex-none flex flex-col"
             >
-              Skip
-            </Button>
-          )}
-          <Button
-            className="flex-1 rounded-xl h-12 bg-primary hover:bg-primary/90 gap-2"
-            onClick={handleNext}
-          >
-            {isLast ? "Get Started" : "Next"}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+              {/* Phone: picture on top */}
+              <div className="lg:hidden relative h-[45vh] max-h-[400px] overflow-hidden bg-gradient-to-b from-primary/15 to-background">
+                {step.image ? (
+                  <img src={step.image} alt={step.title} className="w-full h-full object-cover object-top" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <img src="/icon-512.png" alt="Triggerplate" className="w-28 h-28 rounded-3xl shadow-lg" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 lg:flex-none px-6 lg:px-0 -mt-8 lg:mt-0 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                  <step.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h1 className="text-2xl lg:text-4xl tracking-tight mb-1 lg:mb-2">{step.title}</h1>
+                <p className="text-sm lg:text-base font-medium text-primary mb-3">{step.subtitle}</p>
+                <p className="text-sm lg:text-base text-muted-foreground leading-relaxed">{step.description}</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Bottom controls */}
+          <div className="px-6 lg:px-0 pb-8 lg:pb-0 pt-4 lg:pt-10">
+            <div className="flex items-center justify-center lg:justify-start gap-2 mb-6">
+              {steps.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === currentStep ? 'w-6 bg-primary' : 'w-1.5 bg-border'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              {!isLast && (
+                <Button variant="outline" className="rounded-xl h-12 px-6" onClick={onComplete}>
+                  Skip
+                </Button>
+              )}
+              <Button
+                className="flex-1 rounded-xl h-12 bg-primary hover:bg-primary/90 gap-2"
+                onClick={handleNext}
+              >
+                {isLast ? "Get Started" : "Next"}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-     </div>
     </div>
   );
 }
