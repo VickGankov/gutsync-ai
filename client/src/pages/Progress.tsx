@@ -70,7 +70,7 @@ function CardTitle({ icon: Icon, title, right }: { icon: React.ElementType; titl
 }
 
 type TabId = "today" | "body" | "protocol" | "nutrition" | "labs";
-const TABS: { id: TabId; label: string }[] = [
+const ALL_TABS: { id: TabId; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "body", label: "Body" },
   { id: "protocol", label: "Protocol" },
@@ -81,7 +81,7 @@ const TAB_KEY = "gutsync_progress_tab";
 function readTab(): TabId {
   try {
     const v = localStorage.getItem(TAB_KEY);
-    return TABS.some(t => t.id === v) ? (v as TabId) : "today";
+    return ALL_TABS.some(t => t.id === v) ? (v as TabId) : "today";
   } catch { return "today"; }
 }
 
@@ -90,6 +90,10 @@ const inputCls =
 
 export default function Progress() {
   const { isAuthenticated } = useAuth();
+  const meQuery = trpc.auth.me.useQuery();
+  // While the account loads assume fitness is on, so the page does not jump around.
+  const fitnessOn = meQuery.data ? !!meQuery.data.fitnessEnabled : true;
+  const TABS = fitnessOn ? ALL_TABS : ALL_TABS.filter(t => t.id !== "today" && t.id !== "body");
   const utils = trpc.useUtils();
   const tzOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
 
@@ -122,7 +126,8 @@ export default function Progress() {
   const [weightInput, setWeightInput] = useState("");
   const [lift, setLift] = useState({ exercise: "", weightLb: "", reps: "", sets: "" });
   const [showTargets, setShowTargets] = useState(false);
-  const [tab, setTabState] = useState<TabId>(() => readTab());
+  const [savedTab, setTabState] = useState<TabId>(() => readTab());
+  const tab: TabId = TABS.some(t => t.id === savedTab) ? savedTab : TABS[0].id;
   const [bodyView, setBodyView] = useState<"weight" | "strength">("weight");
   const setTab = (t: TabId) => {
     setTabState(t);
@@ -236,9 +241,9 @@ export default function Progress() {
       <motion.div variants={item} className="mb-5 flex items-end justify-between">
         <div>
           <h1 className="text-2xl tracking-tight">Progress</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Protein, hydration, weight and protocol</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{fitnessOn ? "Protein, hydration, weight and protocol" : "Protocol, supplements, nutrition and labs"}</p>
         </div>
-        <button
+        {fitnessOn && <button
           onClick={() => {
             setTargets({ protein: String(proteinTarget), water: galInputValue(waterTarget) });
             setShowTargets(v => !v);
@@ -247,7 +252,7 @@ export default function Progress() {
           title="Edit targets"
         >
           <Settings2 className="w-5 h-5 text-muted-foreground" />
-        </button>
+        </button>}
       </motion.div>
 
       {showTargets && (
@@ -271,7 +276,7 @@ export default function Progress() {
 
       <motion.div variants={item} role="tablist" aria-label="Progress sections"
         className="sticky top-0 z-10 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur border-b border-border/40">
-        <div className="grid grid-cols-5 gap-0.5 bg-muted/60 rounded-xl p-1">
+        <div className="grid gap-0.5 bg-muted/60 rounded-xl p-1" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
           {TABS.map(t => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
               className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -371,7 +376,7 @@ export default function Progress() {
       </Card>
 
       {/* Protein history */}
-      <Card>
+      {fitnessOn && <Card>
         <CardTitle icon={Beef} title="Protein — last 14 days" right={
           <span className="text-xs text-muted-foreground">{proteinDaysHit}/14 days on target</span>
         } />
@@ -386,7 +391,7 @@ export default function Progress() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </Card>}
 
       </>)}
 

@@ -21,6 +21,7 @@ export default function WeeklySummaryCard() {
     try { localStorage.setItem(OPEN_KEY, v ? "1" : "0"); } catch { /* storage unavailable */ }
   };
   const tzOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
+  const fitnessOn = !!trpc.auth.me.useQuery().data?.fitnessEnabled;
   const summaryQuery = trpc.fitness.summary.useQuery({ days: 28, tzOffsetMinutes });
   const doseQuery = trpc.dose.list.useQuery();
   const symptomsQuery = trpc.symptoms.list.useQuery({ limit: 50 });
@@ -45,9 +46,10 @@ export default function WeeklySummaryCard() {
   const delta = s.weight.delta;
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta < 0 ? TrendingDown : TrendingUp;
   const showSideEffects = hasDoses || s.sideEffects.count > 0;
+  if (!fitnessOn && !showSideEffects) return null;
   const oneLine = [
-    s.weight.thisAvg !== null ? `${s.weight.thisAvg} lb avg${delta !== null ? ` (${delta > 0 ? "+" : ""}${delta})` : ""}` : null,
-    s.protein.avg !== null ? `protein ${s.protein.daysOnTarget}/7 days` : null,
+    fitnessOn && s.weight.thisAvg !== null ? `${s.weight.thisAvg} lb avg${delta !== null ? ` (${delta > 0 ? "+" : ""}${delta})` : ""}` : null,
+    fitnessOn && s.protein.avg !== null ? `protein ${s.protein.daysOnTarget}/7 days` : null,
     hasDoses ? `doses ${s.doses.taken}/${s.doses.expected}` : null,
   ].filter(Boolean).join(" · ") || "Nothing logged this week";
 
@@ -62,18 +64,18 @@ export default function WeeklySummaryCard() {
 
       {open && (<>
       <div className="grid grid-cols-2 gap-2 mt-3">
-        <Stat
+        {fitnessOn && <Stat
           label="Weight (avg)"
           value={s.weight.thisAvg !== null ? `${s.weight.thisAvg} lb` : "–"}
           sub={delta !== null ? (
             <span className="inline-flex items-center gap-1"><DeltaIcon className="w-3 h-3" />{delta > 0 ? "+" : ""}{delta} lb vs last week</span>
           ) : s.weight.weighIns === 0 ? "No weigh-ins this week" : "Need last week's weigh-ins to compare"}
-        />
-        <Stat
+        />}
+        {fitnessOn && <Stat
           label="Protein (avg)"
           value={s.protein.avg !== null ? `${s.protein.avg} g` : "–"}
           sub={s.protein.avg !== null ? `${s.protein.daysOnTarget} of 7 days on ${s.protein.target} g` : "Nothing logged"}
-        />
+        />}
         {hasDoses && (
           <Stat
             label="Doses"

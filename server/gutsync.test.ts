@@ -50,6 +50,9 @@ vi.mock("./db", () => ({
   getEntitlement: vi.fn().mockResolvedValue({ plan: "free", unlimited: false, dailyLimit: 10, founderAt: null }),
   claimFounder: vi.fn().mockResolvedValue("ok"),
   recordTermsAcceptance: vi.fn().mockResolvedValue(undefined),
+  setBirthDate: vi.fn().mockResolvedValue(undefined),
+  setFitnessSettings: vi.fn().mockResolvedValue(undefined),
+  getLatestWeightLb: vi.fn().mockResolvedValue(null),
   deleteUserAccount: vi.fn().mockResolvedValue(["meals/1/a.jpg", "avatars/1/b.jpg"]),
   upsertSubscription: vi.fn().mockResolvedValue(undefined),
   cancelSubscription: vi.fn().mockResolvedValue(undefined),
@@ -336,7 +339,7 @@ describe("Triggerplate Server Procedures", () => {
 
     it("auth.me never includes the password hash or other internal fields", async () => {
       const me = await appRouter.createCaller(ctxWithSecrets()).auth.me();
-      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [], termsAccepted: false, hasPassword: true });
+      expect(me).toEqual({ id: 1, email: "test@example.com", name: "Test User", role: "user", avatarUrl: "/api/media/avatars/1/old.jpg", sensitivities: [], termsAccepted: false, hasPassword: true, birthDate: null, fitnessEnabled: false, fitnessGoal: null });
       expect(JSON.stringify(me)).not.toContain("secret-hash");
       expect(await appRouter.createCaller(createUnauthContext()).auth.me()).toBeNull();
     });
@@ -663,21 +666,60 @@ describe("Triggerplate Server Procedures", () => {
       return ctx;
     };
 
-    it("auth.me reports whether the current terms were accepted", async () => {
+    it("auth.me reports whether the current terms were accepted with a birth date", async () => {
       const ctx = createAuthContext();
       expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(false);
       ctx.user = { ...ctx.user!, termsVersion: LEGAL_VERSION } as any;
+      expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(false); // no birth date yet
+      ctx.user = { ...ctx.user!, termsVersion: LEGAL_VERSION, birthDate: "1990-05-05" } as any;
       expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(true);
       ctx.user = { ...ctx.user!, termsVersion: "2020-01-01" } as any;
       expect((await appRouter.createCaller(ctx).auth.me())!.termsAccepted).toBe(false);
     });
 
-    it("records acceptance only when both boxes are ticked", async () => {
+    it("records acceptance with the birth date for an adult, and needs the box ticked", async () => {
       const caller = appRouter.createCaller(createAuthContext());
-      await expect(caller.profile.acceptTerms({ adult: false, agreed: true } as any)).rejects.toThrow();
-      await expect(caller.profile.acceptTerms({ adult: true, agreed: false } as any)).rejects.toThrow();
-      await caller.profile.acceptTerms({ adult: true, agreed: true });
-      expect(db.recordTermsAcceptance).toHaveBeenCalledWith(1, LEGAL_VERSION);
+      await expect(caller.profile.acceptTerms({ birthDate: "1990-05-05", agreed: false } as any)).rejects.toThrow();
+      await expect(caller.profile.acceptTerms({ birthDate: "not a date", agreed: true })).rejects.toThrow(/valid date/);
+      await expect(caller.profile.acceptTerms({ birthDate: "2999-01-01", agreed: true })).rejects.toThrow(/valid date/);
+      expect(db.deleteUserAccount).not.toHaveBeenCalled();
+      await caller.profile.acceptTerms({ birthDate: "1990-05-05", agreed: true });
+      expect(db.recordTermsAcceptance).toHaveBeenCalledWith(1, LEGAL_VERSION, "1990-05-05");
+    });
+
+    it("deletes the account and keeps nothing when the birth date is under 18", async () => {
+      const ctx = createAuthContext();
+      const young = new Date(Date.now() - 15 * 365 * 86_400_000).toISOString().slice(0, 10);
+      await expect(appRouter.createCaller(ctx).profile.acceptTerms({ birthDate: young, agreed: true })).rejects.toThrow(/UNDER_18/);
+      expect(db.deleteUserAccount).toHaveBeenCalledWith(1);
+      expect(db.recordTermsAcceptance).not.toHaveBeenCalled();
+      expect((ctx.res as any).clearCookie).toHaveBeenCalled();
+    });
+
+    it("lets an adult change their birth date but not to under 18", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.profile.setBirthDate({ birthDate: "1985-01-01" });
+      expect(db.setBirthDate).toHaveBeenCalledWith(1, "1985-01-01");
+      const young = new Date(Date.now() - 10 * 365 * 86_400_000).toISOString().slice(0, 10);
+      await expect(caller.profile.setBirthDate({ birthDate: young })).rejects.toThrow(/18/);
+      expect(db.deleteUserAccount).not.toHaveBeenCalled();
+    });
+
+    it("turns fitness tracking on or off and stores the goal", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await caller.profile.setFitness({ enabled: true, goal: "build" });
+      expect(db.setFitnessSettings).toHaveBeenLastCalledWith(1, true, "build");
+      await caller.profile.setFitness({ enabled: false });
+      expect(db.setFitnessSettings).toHaveBeenLastCalledWith(1, false, undefined);
+    });
+
+    it("suggests targets from the latest weight and goal, or none without a weight", async () => {
+      const ctx = createAuthContext();
+      ctx.user = { ...ctx.user!, fitnessGoal: "build" } as any;
+      vi.mocked(db.getLatestWeightLb).mockResolvedValueOnce(180);
+      expect(await appRouter.createCaller(ctx).fitness.suggestedTargets()).toEqual({ weightLb: 180, goal: "build", suggestion: { proteinG: 145, waterMl: 2700 } });
+      vi.mocked(db.getLatestWeightLb).mockResolvedValueOnce(null);
+      expect((await appRouter.createCaller(ctx).fitness.suggestedTargets()).suggestion).toBeNull();
     });
 
     it("refuses to delete without the word DELETE", async () => {

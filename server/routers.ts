@@ -6,6 +6,7 @@ import { invokeLLM } from "./_core/llm";
 import { storagePut, storageDelete, avatarKeyFromUrl } from "./storage";
 import { ENV } from "./_core/env";
 import { LEGAL_VERSION } from "@shared/legal";
+import { checkBirthDate, suggestTargets, type FitnessGoal } from "@shared/profileStats";
 import bcrypt from "bcrypt";
 import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
 import { z } from "zod";
@@ -34,6 +35,9 @@ import {
   claimFounder,
   recordTermsAcceptance,
   deleteUserAccount,
+  setBirthDate,
+  setFitnessSettings,
+  getLatestWeightLb,
   upsertSubscription,
   cancelSubscription,
   getTodayScanCount,
@@ -269,7 +273,7 @@ export const appRouter = router({
     /** Only fields the app needs. The full row holds the password hash, which must never reach the browser. */
     me: publicProcedure.query(opts => {
       const u = opts.ctx.user;
-      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities), termsAccepted: u.termsVersion === LEGAL_VERSION, hasPassword: !!u.password } : null;
+      return u ? { id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatarUrl ?? null, sensitivities: cleanSensitivities(u.sensitivities), termsAccepted: u.termsVersion === LEGAL_VERSION && !!u.birthDate, hasPassword: !!u.password, birthDate: u.birthDate ?? null, fitnessEnabled: !!u.fitnessEnabled, fitnessGoal: u.fitnessGoal ?? null } : null;
     }),
     /** Which sign-in methods the server has set up, so the sign-in page only shows buttons that work. */
     providers: publicProcedure.query(() => ({ google: googleConfigured() })),
@@ -598,11 +602,39 @@ export const appRouter = router({
 
   profile: router({
     /** Foods the user says they suspect. Unknown keys are dropped. */
-    /** Confirms the user is 18+ and agrees to the Terms and Privacy Policy (required before using the app). */
+    /**
+     * Required before using the app: date of birth (must be 18+) and agreement to the Terms and Privacy Policy.
+     * An under-18 birth date deletes the just-created account (nothing is kept) and signs the person out.
+     */
     acceptTerms: protectedProcedure
-      .input(z.object({ adult: z.literal(true), agreed: z.literal(true) }))
-      .mutation(async ({ ctx }) => {
-        await recordTermsAcceptance(ctx.user.id, LEGAL_VERSION);
+      .input(z.object({ birthDate: z.string().max(10), agreed: z.literal(true) }))
+      .mutation(async ({ ctx, input }) => {
+        const check = checkBirthDate(input.birthDate);
+        if (check === "under18") {
+          await deleteUserAccount(ctx.user.id);
+          ctx.res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(ctx.req), maxAge: -1 });
+          throw new TRPCError({ code: "FORBIDDEN", message: "UNDER_18" });
+        }
+        if (check !== "ok") throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid date of birth." });
+        await recordTermsAcceptance(ctx.user.id, LEGAL_VERSION, input.birthDate);
+        return { success: true } as const;
+      }),
+
+    setBirthDate: protectedProcedure
+      .input(z.object({ birthDate: z.string().max(10) }))
+      .mutation(async ({ ctx, input }) => {
+        const check = checkBirthDate(input.birthDate);
+        if (check === "under18") throw new TRPCError({ code: "BAD_REQUEST", message: "You must be 18 or older to use Triggerplate." });
+        if (check !== "ok") throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid date of birth." });
+        await setBirthDate(ctx.user.id, input.birthDate);
+        return { success: true } as const;
+      }),
+
+    /** Turns fitness tracking (protein, water, weight, strength) on or off and sets the goal. Data is kept when turned off. */
+    setFitness: protectedProcedure
+      .input(z.object({ enabled: z.boolean(), goal: z.enum(["maintain", "build", "general"]).nullable().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        await setFitnessSettings(ctx.user.id, input.enabled, input.goal);
         return { success: true } as const;
       }),
 
@@ -941,6 +973,13 @@ export const appRouter = router({
         proteinTargetG: p?.proteinTargetG ?? 150,
         waterTargetMl: p?.waterTargetMl ?? 3785,
       };
+    }),
+
+    /** Suggested daily protein and water from the latest weigh-in and the chosen goal (null until a weight is logged). */
+    suggestedTargets: protectedProcedure.query(async ({ ctx }) => {
+      const weightLb = await getLatestWeightLb(ctx.user.id);
+      const goal = (ctx.user.fitnessGoal ?? "general") as FitnessGoal;
+      return { weightLb, goal, suggestion: weightLb ? suggestTargets(weightLb, goal) : null };
     }),
 
     setProfile: protectedProcedure

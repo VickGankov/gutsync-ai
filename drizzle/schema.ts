@@ -19,6 +19,11 @@ export const users = mysqlTable("users", {
   /** Version of the Terms the user last agreed to, and when. Null until they confirm 18+ and agree. */
   termsVersion: varchar("termsVersion", { length: 16 }),
   termsAcceptedAt: bigint("termsAcceptedAt", { mode: "number" }),
+  /** Date of birth as YYYY-MM-DD. Required at sign-up (18+); used for age-aware messaging. */
+  birthDate: varchar("birthDate", { length: 10 }),
+  /** Whether the user turned on fitness tracking (protein, water, weight, strength), and their goal. */
+  fitnessEnabled: boolean("fitnessEnabled").default(false).notNull(),
+  fitnessGoal: varchar("fitnessGoal", { length: 16 }).$type<"maintain" | "build" | "general">(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

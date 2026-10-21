@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import RemindersCard from "@/components/RemindersCard";
 import DietaryProfile from "@/components/DietaryProfile";
 import FounderCard from "@/components/FounderCard";
+import AboutYou from "@/components/AboutYou";
 import DeleteAccount from "@/components/DeleteAccount";
 import { motion } from "framer-motion";
 import { User, Download, Shield, ChevronRight, Camera, Apple, LogOut, Smartphone } from "lucide-react";
@@ -152,6 +153,7 @@ export default function Profile() {
       {/* Foods I suspect */}
       <motion.div variants={item}>
         <FounderCard />
+        <AboutYou />
         <DietaryProfile />
       </motion.div>
 

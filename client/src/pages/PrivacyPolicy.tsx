@@ -5,9 +5,9 @@ const sections: LegalSection[] = [
     "Triggerplate is operated by Vick Gankov in Washington State, USA. This policy explains what we collect, how we use it, who we share it with, and the choices you have. Health information is covered in more detail in our Consumer Health Data Privacy Policy.",
   ]},
   { title: "What we collect", body: [
-    "Account details: your name and email address, a password if you sign up with email (stored only as a hash), or the name and verified email Google shares if you choose Continue with Google. We never see your Google password.",
+    "Account details: your name, email address, and date of birth (used to confirm you are 18 or older and to fit messages and insights to your age), a password if you sign up with email (stored only as a hash), or the name and verified email Google shares if you choose Continue with Google. We never see your Google password.",
     "What you log: meal photos and descriptions, food logs, symptoms, supplements, medication or peptide dose logs, and, if you use the optional tracking features, body and fitness figures (such as weight, waist, strength lifts, protein and water) and blood work results. Much of this is sensitive health information. You choose what to log and can leave anything blank.",
-    "Settings: reminder times, your dietary profile (foods you suspect), and a push address for each device you allow notifications on.",
+    "Settings: reminder times, your dietary profile (foods you suspect), whether fitness tracking is on and your fitness goal, and a push address for each device you allow notifications on.",
     "Plan and usage: your plan (free, founding member, or paid), daily scan counts, and basic technical data needed to keep the service secure and working.",
   ]},
   { title: "How we use it", body: [
@@ -37,7 +37,7 @@ const sections: LegalSection[] = [
     "Data is encrypted in transit, and access to our systems is restricted. No service is perfectly secure, so please use a strong, unique password and tell us if you suspect a problem.",
   ]},
   { title: "Children", body: [
-    "Triggerplate is for adults 18 and over. We do not knowingly collect information from anyone under 18. If you believe a child has an account, contact us and we will delete it.",
+    "Triggerplate is for adults 18 and over. We do not knowingly collect information from anyone under 18. If a date of birth shows someone is under 18, we delete the account and keep nothing. If you believe a child has an account, contact us and we will delete it.",
   ]},
   { title: "Changes", body: [
     "If we change this policy in a meaningful way we will tell you in the app or by email before it takes effect. The date at the top shows the latest version.",

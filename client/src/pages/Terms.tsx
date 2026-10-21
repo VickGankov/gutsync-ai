@@ -3,7 +3,7 @@ import LegalLayout, { SUPPORT_EMAIL, type LegalSection } from "@/legal/LegalLayo
 const sections: LegalSection[] = [
   { title: "1. About these terms", body: [
     "These terms are an agreement between you and Triggerplate, operated by Vick Gankov in Washington State, USA (\"we\", \"us\"). By creating an account or using Triggerplate you agree to them and to our Privacy Policy.",
-    "Triggerplate is intended for adults in the United States. You must be at least 18 to use it.",
+    "Triggerplate is intended for adults in the United States. You must be at least 18 to use it, and you confirm this with your date of birth when you sign up.",
   ]},
   { title: "2. What Triggerplate is", body: [
     "Triggerplate is a personal log and pattern finder for food, symptoms, and related health information you choose to record. It does not diagnose, treat, or prevent any condition and is not medical advice. Please read the Medical Disclaimer, which is part of these terms.",

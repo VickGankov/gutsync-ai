@@ -6,7 +6,7 @@ const sections: LegalSection[] = [
     "This policy applies to consumer health data that Triggerplate collects, and it is meant for Washington residents and anyone else whose state law gives similar rights. It adds to the main Privacy Policy.",
   ]},
   { title: "Health data we collect", body: [
-    "Only what you choose to enter or import: meals and foods, symptoms and their severity, dietary sensitivities you suspect, supplements and medication or peptide dose logs, body and fitness measurements, and blood work results. We also hold related settings such as reminder times.",
+    "Your date of birth, plus what you choose to enter or import: meals and foods, symptoms and their severity, dietary sensitivities you suspect, supplements and medication or peptide dose logs, body and fitness measurements, and blood work results. We also hold related settings such as reminder times.",
   ]},
   { title: "Where it comes from", body: [
     "Directly from you. Lab values can also come from a report you choose to upload, which is read by an AI provider on our behalf.",
