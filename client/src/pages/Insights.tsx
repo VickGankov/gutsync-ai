@@ -13,7 +13,7 @@ import {
   PieChart, Pie,
 } from "recharts";
 import { Link } from "wouter";
-import { ofMeals, pct, MIN_EXPOSURES } from "@shared/triggers";
+import { ofMeals, pct, MIN_EXPOSURES, MIN_DAYS, MAX_SHARE, sampleLabel } from "@shared/triggers";
 import type { Confirmation } from "@shared/triggerConfirm";
 import { declaredStats } from "@shared/sensitivities";
 
@@ -40,7 +40,10 @@ interface TriggerData {
   otherRate: number;
   avgSeverity: number;
   hitsNearDose: number;
-  status: "trigger" | "watching";
+  days: number;
+  rateLow: number;
+  rateHigh: number;
+  status: "trigger" | "watching" | "common";
   confirmation?: Confirmation | null;
 }
 
@@ -55,7 +58,9 @@ function WatchingRow({ t }: { t: TriggerData }) {
         <span className="font-medium">{t.names.join(" + ")}</span>
         <span className="text-muted-foreground"> → {getSymptomLabel(t.symptom).toLowerCase()}</span>
       </p>
-      <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t.exposures}/{MIN_EXPOSURES} meals</span>
+      <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+        {t.exposures >= MIN_EXPOSURES ? `${t.days}/${MIN_DAYS} days` : `${t.exposures}/${MIN_EXPOSURES} meals`}
+      </span>
     </div>
   );
 }
@@ -89,6 +94,26 @@ function StatusChip({ c }: { c?: Confirmation | null }) {
     </p>
   );
 }
+
+/** A food eaten in most meals: shown quietly, never as a trigger. */
+function CommonRow({ t }: { t: TriggerData }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3 py-2">
+      <Eye className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+      <p className="text-xs text-foreground min-w-0 flex-1">
+        <span className="font-medium">{t.names.join(" + ")}</span>
+        <span className="text-muted-foreground"> → {getSymptomLabel(t.symptom).toLowerCase()}</span>
+      </p>
+      <span className="text-[11px] text-muted-foreground whitespace-nowrap">too common</span>
+    </div>
+  );
+}
+
+const SAMPLE_TEXT = {
+  small: "Small sample, so treat this loosely.",
+  fair: "Fair sample, still worth testing before you rely on it.",
+  larger: "Larger sample, but still not proof.",
+} as const;
 
 function TriggerCard({ t }: { t: TriggerData }) {
   const [open, setOpen] = useState(false);
@@ -126,6 +151,9 @@ function TriggerCard({ t }: { t: TriggerData }) {
             <p className="text-[11px] text-muted-foreground mt-0.5">
               {t.otherMeals > 0 ? `vs ${pct(t.otherRate)} after other meals` : "no other meals to compare yet"}
               {t.hits > 0 && ` · avg severity ${t.avgSeverity}/5`}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Seen on {t.days} day{t.days === 1 ? "" : "s"}. With this many meals, the real rate could be anywhere from {pct(t.rateLow)} to {pct(t.rateHigh)}. {SAMPLE_TEXT[sampleLabel(t.exposures)]}
             </p>
           </div>
         </div>
@@ -214,6 +242,7 @@ export default function Insights() {
   const allPatterns = (triggersQuery.data?.triggers ?? []) as TriggerData[];
   const triggers = allPatterns.filter(t => t.status === "trigger");
   const watching = allPatterns.filter(t => t.status === "watching").slice(0, 6);
+  const common = allPatterns.filter(t => t.status === "common").slice(0, 4);
   const meals = mealsQuery.data ?? [];
   const symptoms = symptomsQuery.data ?? [];
 
@@ -305,7 +334,7 @@ export default function Insights() {
                 <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
                 <h3 className="font-display text-lg mb-1">No clear triggers yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  A food needs to show up in at least {MIN_EXPOSURES} meals, with a symptom after it more often than after your other meals, before it even counts as possible. Keep logging.
+                  A food needs to show up in at least {MIN_EXPOSURES} meals across {MIN_DAYS} different days, with a symptom after it more often than after your other meals, before it even counts as possible. Keep logging.
                 </p>
               </div>
             )}
@@ -318,7 +347,21 @@ export default function Insights() {
                 <div className="space-y-1.5">
                   {watching.map(t => <WatchingRow key={t.key} t={t} />)}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-2">Too few meals to say anything yet. These are not triggers.</p>
+                <p className="text-[11px] text-muted-foreground mt-2">Too few meals or days to say anything yet. These are not triggers.</p>
+              </div>
+            )}
+            {common.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Too common to tell apart</h3>
+                </div>
+                <div className="space-y-1.5">
+                  {common.map(t => <CommonRow key={t.key} t={t} />)}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  You eat these in more than {Math.round(MAX_SHARE * 100)}% of your meals (or nearly all of them), so there is nothing to compare them with. To find out, try a few days without one, or test it with a reintroduction challenge.
+                </p>
               </div>
             )}
           </motion.div>
