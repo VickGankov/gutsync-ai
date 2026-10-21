@@ -61,7 +61,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex justify-center">
+     {/* Phone-width column so the slides look the same on a desktop browser */}
+     <div className="w-full max-w-md min-h-screen flex flex-col">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
@@ -72,7 +74,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           className="flex-1 flex flex-col"
         >
           {/* Image */}
-          <div className="relative h-[45vh] overflow-hidden bg-gradient-to-b from-primary/15 to-background">
+          <div className="relative h-[45vh] max-h-[400px] overflow-hidden bg-gradient-to-b from-primary/15 to-background">
             {step.image ? (
               <img
                 src={step.image}
@@ -132,6 +134,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </Button>
         </div>
       </div>
+     </div>
     </div>
   );
 }

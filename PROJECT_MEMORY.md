@@ -115,3 +115,4 @@ This file is the durable context for future Cursor chats in this workspace.
 
 ## Onboarding images (2026-10-21)
 - The four onboarding images were hotlinked from a third-party CloudFront host that stopped loading (broken-image icon on triggerplate.com). Now self-hosted: step 1 shows the app icon (`/icon-512.png`) on a green gradient; steps 2–4 use `/landing/scan.webp`, `today.webp`, `triggers.webp`. Don't hotlink images from external hosts.
+- Onboarding is a centered phone-width column (`max-w-md`, hero `max-h-[400px]`) so slides don't stretch on desktop browsers.
