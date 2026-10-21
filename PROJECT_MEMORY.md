@@ -112,3 +112,6 @@ This file is the durable context for future Cursor chats in this workspace.
 - Create/list codes from a shell with `DATABASE_URL` set: `node scripts/invite.mjs create <code> <founder|tester> <cap> [days] [label]`, `list`, `delete <code>`. It prints the invite link `https://triggerplate.com/?invite=<code>`.
 - Invite links: `lib/invite.ts` saves `?invite=` to localStorage at app start (survives sign-up redirects); `InviteRedeemer` redeems it after sign-in + terms and toasts. Profile card ("Have an invite code?") still accepts typed codes and shows Founding member / Beta tester status.
 - `plan` is a reserved word in Dolt (local test DB), so quote it in raw SQL.
+
+## Onboarding images (2026-10-21)
+- The four onboarding images were hotlinked from a third-party CloudFront host that stopped loading (broken-image icon on triggerplate.com). Now self-hosted: step 1 shows the app icon (`/icon-512.png`) on a green gradient; steps 2–4 use `/landing/scan.webp`, `today.webp`, `triggers.webp`. Don't hotlink images from external hosts.

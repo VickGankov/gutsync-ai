@@ -6,10 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Camera, Activity, Sparkles, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-hero-Pvw9osKZy8TFVwjYfuzJB7.webp";
-const FOOD_SCAN_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-food-scan-Q6qZWp7uKQBXi3HwwykjjB.webp";
-const INSIGHTS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-insights-am9czTKGxiACTgufFfNQec.webp";
-const WELLNESS_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-wellness-Y3yqX8dgxLnj59BBic4aog.webp";
+// Hero is the app icon; the other steps show real screenshots served from /landing (no third-party image hosts).
+const HERO_IMG: string | null = null;
+const FOOD_SCAN_IMG = "/landing/scan.webp";
+const INSIGHTS_IMG = "/landing/today.webp";
+const WELLNESS_IMG = "/landing/triggers.webp";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -71,12 +72,18 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           className="flex-1 flex flex-col"
         >
           {/* Image */}
-          <div className="relative h-[45vh] overflow-hidden">
-            <img
-              src={step.image}
-              alt={step.title}
-              className="w-full h-full object-cover"
-            />
+          <div className="relative h-[45vh] overflow-hidden bg-gradient-to-b from-primary/15 to-background">
+            {step.image ? (
+              <img
+                src={step.image}
+                alt={step.title}
+                className="w-full h-full object-cover object-top"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <img src="/icon-512.png" alt="Triggerplate" className="w-28 h-28 rounded-3xl shadow-lg" />
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
           </div>
 
