@@ -21,8 +21,8 @@ const steps = [
     image: HERO_IMG,
     icon: Leaf,
     title: "Welcome to Triggerplate",
-    subtitle: "Your personal food sensitivity tracker",
-    description: "Discover which foods trigger your bloating, pain, and discomfort — without keeping a tedious food diary.",
+    subtitle: "Your personal protocol tracker",
+    description: "Log meals, doses, supplements, symptoms, weight and labs in one place, then see what lines up with how you feel.",
   },
   {
     image: FOOD_SCAN_IMG,
@@ -34,16 +34,16 @@ const steps = [
   {
     image: INSIGHTS_IMG,
     icon: Activity,
-    title: "Your Body Talks",
-    subtitle: "Simple symptom tracking",
-    description: "Log symptoms with a single tap. We connect the dots between what you eat and how you feel over time.",
+    title: "Track Everything In One Place",
+    subtitle: "Symptoms, doses, body and labs",
+    description: "Log symptoms with a single tap, plus doses, supplements, weight, strength and lab results. Everything sits on one timeline.",
   },
   {
     image: WELLNESS_IMG,
     icon: Sparkles,
     title: "Discover Your Patterns",
-    subtitle: "Smart correlation engine",
-    description: "After a few days of tracking, Triggerplate finds complex trigger patterns you'd miss on your own — like 'you only bloat when combining dairy with high-fructan vegetables.'",
+    subtitle: "Possible triggers, not guesses",
+    description: "Once a food has shown up in at least 5 meals over 4 days, Triggerplate flags it as a possible trigger. A reintroduction test is what confirms it.",
   },
 ];
 

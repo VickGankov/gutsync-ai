@@ -128,3 +128,7 @@ This file is the durable context for future Cursor chats in this workspace.
 - Progress tabs are now Body (default), Protocol, Nutrition, Labs. Today tab removed; `?tab=` URL param supported. Protein/water quick-add lives at the top of Nutrition; Home TodayCard tiles link to `/progress?tab=nutrition`. Strength stays (user wants to track muscle loss).
 - WeeklySummaryCard moved to Home (below the score card).
 - Gut Score (`shared/gutScore.ts`): last 7 days, negative symptoms only; null ("–") when none logged; trend vs prior week; labels Good/Fair/Needs attention. Streak is real consecutive logged days (meal or symptom), local tz via `insights.dashboard({tzOffsetMinutes})`.
+
+## Scan result + positioning copy
+- Scan result no longer shows the dev timing line (still console.log'd). Packaged items with no legible label/DB hit and no flagged triggers are rated "moderate" (unknown); UI now says "Ingredients unknown, so this rating is a guess. Scan the label for a firm answer." instead of the contradictory "No common FODMAP triggers likely".
+- Welcome slides, page title and meta/og copy reframed as a protocol tracker (no specific drug/peptide names). Slide 4 states the real rule (5+ meals over 4 days = possible; reintroduction test confirms).

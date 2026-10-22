@@ -74,7 +74,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
   const [newFoodName, setNewFoodName] = useState("");
   const [newFoodCategory, setNewFoodCategory] = useState<string>("other");
   const [newFoodFodmap, setNewFoodFodmap] = useState<"low" | "moderate" | "high">("low");
-  const [scanSeconds, setScanSeconds] = useState<string | null>(null);
   const [labelBusy, setLabelBusy] = useState<number | null>(null);
   const [foodFile, setFoodFile] = useState<File | null>(null);
   const [labelFile, setLabelFile] = useState<File | null>(null);
@@ -133,7 +132,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
       if (result.timings) {
         const t = result.timings;
         console.log("[scan timings]", t);
-        setScanSeconds(`${(t.totalMs / 1000).toFixed(1)} s (${t.path}${t.path === "fast" ? `, identify ${(t.identifyMs / 1000).toFixed(1)} s, lookup ${(t.lookupMs / 1000).toFixed(1)} s, ${t.cacheHits}/${t.foods} known` : ""})`);
       }
       setMealSummary(result.summary);
       setDetectedMealType(result.mealType || "snack");
@@ -356,7 +354,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
     setPreviewUrl(null);
     setAnalysisStep(0);
     setAnalyzedFoods([]);
-    setScanSeconds(null); clearStaged();
+    clearStaged();
     setMealSummary("");
     setTypedText(""); setIsTextEntry(false); setEatenAt(null);
     setDetectedMealType("snack");
@@ -590,7 +588,6 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                 {mealSummary && (
                   <p className="text-sm text-muted-foreground italic">{mealSummary}</p>
                 )}
-                {scanSeconds && <p className="text-[10px] text-muted-foreground/70">Scanned in {scanSeconds}</p>}
 
                 <div className="rounded-2xl border border-border/50 bg-muted/30 p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -796,7 +793,11 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                       )}
 
                       {food.packaged && food.hiddenIngredients.length === 0 && (
-                        <p className="mt-2 text-[11px] text-sage-dark">No common FODMAP triggers {food.basis === "estimate" ? "likely" : "in the ingredients"}.</p>
+                        food.basis === "estimate" && food.fodmap === "moderate" ? (
+                          <p className="mt-2 text-[11px] text-muted-foreground">Ingredients unknown, so this rating is a guess. Scan the label for a firm answer.</p>
+                        ) : (
+                          <p className="mt-2 text-[11px] text-sage-dark">No common FODMAP triggers {food.basis === "estimate" ? "likely" : "in the ingredients"}.</p>
+                        )
                       )}
                       {food.ingredients && food.ingredients.length > 0 && (
                         <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">Ingredients: {food.ingredients.join(", ")}</p>
