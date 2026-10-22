@@ -123,3 +123,8 @@ This file is the durable context for future Cursor chats in this workspace.
 - Matching food → challenge group is a keyword heuristic (`KEYWORDS` in triggerConfirm.ts); extend it when adding foods. Not yet done: Reintro page doesn't link back to a trigger, and the AI explanation prompt isn't told the confirmation state.
 - Follow-up (same day, after a second Reddit comment about daily foods like bread/coffee): trigger detection also requires the food on `MIN_DAYS = 4` different days (UTC day bins), and a food in more than `MAX_SHARE = 60%` of meals, or with fewer than `MIN_OTHER_MEALS = 4` meals without it, becomes status `common` ("Too common to tell apart", never a trigger). Each card shows a Wilson 95% range for the rate (`wilsonInterval`) and a sample-size line (`sampleLabel`: <8 small, <15 fair, else larger). Status order: trigger, watching, common. Day bins are UTC, so evening meals can land on the next day; fine at this resolution.
 
+
+## Progress/Home restructure + honest Gut Score
+- Progress tabs are now Body (default), Protocol, Nutrition, Labs. Today tab removed; `?tab=` URL param supported. Protein/water quick-add lives at the top of Nutrition; Home TodayCard tiles link to `/progress?tab=nutrition`. Strength stays (user wants to track muscle loss).
+- WeeklySummaryCard moved to Home (below the score card).
+- Gut Score (`shared/gutScore.ts`): last 7 days, negative symptoms only; null ("–") when none logged; trend vs prior week; labels Good/Fair/Needs attention. Streak is real consecutive logged days (meal or symptom), local tz via `insights.dashboard({tzOffsetMinutes})`.

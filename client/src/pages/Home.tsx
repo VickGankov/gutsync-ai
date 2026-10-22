@@ -23,6 +23,7 @@ import { isInAppBrowser } from "@/lib/browser";
 import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 import SeverityBubble from "@/components/SeverityBubble";
 import TodayCard from "@/components/TodayCard";
+import WeeklySummaryCard from "@/components/WeeklySummaryCard";
 import InstallBanner from "@/components/InstallPrompt";
 import MealTile from "@/components/MealTile";
 import { REINTRO_GROUP_INFO, currentChallengeDay, type ReintroGroup } from "@shared/reintro";
@@ -216,7 +217,7 @@ export default function Home() {
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
 
   const reintroQuery = trpc.reintro.list.useQuery(undefined, { enabled: isAuthenticated });
-  const dashboard = trpc.insights.dashboard.useQuery(undefined, {
+  const dashboard = trpc.insights.dashboard.useQuery({ tzOffsetMinutes: new Date().getTimezoneOffset() }, {
     enabled: isAuthenticated,
   });
 
@@ -304,7 +305,8 @@ export default function Home() {
   }
 
   const data = dashboard.data;
-  const score = data?.gutHealthScore ?? 0;
+  const score = data?.gutHealthScore ?? null;
+  const scoreTrend = data?.scoreTrend ?? null;
   const streakDays = data?.streakDays ?? 0;
   const allRecentMeals = (data?.recentMeals ?? []) as Array<{
     id: number;
@@ -376,42 +378,54 @@ export default function Home() {
           />
         </motion.div>
 
-        {/* Gut Health Score */}
+        {/* Gut Score: symptoms in the last 7 days only. Empty until something is logged. */}
         <motion.div variants={item} className="bg-card rounded-2xl p-5 border border-border/50 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Gut Health Score</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Gut Score · last 7 days</p>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-4xl font-display text-foreground">{score}</span>
-                <span className="text-sm text-muted-foreground">/100</span>
+                <span className="text-4xl font-display text-foreground">{score ?? "–"}</span>
+                {score !== null && <span className="text-sm text-muted-foreground">/100</span>}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 bg-sage-light/50 text-sage-dark px-3 py-1.5 rounded-full">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span className="text-xs font-semibold">
-                {score >= 70 ? "Good" : score >= 50 ? "Improving" : "Needs attention"}
-              </span>
+            {score !== null && (
+              <div className="flex items-center gap-1.5 bg-sage-light/50 text-sage-dark px-3 py-1.5 rounded-full">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold">
+                  {score >= 70 ? "Good" : score >= 50 ? "Fair" : "Needs attention"}
+                  {scoreTrend === "better" ? " · better than last week" : scoreTrend === "worse" ? " · worse than last week" : ""}
+                </span>
+              </div>
+            )}
+          </div>
+          {score !== null ? (
+            <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${score}%` }}
+                transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, oklch(0.7 0.12 25), oklch(0.65 0.08 80), oklch(0.55 0.1 155))" }}
+              />
             </div>
-          </div>
-          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
-              transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
-              className="h-full rounded-full"
-              style={{
-                background: "linear-gradient(90deg, oklch(0.7 0.12 25), oklch(0.65 0.08 80), oklch(0.55 0.1 155))",
-              }}
-            />
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No symptoms logged this week, so there's nothing to score yet.</p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Based on how many symptoms you logged and how severe they were. Not a medical score.
+          </p>
           <div className="flex items-center justify-between mt-2">
             <span className="text-[11px] text-muted-foreground">
-              {streakDays > 0 ? `${streakDays}-day tracking streak` : "Start tracking to build a streak"}
+              {streakDays > 0 ? `${streakDays}-day logging streak` : "Log something today to start a streak"}
             </span>
             <span className="text-[11px] text-sage-dark font-medium">
               {data?.totalMeals ?? 0} meals logged
             </span>
           </div>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <WeeklySummaryCard />
         </motion.div>
 
         {/* Quick Symptom Log */}

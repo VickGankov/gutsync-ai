@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2, Wheat, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProtocolCard from "@/components/ProtocolCard";
-import WeeklySummaryCard from "@/components/WeeklySummaryCard";
 import SupplementChecklist from "@/components/SupplementChecklist";
 import LabsPanel from "@/components/LabsPanel";
 import { readFiberPref, writeFiberPref } from "@/components/TodayCard";
@@ -69,9 +68,8 @@ function CardTitle({ icon: Icon, title, right }: { icon: React.ElementType; titl
   );
 }
 
-type TabId = "today" | "body" | "protocol" | "nutrition" | "labs";
+type TabId = "body" | "protocol" | "nutrition" | "labs";
 const TABS: { id: TabId; label: string }[] = [
-  { id: "today", label: "Today" },
   { id: "body", label: "Body" },
   { id: "protocol", label: "Protocol" },
   { id: "nutrition", label: "Nutrition" },
@@ -80,9 +78,12 @@ const TABS: { id: TabId; label: string }[] = [
 const TAB_KEY = "gutsync_progress_tab";
 function readTab(): TabId {
   try {
+    // A link such as /progress?tab=nutrition wins, then the last tab used, then Body.
+    const fromUrl = new URLSearchParams(window.location.search).get("tab");
+    if (TABS.some(t => t.id === fromUrl)) return fromUrl as TabId;
     const v = localStorage.getItem(TAB_KEY);
-    return TABS.some(t => t.id === v) ? (v as TabId) : "today";
-  } catch { return "today"; }
+    return TABS.some(t => t.id === v) ? (v as TabId) : "body";
+  } catch { return "body"; }
 }
 
 const inputCls =
@@ -271,7 +272,7 @@ export default function Progress() {
 
       <motion.div variants={item} role="tablist" aria-label="Progress sections"
         className="sticky top-0 z-10 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur border-b border-border/40">
-        <div className="grid grid-cols-5 gap-0.5 bg-muted/60 rounded-xl p-1">
+        <div className="grid grid-cols-4 gap-0.5 bg-muted/60 rounded-xl p-1">
           {TABS.map(t => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
               className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -282,8 +283,13 @@ export default function Progress() {
         </div>
       </motion.div>
 
-      {/* Today */}
-      {tab === "today" && (<>
+      {tab === "protocol" && (<>
+      <motion.div variants={item}><ProtocolCard /></motion.div>
+      <motion.div variants={item}><SupplementChecklist /></motion.div>
+      </>)}
+
+      {tab === "nutrition" && (<>
+      {/* Quick add: the only place to log water or protein by hand */}
       <Card>
         <CardTitle icon={Beef} title="Protein today" right={
           <span className="text-sm font-semibold">{today?.proteinG ?? 0}<span className="text-muted-foreground font-normal"> / {proteinTarget} g</span></span>
@@ -333,15 +339,6 @@ export default function Progress() {
         )}
       </Card>
 
-      <motion.div variants={item}><WeeklySummaryCard /></motion.div>
-      </>)}
-
-      {tab === "protocol" && (<>
-      <motion.div variants={item}><ProtocolCard /></motion.div>
-      <motion.div variants={item}><SupplementChecklist /></motion.div>
-      </>)}
-
-      {tab === "nutrition" && (<>
       {/* Fiber (rough estimate from logged meals) */}
       <Card>
         <div id="fiber" />

@@ -97,7 +97,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
         <Tile href="/log?tab=food" icon={<UtensilsCrossed className="w-3 h-3" />} label="Meals" value={String(s.mealsToday)} />
         <Tile href="/log?tab=symptoms" icon={<Activity className="w-3 h-3" />} label="Symptoms" value={String(s.symptomsToday)} />
         <Tile
-          href="/progress"
+          href="/progress?tab=nutrition"
           icon={<Dumbbell className="w-3 h-3" />}
           label="Protein"
           unit="g"
@@ -105,7 +105,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
           progress={proteinG !== null && proteinTarget ? proteinG / proteinTarget : undefined}
         />
         <Tile
-          href="/progress"
+          href="/progress?tab=nutrition"
           icon={<Droplets className="w-3 h-3" />}
           label="Water"
           unit="gal"
@@ -114,7 +114,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
         />
         {showFiber && (
           <Tile
-            href="/progress"
+            href="/progress?tab=nutrition"
             icon={<Activity className="w-3 h-3" />}
             label="Fiber (est.)"
             unit="g"

@@ -10,6 +10,7 @@ import { checkBirthDate } from "@shared/profileStats";
 import bcrypt from "bcrypt";
 import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
 import { confirmationFor, type FinishedChallenge } from "@shared/triggerConfirm";
+import { gutScore, trackingStreak } from "@shared/gutScore";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
@@ -1123,31 +1124,29 @@ export const appRouter = router({
         }
       }),
 
-    dashboard: protectedProcedure.query(async ({ ctx }) => {
+    dashboard: protectedProcedure
+      .input(z.object({ tzOffsetMinutes: z.number().int().min(-840).max(840).default(0) }).optional())
+      .query(async ({ ctx, input }) => {
       const now = Date.now();
-      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
       const fortyEightHoursAgo = now - 48 * 60 * 60 * 1000;
 
-      const [allMeals, recentMeals, allSymptoms, found] = await Promise.all([
+      const [allMeals, recentMeals, allSymptoms, found, streakMeals] = await Promise.all([
         getMealsByUser(ctx.user.id, 50),
         getMealsInRange(ctx.user.id, fortyEightHoursAgo, now),
-        getSymptomsByUser(ctx.user.id, 50),
+        getSymptomsByUser(ctx.user.id, 300),
         loadTriggers(ctx.user.id),
+        getMealsInRange(ctx.user.id, now - 90 * 24 * 60 * 60 * 1000, now),
       ]);
       const top = found.triggers.find(t => t.status === "trigger");
 
-      // Calculate gut health score (simple heuristic)
-      const recentSymptoms = allSymptoms.filter(s => s.loggedAt >= sevenDaysAgo);
-      const avgSeverity = recentSymptoms.length > 0
-        ? recentSymptoms.reduce((sum, s) => sum + s.severity, 0) / recentSymptoms.length
-        : 0;
-      const gutHealthScore = Math.max(20, Math.min(95, Math.round(85 - avgSeverity * 10 + (allMeals.length > 5 ? 5 : 0))));
-
-      // Streak calculation
-      const streakDays = Math.min(allMeals.length, 30);
+      // Score from the last 7 days of symptoms only (shared/gutScore.ts); the streak counts real days with a log.
+      const { score: gutHealthScore, symptomCount: scoreSymptomCount, trend: scoreTrend } = gutScore(allSymptoms, now);
+      const streakDays = trackingStreak([...streakMeals.map(m => m.loggedAt), ...allSymptoms.map(s => s.loggedAt)], now, input?.tzOffsetMinutes ?? 0);
 
       return {
         gutHealthScore,
+        scoreSymptomCount,
+        scoreTrend,
         streakDays,
         totalMeals: allMeals.length,
         totalSymptoms: allSymptoms.length,

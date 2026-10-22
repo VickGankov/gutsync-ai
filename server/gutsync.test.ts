@@ -516,7 +516,7 @@ describe("Triggerplate Server Procedures", () => {
   });
 
   describe("insights.dashboard", () => {
-    it("returns dashboard data with computed gut health score", async () => {
+    it("returns no score when no symptoms were logged this week", async () => {
       vi.mocked(db.getMealsByUser).mockResolvedValue([
         { id: 1, userId: 1, mealType: "lunch", foods: [], loggedAt: Date.now(), createdAt: new Date() },
       ] as any);
@@ -528,8 +528,7 @@ describe("Triggerplate Server Procedures", () => {
       const caller = appRouter.createCaller(ctx);
       const result = await caller.insights.dashboard();
 
-      expect(result.gutHealthScore).toBeGreaterThanOrEqual(20);
-      expect(result.gutHealthScore).toBeLessThanOrEqual(95);
+      expect(result.gutHealthScore).toBeNull();
       expect(result.totalMeals).toBe(1);
       expect(result.totalSymptoms).toBe(0);
       expect(result.topCorrelation).toBeNull();
