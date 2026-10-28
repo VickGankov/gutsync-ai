@@ -144,3 +144,10 @@ This file is the durable context for future Cursor chats in this workspace.
 - Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_ANNUAL (all four needed; `billingEnabled` in subscription.status). Without them the Upgrade UI is hidden / says "Payments coming soon".
 - Removed RevenueCat: activate/restore/webhook procedures and @revenuecat/purchases-capacitor. Paywall.tsx rewritten; BillingCard on Profile.
 - PAYWALL_ENABLED stays off until Stripe is live and tested; it only gates labs/protocol for free users.
+
+## Public SEO pages (landing + blog)
+- Express serves real HTML (no JS needed) from `server/seo/`: `/` for logged-out visitors (no `app_session_id` cookie; signed-in users get the SPA), `/blog`, `/blog/:slug` (unknown slug = 404 + noindex), `/robots.txt`, `/sitemap.xml`. Registered in `server/_core/index.ts` before static/SPA fallthrough.
+- Landing page keeps `?invite=CODE` links working: an inline script saves it to localStorage `tp_invite` (same key as client/src/lib/invite.ts) and cleans the URL. Ad/Reddit links can point at `/?invite=CODE`.
+- 5 starter posts in `server/seo/posts.ts`, each cited from NHS/dietitian sources (Gloucestershire NHS reintro PDF, Leicester NHS IBS food diary PDF, Monash label reading, Diet vs Disease). Keep claims within the listed sources. No drug/peptide names on any public page (enforced by `server/seo.test.ts`).
+- To add a post: append to `POSTS` (slug, title, description <=175 chars, published date, sources, body HTML). Sitemap updates automatically.
+- Known: landing screenshots in `client/public/landing/` are older UI (today.webp still shows the old "Gut Health Score 55 Improving"). Replace before sending real traffic.
