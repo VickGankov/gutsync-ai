@@ -136,3 +136,11 @@ This file is the durable context for future Cursor chats in this workspace.
 ## Scan counter for every plan
 - Scan modal shows "N of M scans left today" for any plan with a daily limit (testers/founders/premium too). Upgrade prompt/button only when plan is free AND PAYWALL_ENABLED. At 0: "They reset tomorrow, and manual logging still works".
 - PAYWALL_ENABLED only gates premium features (labs, protocol) for free users; there is still no payment flow (no Stripe), so keep it off.
+
+## Stripe web payments (direct, no RevenueCat)
+- Web only. Premium = $10/month or $99/year (decided Oct 28). Premium plan = 50 scans/day + labs + protocol.
+- `server/stripe.ts`: Checkout session via `subscription.checkout({interval})`, billing portal via `subscription.portal`, webhook `POST /api/stripe/webhook` (raw body, registered before express.json). Premium is granted ONLY from signed webhooks (checkout.session.completed, customer.subscription.created/updated/deleted); active/trialing/past_due = premium until period end, anything else = free.
+- Migration 0037 adds `stripeCustomerId`, `stripeSubscriptionId` to `subscriptions`.
+- Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_ANNUAL (all four needed; `billingEnabled` in subscription.status). Without them the Upgrade UI is hidden / says "Payments coming soon".
+- Removed RevenueCat: activate/restore/webhook procedures and @revenuecat/purchases-capacitor. Paywall.tsx rewritten; BillingCard on Profile.
+- PAYWALL_ENABLED stays off until Stripe is live and tested; it only gates labs/protocol for free users.

@@ -295,7 +295,7 @@ export async function redeemInviteCode(userId: number, typed: string): Promise<I
   return { status: "ok", plan };
 }
 
-/** Upsert subscription record (called from RevenueCat webhook or client receipt). */
+/** Upsert subscription record (called from the Stripe webhook). */
 export async function upsertSubscription(data: InsertSubscription) {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
@@ -307,6 +307,8 @@ export async function upsertSubscription(data: InsertSubscription) {
       expiresAt: data.expiresAt ?? null,
       activatedAt: data.activatedAt ?? null,
       rcCustomerId: data.rcCustomerId ?? null,
+      stripeCustomerId: data.stripeCustomerId ?? null,
+      stripeSubscriptionId: data.stripeSubscriptionId ?? null,
     },
   });
 }
@@ -865,4 +867,12 @@ export async function setUserSensitivities(userId: number, keys: string[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ sensitivities: keys }).where(eq(users.id, userId));
+}
+
+/** Finds a subscription row by its Stripe customer id (used when a webhook carries no user id). */
+export async function getSubscriptionByStripeCustomer(stripeCustomerId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const r = await db.select().from(subscriptions).where(eq(subscriptions.stripeCustomerId, stripeCustomerId)).limit(1);
+  return r[0] ?? null;
 }

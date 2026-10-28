@@ -764,28 +764,15 @@ describe("Triggerplate Server Procedures", () => {
     });
   });
 
-  describe("subscription.activate", () => {
-    it("rejects activation without a valid RevenueCat customer ID when RC key is present", async () => {
-      // The activate procedure calls RevenueCat API to verify the entitlement.
-      // Without a real RC key in test env, it throws BAD_REQUEST (no entitlement found).
-      // This test validates that the gate is enforced — not bypassed.
-      vi.stubEnv("REVENUECAT_SECRET_KEY", "test_revenuecat_secret");
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ subscriber: { entitlements: {} } }),
-      }));
-
-      const ctx = createAuthContext();
-      const caller = appRouter.createCaller(ctx);
-
-      await expect(
-        caller.subscription.activate({
-          rcCustomerId: "fake_customer_id",
-          productId: "gutsync_premium_monthly",
-          platform: "web",
-          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        })
-      ).rejects.toThrow(); // Throws because RC API returns no entitlement for fake ID
+  describe("subscription.checkout", () => {
+    it("refuses when payments are not configured", async () => {
+      const caller = appRouter.createCaller(createAuthContext());
+      await expect(caller.subscription.checkout({ interval: "month" })).rejects.toThrow(/aren't switched on/);
+    });
+    it("has no client-side way to grant premium", async () => {
+      const caller = appRouter.createCaller(createAuthContext()) as any;
+      await expect(caller.subscription.activate({ productId: "x" })).rejects.toThrow(/No procedure found/);
+      await expect(caller.subscription.restore({})).rejects.toThrow(/No procedure found/);
     });
   });
 

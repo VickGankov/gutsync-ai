@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import RemindersCard from "@/components/RemindersCard";
 import DietaryProfile from "@/components/DietaryProfile";
 import FounderCard from "@/components/FounderCard";
+import BillingCard from "@/components/BillingCard";
 import AboutYou from "@/components/AboutYou";
 import DeleteAccount from "@/components/DeleteAccount";
 import { motion } from "framer-motion";
@@ -153,6 +154,7 @@ export default function Profile() {
       {/* Foods I suspect */}
       <motion.div variants={item}>
         <FounderCard />
+        <BillingCard />
         <AboutYou />
         <DietaryProfile />
       </motion.div>

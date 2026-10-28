@@ -124,6 +124,9 @@ export const subscriptions = mysqlTable("subscriptions", {
   userId: int("userId").notNull().unique(),
   /** RevenueCat customer ID (app_user_id) */
   rcCustomerId: varchar("rcCustomerId", { length: 128 }),
+  /** Stripe customer and subscription ids (web payments) */
+  stripeCustomerId: varchar("stripeCustomerId", { length: 64 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 64 }),
   /** Current subscription tier */
   tier: mysqlEnum("tier", ["free", "premium"]).default("free").notNull(),
   /** Product ID purchased (e.g. gutsync_premium_monthly) */

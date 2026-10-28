@@ -9,6 +9,11 @@ export const ENV = {
   founderCode: process.env.FOUNDER_CODE ?? "",
   founderLimit: Number(process.env.FOUNDER_LIMIT ?? 30) || 30,
   // When "true", free users lose the gated features (labs, protocol). Off until payments exist.
+  // Stripe (web payments). Billing is "configured" only when all four are set.
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  stripePriceMonthly: process.env.STRIPE_PRICE_MONTHLY ?? "",
+  stripePriceAnnual: process.env.STRIPE_PRICE_ANNUAL ?? "",
   paywallEnabled: process.env.PAYWALL_ENABLED === "true",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",

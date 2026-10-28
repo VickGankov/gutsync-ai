@@ -11,6 +11,7 @@ import bcrypt from "bcrypt";
 import { hasFeature, founderCodeMatches, type GatedFeature } from "@shared/plans";
 import { confirmationFor, type FinishedChallenge } from "@shared/triggerConfirm";
 import { gutScore, trackingStreak } from "@shared/gutScore";
+import { billingConfigured, priceFor, stripe } from "./stripe";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import {
@@ -1178,6 +1179,8 @@ export const appRouter = router({
         isFounder: ent.founderAt != null,
         isTester: ent.founderAt == null && ent.testerAt != null,
         paywallEnabled: ENV.paywallEnabled,
+        billingEnabled: billingConfigured(),
+        canManageBilling: !!sub?.stripeCustomerId,
         productId: sub?.productId ?? null,
         platform: sub?.platform ?? null,
         expiresAt: sub?.expiresAt ?? null,
@@ -1222,125 +1225,35 @@ export const appRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message });
       }),
 
-    /**
-     * Called from the client after a successful RevenueCat purchase.
-     * The client passes the RC customer info; server verifies via RC REST API.
-     */
-    activate: protectedProcedure
-      .input(z.object({
-        rcCustomerId: z.string(),
-        productId: z.string(),
-        platform: z.enum(['ios', 'android', 'web']),
-        expiresAt: z.number().optional(),
-      }))
+    /** Starts a Stripe Checkout session for the paid plan and returns the page to send the person to. */
+    checkout: protectedProcedure
+      .input(z.object({ interval: z.enum(["month", "year"]) }))
       .mutation(async ({ ctx, input }) => {
-        // Verify with RevenueCat REST API if key is configured
-        const rcApiKey = process.env.REVENUECAT_SECRET_KEY;
-        if (rcApiKey) {
-          try {
-            const res = await fetch(
-              `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(input.rcCustomerId)}`,
-              { headers: { Authorization: `Bearer ${rcApiKey}`, 'Content-Type': 'application/json' } }
-            );
-            if (!res.ok) {
-              throw new TRPCError({ code: 'BAD_REQUEST', message: 'Could not verify purchase with RevenueCat' });
-            }
-            const data = await res.json() as { subscriber?: { entitlements?: Record<string, { expires_date?: string }> } };
-            const entitlement = data.subscriber?.entitlements?.['premium'];
-            if (!entitlement) {
-              throw new TRPCError({ code: 'BAD_REQUEST', message: 'No active premium entitlement found' });
-            }
-            const expiresAt = entitlement.expires_date ? new Date(entitlement.expires_date).getTime() : null;
-            await upsertSubscription({
-              userId: ctx.user.id,
-              rcCustomerId: input.rcCustomerId,
-              tier: 'premium',
-              productId: input.productId,
-              platform: input.platform,
-              expiresAt: expiresAt ?? undefined,
-              activatedAt: Date.now(),
-            });
-          } catch (err) {
-            if (err instanceof TRPCError) throw err;
-            throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'RevenueCat verification failed' });
-          }
-        } else {
-          if (process.env.NODE_ENV === 'production') {
-            throw new TRPCError({
-              code: 'INTERNAL_SERVER_ERROR',
-              message: 'RevenueCat verification is not configured',
-            });
-          }
-          // No RC key configured — trust client only outside production for local development.
-          await upsertSubscription({
-            userId: ctx.user.id,
-            rcCustomerId: input.rcCustomerId,
-            tier: 'premium',
-            productId: input.productId,
-            platform: input.platform,
-            expiresAt: input.expiresAt,
-            activatedAt: Date.now(),
-          });
-        }
-        return { success: true, tier: 'premium' };
-      }),
-
-    /** Restore purchases — re-verify with RevenueCat and update local record. */
-    restore: protectedProcedure
-      .input(z.object({ rcCustomerId: z.string() }))
-      .mutation(async ({ ctx, input }) => {
-        const rcApiKey = process.env.REVENUECAT_SECRET_KEY;
-        if (!rcApiKey) {
-          return { restored: false, tier: 'free' };
-        }
-        const res = await fetch(
-          `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(input.rcCustomerId)}`,
-          { headers: { Authorization: `Bearer ${rcApiKey}`, 'Content-Type': 'application/json' } }
-        );
-        if (!res.ok) return { restored: false, tier: 'free' };
-        const data = await res.json() as { subscriber?: { entitlements?: Record<string, { expires_date?: string }> } };
-        const entitlement = data.subscriber?.entitlements?.['premium'];
-        if (!entitlement) {
-          await cancelSubscription(ctx.user.id);
-          return { restored: false, tier: 'free' };
-        }
-        const expiresAt = entitlement.expires_date ? new Date(entitlement.expires_date).getTime() : null;
-        await upsertSubscription({
-          userId: ctx.user.id,
-          rcCustomerId: input.rcCustomerId,
-          tier: 'premium',
-          expiresAt: expiresAt ?? undefined,
-          activatedAt: Date.now(),
+        if (!billingConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Payments aren't switched on yet." });
+        const base = (process.env.APP_BASE_URL || getRequestBaseUrl(ctx.req) || "https://triggerplate.com").replace(/\/+$/, "");
+        const sub = await getSubscription(ctx.user.id);
+        const session = await stripe().checkout.sessions.create({
+          mode: "subscription",
+          line_items: [{ price: priceFor(input.interval), quantity: 1 }],
+          client_reference_id: String(ctx.user.id),
+          ...(sub?.stripeCustomerId ? { customer: sub.stripeCustomerId } : ctx.user.email ? { customer_email: ctx.user.email } : {}),
+          subscription_data: { metadata: { userId: String(ctx.user.id) } },
+          allow_promotion_codes: true,
+          success_url: `${base}/profile?upgraded=1`,
+          cancel_url: `${base}/profile`,
         });
-        return { restored: true, tier: 'premium' };
+        if (!session.url) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not start checkout." });
+        return { url: session.url };
       }),
 
-    /** RevenueCat webhook — called by RC server on subscription events. */
-    webhook: publicProcedure
-      .input(z.object({
-        event: z.object({
-          type: z.string(),
-          app_user_id: z.string(),
-          product_id: z.string().optional(),
-          expiration_at_ms: z.number().optional(),
-          store: z.string().optional(),
-        }),
-      }))
-      .mutation(async ({ input }) => {
-        const { type, app_user_id, product_id, expiration_at_ms, store } = input.event;
-        // Map store to platform
-        const platform = store === 'APP_STORE' ? 'ios' : store === 'PLAY_STORE' ? 'android' : 'web';
-        // Find user by RC customer ID
-        const db = await import('./db');
-        const sub = await db.getSubscription(0); // placeholder — in production, look up by rcCustomerId
-        if (['INITIAL_PURCHASE', 'RENEWAL', 'PRODUCT_CHANGE', 'UNCANCELLATION'].includes(type)) {
-          // Premium activated or renewed — we rely on activate() from client for now
-          console.log(`[RC Webhook] ${type} for ${app_user_id}`);
-        } else if (['CANCELLATION', 'EXPIRATION', 'BILLING_ISSUE'].includes(type)) {
-          console.log(`[RC Webhook] ${type} — subscription lapsed for ${app_user_id}`);
-        }
-        return { received: true };
-      }),
+    /** Stripe's hosted page for cancelling, changing card or downloading receipts. */
+    portal: protectedProcedure.mutation(async ({ ctx }) => {
+      const sub = await getSubscription(ctx.user.id);
+      if (!billingConfigured() || !sub?.stripeCustomerId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No paid subscription to manage." });
+      const base = (process.env.APP_BASE_URL || getRequestBaseUrl(ctx.req) || "https://triggerplate.com").replace(/\/+$/, "");
+      const session = await stripe().billingPortal.sessions.create({ customer: sub.stripeCustomerId, return_url: `${base}/profile` });
+      return { url: session.url };
+    }),
   }),
 
 });
