@@ -928,40 +928,37 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
               </div>
             )}
 
-            {/* Scan counter badge for free tier */}
-            {subStatus && subStatus.plan === "free" && step === "upload" && (
-              <div className="mt-4 space-y-2">
-                {(subStatus.scansRemaining ?? 0) === 1 && (
-                  <div className="bg-sand/20 border border-sand text-sand-dark rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>This is your last free scan today. Upgrade for unlimited scans.</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-center gap-2">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                    (subStatus.scansRemaining ?? 0) === 0
-                      ? "bg-coral-light/40 text-coral"
-                      : (subStatus.scansRemaining ?? 0) === 1
-                        ? "bg-sand text-sand-dark"
-                        : "bg-muted text-muted-foreground"
-                  }`}>
-                    {(subStatus.scansRemaining ?? 0) === 0 ? (
-                      <><Lock className="w-3 h-3" /> No free scans left today</>
-                    ) : (
-                      <><Sparkles className="w-3 h-3" /> {subStatus.scansRemaining} free scan{(subStatus.scansRemaining ?? 0) !== 1 ? "s" : ""} left today</>
+            {/* Daily scan counter. The upgrade prompt only appears once the paywall is switched on. */}
+            {subStatus && subStatus.dailyLimit != null && step === "upload" && (() => {
+              const left = subStatus.scansRemaining ?? 0;
+              const canUpgrade = subStatus.plan === "free" && subStatus.paywallEnabled;
+              return (
+                <div className="mt-4 space-y-2">
+                  {left === 1 && canUpgrade && (
+                    <div className="bg-sand/20 border border-sand text-sand-dark rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>This is your last free scan today. Upgrade for more scans.</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-center gap-2">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                      left === 0 ? "bg-coral-light/40 text-coral" : left === 1 ? "bg-sand text-sand-dark" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {left === 0 ? (
+                        <><Lock className="w-3 h-3" /> No scans left today. They reset tomorrow, and manual logging still works</>
+                      ) : (
+                        <><Sparkles className="w-3 h-3" /> {left} of {subStatus.dailyLimit} scans left today</>
+                      )}
+                    </div>
+                    {left === 0 && canUpgrade && (
+                      <button onClick={() => setShowPaywall(true)} className="text-xs text-primary font-medium hover:underline">
+                        Upgrade
+                      </button>
                     )}
                   </div>
-                  {(subStatus.scansRemaining ?? 0) === 0 && (
-                    <button
-                      onClick={() => setShowPaywall(true)}
-                      className="text-xs text-primary font-medium hover:underline"
-                    >
-                      Upgrade
-                    </button>
-                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </motion.div>
         </motion.div>
       )}

@@ -132,3 +132,7 @@ This file is the durable context for future Cursor chats in this workspace.
 ## Scan result + positioning copy
 - Scan result no longer shows the dev timing line (still console.log'd). Packaged items with no legible label/DB hit and no flagged triggers are rated "moderate" (unknown); UI now says "Ingredients unknown, so this rating is a guess. Scan the label for a firm answer." instead of the contradictory "No common FODMAP triggers likely".
 - Welcome slides, page title and meta/og copy reframed as a protocol tracker (no specific drug/peptide names). Slide 4 states the real rule (5+ meals over 4 days = possible; reintroduction test confirms).
+
+## Scan counter for every plan
+- Scan modal shows "N of M scans left today" for any plan with a daily limit (testers/founders/premium too). Upgrade prompt/button only when plan is free AND PAYWALL_ENABLED. At 0: "They reset tomorrow, and manual logging still works".
+- PAYWALL_ENABLED only gates premium features (labs, protocol) for free users; there is still no payment flow (no Stripe), so keep it off.
