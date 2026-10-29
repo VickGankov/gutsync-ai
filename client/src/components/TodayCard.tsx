@@ -26,15 +26,27 @@ interface Props {
   reintroCheckInPending: boolean;
 }
 
-function Tile({ href, icon, value, unit, label, progress }: { href: string; icon: React.ReactNode; value: string; unit?: string; label: string; progress?: number }) {
+// One color per kind of data, so the same thing looks the same everywhere. Bright on the dark card.
+const TONE = {
+  meals: "oklch(0.91 0.2 120)",
+  symptoms: "oklch(0.76 0.15 25)",
+  protein: "oklch(0.77 0.14 295)",
+  water: "oklch(0.81 0.1 225)",
+  fiber: "oklch(0.83 0.14 80)",
+} as const;
+
+function Tile({ href, icon, value, unit, label, progress, tone }: { href: string; icon: React.ReactNode; value: string; unit?: string; label: string; progress?: number; tone: string }) {
   return (
     <Link href={href} className="min-w-0 block">
-      <div className="rounded-2xl bg-white/60 dark:bg-white/10 border border-white/70 dark:border-white/10 px-3 py-2.5 active:scale-95 transition-transform cursor-pointer">
-        <div className="flex items-center gap-1 text-foreground/70 [&_svg]:hidden">{icon}<span className="text-[10px] uppercase tracking-wide font-medium truncate">{label}</span></div>
-        <p className="text-lg font-display text-foreground mt-0.5 whitespace-nowrap">{value}{unit && <span className="text-xs font-sans text-muted-foreground ml-1">{unit}</span>}</p>
+      <div className="rounded-2xl px-3 py-2.5 active:scale-95 transition-transform cursor-pointer" style={{ background: `color-mix(in oklch, ${tone} 16%, transparent)` }}>
+        <div className="flex items-center gap-1.5 [&_svg]:hidden">
+          {icon}<span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: tone }} />
+          <span className="text-[10px] uppercase tracking-wide font-medium truncate text-white/70">{label}</span>
+        </div>
+        <p className="text-lg font-display text-white mt-0.5 whitespace-nowrap">{value}{unit && <span className="text-xs font-sans text-white/60 ml-1">{unit}</span>}</p>
         {progress !== undefined && (
-          <div className="mt-1.5 h-1.5 rounded-full bg-black/10 dark:bg-white/15 overflow-hidden">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }} />
+          <div className="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%`, background: tone }} />
           </div>
         )}
       </div>
@@ -83,22 +95,23 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-3xl p-5 mb-4 border border-border/60 bg-gradient-to-br from-volt/30 via-card to-sand/40"
+      className="relative overflow-hidden rounded-3xl p-5 mb-4 bg-primary text-white shadow-lg shadow-black/10"
     >
-      <Activity aria-hidden className="absolute -right-4 -top-4 w-28 h-28 text-foreground/5 rotate-12" />
-      <p className="text-[11px] uppercase tracking-wider font-medium text-foreground/70">
+      <Activity aria-hidden className="absolute -right-4 -top-4 w-28 h-28 text-white/5 rotate-12" />
+      <p className="text-[11px] uppercase tracking-wider font-medium text-white/60">
         Today · {d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
       </p>
-      <p className="font-display text-lg leading-snug text-foreground mt-1.5 relative">
-        {headline} {lastMealText && <span className="text-muted-foreground text-sm font-sans">{lastMealText}</span>}
+      <p className="font-display text-lg leading-snug text-white mt-1.5 relative">
+        {headline} {lastMealText && <span className="text-white/60 text-sm font-sans">{lastMealText}</span>}
       </p>
 
       <div className="grid grid-cols-2 gap-2 mt-4 relative">
-        <Tile href="/log?tab=food" icon={<UtensilsCrossed className="w-3 h-3" />} label="Meals" value={String(s.mealsToday)} />
-        <Tile href="/log?tab=symptoms" icon={<Activity className="w-3 h-3" />} label="Symptoms" value={String(s.symptomsToday)} />
+        <Tile href="/log?tab=food" icon={<UtensilsCrossed className="w-3 h-3" />} tone={TONE.meals} label="Meals" value={String(s.mealsToday)} />
+        <Tile href="/log?tab=symptoms" icon={<Activity className="w-3 h-3" />} tone={TONE.symptoms} label="Symptoms" value={String(s.symptomsToday)} />
         <Tile
           href="/progress?tab=nutrition"
           icon={<Dumbbell className="w-3 h-3" />}
+          tone={TONE.protein}
           label="Protein"
           unit="g"
           value={proteinG === null ? "–" : proteinTarget ? `${proteinG} / ${proteinTarget}` : `${proteinG}`}
@@ -107,6 +120,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
         <Tile
           href="/progress?tab=nutrition"
           icon={<Droplets className="w-3 h-3" />}
+          tone={TONE.water}
           label="Water"
           unit="gal"
           value={waterMl === null ? "–" : waterTargetMl ? `${formatGal(waterMl)} / ${formatGalTarget(waterTargetMl)}` : formatGal(waterMl)}
@@ -116,6 +130,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
           <Tile
             href="/progress?tab=nutrition"
             icon={<Activity className="w-3 h-3" />}
+            tone={TONE.fiber}
             label="Fiber (est.)"
             unit="g"
             value={fiberG === null ? "–" : `~${fiberG}`}
@@ -126,7 +141,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
       {supps.items.length > 0 && (
         <div className="mt-2.5 relative">
-          <p className="text-[10px] uppercase tracking-wide font-medium text-foreground/70 mb-1.5">Supplements · {supps.takenIds.size}/{supps.items.length}</p>
+          <p className="text-[10px] uppercase tracking-wide font-medium text-white/60 mb-1.5">Supplements · {supps.takenIds.size}/{supps.items.length}</p>
           <div className="flex flex-wrap gap-1.5">
             {supps.items.map(i => {
               const on = supps.takenIds.has(i.id);
@@ -136,7 +151,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
                   type="button"
                   onClick={() => supps.toggle(i.id)}
                   aria-pressed={on}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium border active:scale-95 transition-all ${on ? "bg-primary text-white border-primary" : "bg-white/60 dark:bg-white/10 border-white/70 dark:border-white/10 text-foreground"}`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border active:scale-95 transition-all ${on ? "bg-volt text-volt-foreground border-volt" : "bg-white/10 border-white/15 text-white"}`}
                 >
                   {on ? "✓ " : ""}{i.name}
                 </button>
@@ -148,13 +163,13 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
       {s.nudge.href && nudgeText ? (
         <Link href={s.nudge.href}>
-          <div className="mt-3 flex items-center justify-between rounded-2xl bg-primary text-primary-foreground px-4 py-3 active:scale-[0.98] transition-transform cursor-pointer relative">
+          <div className="mt-3 flex items-center justify-between rounded-2xl bg-volt text-volt-foreground px-4 py-3 active:scale-[0.98] transition-transform cursor-pointer relative">
             <span className="text-sm font-medium">{nudgeText}</span>
             <ArrowRight className="w-4 h-4" />
           </div>
         </Link>
       ) : (
-        <div className="mt-3 flex items-center gap-2 text-sm text-foreground/70 relative">
+        <div className="mt-3 flex items-center gap-2 text-sm text-white/70 relative">
           <Check className="w-4 h-4" /> You're all caught up for now.
         </div>
       )}
