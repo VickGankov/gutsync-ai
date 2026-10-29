@@ -152,3 +152,9 @@ This file is the durable context for future Cursor chats in this workspace.
 - To add a post: append to `POSTS` (slug, title, description <=175 chars, published date, sources, body HTML). Sitemap updates automatically.
 - Landing screenshots (`client/public/landing/{scan,today,triggers}.webp`, 520px wide) were regenerated Oct 28 from the current UI with demo data (captioned "Screenshots show sample data"). Regenerate whenever Home/Insights UI changes. Onboarding slides reuse these files.
 - Local test gotcha: the session cookie is Secure, so over plain http://localhost the browser does not send it on full-page loads of `/` (the server then shows the landing page). Reach the app via /auth (client-side redirect) in Playwright.
+
+## Doctor report (PDF)
+- `GET /api/report.pdf?days=7|14|30|60|90&tz=<getTimezoneOffset()>` (`server/report/service.ts`, registered in `server/_core/index.ts`). Signed-in only (401 otherwise), inline PDF, `Cache-Control: private, no-store`, 6/min/user.
+- `server/report/model.ts` builds a plain model from the user's rows (`buildReport`, pure, tested); `server/report/pdf.ts` renders it with pdfkit (Helvetica only, Letter). pdfkit must stay in `dependencies` (build uses `--packages=external`).
+- Sections: overview, symptoms, "Foods that may be linked" (only possible/confirmed, never "common"; counts + range, no causal wording), reintroduction tests, body/nutrition/training, labs and protocol (only if the plan has those features; follows `hasFeature`), diary (last 14 logged days), how to read. Labs are shown against the range printed on the lab.
+- Available to all plans; UI is `DoctorReportCard` on Profile. Test data: `server/report/fixture.ts` (also used to eyeball the PDF).

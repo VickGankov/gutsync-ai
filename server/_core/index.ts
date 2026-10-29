@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { registerStripeRoutes } from "../stripe";
 import { registerSeoRoutes } from "../seo/routes";
+import { registerReportRoute } from "../report/service";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -42,6 +43,7 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback (disabled for email-only auth)
   // registerOAuthRoutes(app);
   registerGoogleAuthRoutes(app);
+  registerReportRoute(app);
   registerSeoRoutes(app); // public landing + blog as real HTML, before the SPA fallthrough
   // Meal photos stored in a private bucket: redirect to a short-lived signed URL.
   app.get(`${MEDIA_ROUTE}/*`, async (req, res) => {

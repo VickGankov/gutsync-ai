@@ -8,7 +8,7 @@ import { computeTriggers, ofMeals, pct, type TriggerStat } from "../shared/trigg
 import type { MealFood, TriggerExplanation } from "../drizzle/schema";
 
 const DAY_MS = 86_400_000;
-const LOOKBACK_DAYS = 90;
+export const LOOKBACK_DAYS = 90;
 
 export const triggerKey = (t: Pick<TriggerStat, "names" | "symptom">) => `${t.names.join("|")}:${t.symptom}`.slice(0, 255);
 
