@@ -26,10 +26,11 @@ export function landingPage(): string {
 
 <section class="wide">
 <div class="shots">
-<figure><img src="/landing/scan.webp" width="520" height="947" loading="lazy" alt="Scanning a meal photo in Triggerplate to list foods and possible hidden ingredients"><figcaption>Snap a meal, confirm what you ate</figcaption></figure>
-<figure><img src="/landing/today.webp" width="520" height="733" loading="lazy" alt="Triggerplate Today view showing meals, symptoms, protein and water"><figcaption>See your day at a glance</figcaption></figure>
-<figure><img src="/landing/triggers.webp" width="520" height="733" loading="lazy" alt="Triggerplate list of possible food triggers with sample-size notes"><figcaption>Possible triggers, with the uncertainty shown</figcaption></figure>
+<figure><img src="/landing/scan.webp" width="520" height="959" loading="lazy" alt="Scanning a meal photo in Triggerplate to list foods and possible hidden ingredients"><figcaption>Snap a meal, confirm what you ate</figcaption></figure>
+<figure><img src="/landing/today.webp" width="520" height="920" loading="lazy" alt="Triggerplate Today view showing meals, symptoms, protein and water"><figcaption>See your day, and a 7-day score based on your symptoms</figcaption></figure>
+<figure><img src="/landing/triggers.webp" width="520" height="713" loading="lazy" alt="Triggerplate list of possible food triggers with sample-size notes"><figcaption>Possible triggers, with the uncertainty shown</figcaption></figure>
 </div>
+<p class="note" style="text-align:center">Screenshots show sample data.</p>
 </section>
 
 <section class="wide">
