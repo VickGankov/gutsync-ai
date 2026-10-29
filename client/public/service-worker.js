@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gutsync-v1';
+const CACHE_NAME = 'triggerplate-v2';
 const urlsToCache = [
   '/',
   '/index.html',

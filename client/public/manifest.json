@@ -2,7 +2,7 @@
   "id": "ai.gutsync.app",
   "name": "Triggerplate",
   "short_name": "Triggerplate",
-  "description": "Your personal food sensitivity tracker. Discover which foods trigger your bloating, pain, and discomfort \u2014 without keeping a tedious food diary.",
+  "description": "Track meals, symptoms, doses and labs in one place and find the foods that may be setting off your symptoms.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -41,20 +41,20 @@
   ],
   "screenshots": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-1-NCzxanf43DNhXtCT3HkMRh.png",
-      "sizes": "1536x2752",
+      "src": "/landing/install-1.png",
+      "sizes": "780x1488",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-2-UtKjVM9NLpupj8g89fDyrx.png",
-      "sizes": "1536x2752",
+      "src": "/landing/install-2.png",
+      "sizes": "780x1488",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/gutsync-screenshot-3-nPzVKUGVYLMvds7bGh9Lmd.png",
-      "sizes": "1536x2752",
+      "src": "/landing/install-3.png",
+      "sizes": "780x1488",
       "type": "image/png",
       "form_factor": "narrow"
     }
@@ -67,7 +67,7 @@
       "url": "/?action=scan",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-192_aa48ab29.png",
+          "src": "/icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -80,7 +80,7 @@
       "url": "/?action=symptom",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663031724495/Aye9Tq4ostcsrtEqbKqav7/icon-192_aa48ab29.png",
+          "src": "/icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }

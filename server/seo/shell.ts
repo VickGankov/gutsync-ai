@@ -70,6 +70,9 @@ export function render(o: PageOpts): string {
 <meta property="og:image" content="${siteUrl()}/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1d2128">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
