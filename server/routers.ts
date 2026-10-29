@@ -967,6 +967,7 @@ export const appRouter = router({
       return {
         proteinTargetG: p?.proteinTargetG ?? 150,
         waterTargetMl: p?.waterTargetMl ?? 3785,
+        goalWeightLb: p?.goalWeightLb10 != null ? p.goalWeightLb10 / 10 : null,
       };
     }),
 
@@ -975,9 +976,12 @@ export const appRouter = router({
       .input(z.object({
         proteinTargetG: z.number().int().min(20).max(500),
         waterTargetMl: z.number().int().min(500).max(10000),
+        /** Omit to leave the goal alone; null clears it. */
+        goalWeightLb: z.number().min(80).max(600).nullable().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        await upsertFitnessProfile(ctx.user.id, input);
+        const { goalWeightLb, ...targets } = input;
+        await upsertFitnessProfile(ctx.user.id, goalWeightLb === undefined ? targets : { ...targets, goalWeightLb10: goalWeightLb === null ? null : Math.round(goalWeightLb * 10) });
         return { success: true };
       }),
 
@@ -1085,6 +1089,7 @@ export const appRouter = router({
           targets: {
             proteinTargetG: profile?.proteinTargetG ?? 150,
             waterTargetMl: profile?.waterTargetMl ?? 3785,
+            goalWeightLb: profile?.goalWeightLb10 != null ? profile.goalWeightLb10 / 10 : null,
           },
           recentIntake: fitnessData.intake.slice(0, 10),
           recentWeights: fitnessData.weights.slice(0, 10).map(w => ({ id: w.id, weightLb: w.weightLb10 / 10, loggedAt: w.loggedAt })),

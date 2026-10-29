@@ -413,7 +413,7 @@ export async function getFitnessProfile(userId: number) {
   return rows[0] ?? null;
 }
 
-export async function upsertFitnessProfile(userId: number, data: { proteinTargetG: number; waterTargetMl: number }) {
+export async function upsertFitnessProfile(userId: number, data: { proteinTargetG: number; waterTargetMl: number; goalWeightLb10?: number | null }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(fitnessProfile)

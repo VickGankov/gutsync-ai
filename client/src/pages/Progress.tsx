@@ -4,20 +4,21 @@
 import { motion } from "framer-motion";
 import { formatGal, formatGalTarget, galInputValue, galToMl, mlToOz, ozToMl } from "@/lib/units";
 import { useMemo, useState } from "react";
-import { Beef, Droplets, Scale, Dumbbell, Trash2, Settings2, TrendingDown, TrendingUp, AlertTriangle, Loader2, Wheat, Ruler } from "lucide-react";
+import { Beef, Droplets, Dumbbell, Trash2, Settings2, Loader2, Wheat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProtocolCard from "@/components/ProtocolCard";
 import SupplementChecklist from "@/components/SupplementChecklist";
 import LabsPanel from "@/components/LabsPanel";
 import { readFiberPref, writeFiberPref } from "@/components/TodayCard";
-import { weightTrend, doseMarkers } from "@shared/weekly";
+import WeightCard from "@/components/body/WeightCard";
+import BodyInsights from "@/components/body/BodyInsights";
+import { TONE } from "@/lib/tones";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip,
 } from "recharts";
-import { fmtMg } from "@shared/dose";
 
 const container = {
   hidden: { opacity: 0 },
@@ -28,7 +29,7 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-const PRIMARY = "oklch(0.3 0.02 265)";
+const PRIMARY = TONE.weight.ink;
 const CORAL = "oklch(0.7 0.12 25)";
 const MUTED = "oklch(0.75 0.04 80)";
 
@@ -56,11 +57,11 @@ function Card({ children }: { children: React.ReactNode }) {
   return <motion.section variants={item} className="bg-card border border-border/60 rounded-2xl p-4 mb-4">{children}</motion.section>;
 }
 
-function CardTitle({ icon: Icon, title, right }: { icon: React.ElementType; title: string; right?: React.ReactNode }) {
+function CardTitle({ icon: Icon, title, right, color }: { icon: React.ElementType; title: string; right?: React.ReactNode; color?: string }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-primary" />
+        <Icon className="w-4 h-4 text-primary" style={color ? { color } : undefined} />
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
       {right}
@@ -95,19 +96,13 @@ export default function Progress() {
   const tzOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
 
   const summaryQuery = trpc.fitness.summary.useQuery(
-    { days: 28, tzOffsetMinutes },
+    { days: 90, tzOffsetMinutes },
     { enabled: isAuthenticated },
   );
   const refresh = () => utils.fitness.summary.invalidate();
 
   const logIntake = trpc.fitness.logIntake.useMutation({ onSuccess: refresh });
   const deleteIntake = trpc.fitness.deleteIntake.useMutation({ onSuccess: refresh });
-  const logWeight = trpc.fitness.logWeight.useMutation({ onSuccess: refresh });
-  const deleteWeight = trpc.fitness.deleteWeight.useMutation({ onSuccess: refresh });
-  const waistsQuery = trpc.fitness.waists.useQuery(undefined, { enabled: isAuthenticated });
-  const doseQuery = trpc.dose.list.useQuery(undefined, { enabled: isAuthenticated });
-  const logWaist = trpc.fitness.logWaist.useMutation({ onSuccess: () => utils.fitness.waists.invalidate() });
-  const deleteWaist = trpc.fitness.deleteWaist.useMutation({ onSuccess: () => utils.fitness.waists.invalidate() });
   const logLift = trpc.fitness.logLift.useMutation({ onSuccess: refresh });
   const deleteLift = trpc.fitness.deleteLift.useMutation({ onSuccess: refresh });
   const setProfile = trpc.fitness.setProfile.useMutation({
@@ -118,9 +113,7 @@ export default function Progress() {
   });
 
   const [customProtein, setCustomProtein] = useState("");
-  const [waistInput, setWaistInput] = useState("");
   const [fiberOnToday, setFiberOnToday] = useState(() => readFiberPref());
-  const [weightInput, setWeightInput] = useState("");
   const [lift, setLift] = useState({ exercise: "", weightLb: "", reps: "", sets: "" });
   const [showTargets, setShowTargets] = useState(false);
   const [tab, setTabState] = useState<TabId>(() => readTab());
@@ -137,16 +130,6 @@ export default function Progress() {
   const waterTarget = data?.targets.waterTargetMl ?? 3785;
 
   const last14 = useMemo(() => (data?.days ?? []).slice(-14), [data]);
-  const weightSeries = useMemo(
-    () => (data?.days ?? []).filter(d => d.weightLb !== null).map(d => ({ date: d.date, weightLb: d.weightLb })),
-    [data],
-  );
-  // Full day range (so dose markers always have a date to sit on), with the 7-day average per weigh-in.
-  const trend = useMemo(() => weightTrend(data?.days ?? []), [data]);
-  const markers = useMemo(() => {
-    const first = data?.days?.[0]?.date;
-    return doseMarkers(doseQuery.data?.doses ?? [], tzOffsetMinutes).filter(m => !!first && m.date >= first);
-  }, [data, doseQuery.data, tzOffsetMinutes]);
   const knownExercises = useMemo(() => (data?.lifts ?? []).map(l => l.exercise), [data]);
   const proteinDaysHit = last14.filter(d => d.proteinG >= proteinTarget).length;
 
@@ -159,30 +142,6 @@ export default function Progress() {
         onError: (e) => toast.error(e.message),
       },
     );
-  };
-
-  const submitWeight = () => {
-    const w = Number(weightInput);
-    if (!Number.isFinite(w) || w < 50) return toast.error("Enter your weight in lb");
-    logWeight.mutate(
-      { weightLb: w },
-      {
-        onSuccess: () => {
-          setWeightInput("");
-          toast.success(`Logged ${w} lb`);
-        },
-        onError: (e) => toast.error(e.message),
-      },
-    );
-  };
-
-  const submitWaist = () => {
-    const w = Number(waistInput);
-    if (!Number.isFinite(w) || w < 15 || w > 80) return toast.error("Enter your waist in inches");
-    logWaist.mutate({ waistIn: w }, {
-      onSuccess: () => { setWaistInput(""); toast.success(`Logged ${w} in`); },
-      onError: (e) => toast.error(e.message),
-    });
   };
 
   const submitLift = () => {
@@ -228,9 +187,6 @@ export default function Progress() {
       </div>
     );
   }
-
-  const weeklyChange = data?.weeklyChangePct ?? null;
-  const losingTooFast = weeklyChange !== null && weeklyChange < -1;
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
@@ -291,10 +247,10 @@ export default function Progress() {
       {tab === "nutrition" && (<>
       {/* Quick add: the only place to log water or protein by hand */}
       <Card>
-        <CardTitle icon={Beef} title="Protein today" right={
+        <CardTitle icon={Beef} color={TONE.protein.ink} title="Protein today" right={
           <span className="text-sm font-semibold">{today?.proteinG ?? 0}<span className="text-muted-foreground font-normal"> / {proteinTarget} g</span></span>
         } />
-        <ProgressBar value={today?.proteinG ?? 0} target={proteinTarget} color={PRIMARY} />
+        <ProgressBar value={today?.proteinG ?? 0} target={proteinTarget} color={TONE.protein.ink} />
         <p className="text-[11px] text-muted-foreground mt-1.5">Includes AI estimates from scanned meals plus quick adds.</p>
         <div className="flex gap-2 mt-3">
           {[20, 30, 50].map(g => (
@@ -312,12 +268,12 @@ export default function Progress() {
         <div className="mt-5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-primary" />
+              <Droplets className="w-4 h-4" style={{ color: TONE.water.ink }} />
               <span className="text-sm font-semibold">Water</span>
             </div>
             <span className="text-sm font-semibold">{formatGal(today?.waterMl ?? 0)}<span className="text-muted-foreground font-normal"> / {formatGalTarget(waterTarget)} gal</span></span>
           </div>
-          <ProgressBar value={today?.waterMl ?? 0} target={waterTarget} color="oklch(0.6 0.1 230)" />
+          <ProgressBar value={today?.waterMl ?? 0} target={waterTarget} color={TONE.water.ink} />
           <div className="flex gap-2 mt-3">
             {[8, 16, 24].map(oz => (
               <Button key={oz} variant="outline" size="sm" className="flex-1" onClick={() => addIntake("water", ozToMl(oz))} disabled={logIntake.isPending}>
@@ -342,7 +298,7 @@ export default function Progress() {
       {/* Fiber (rough estimate from logged meals) */}
       <Card>
         <div id="fiber" />
-        <CardTitle icon={Wheat} title="Fiber (estimate)" right={
+        <CardTitle icon={Wheat} color={TONE.fiber.ink} title="Fiber (estimate)" right={
           <span className="text-sm font-semibold">~{data?.fiber.todayG ?? 0}<span className="text-muted-foreground font-normal"> g today</span></span>
         } />
         {data?.fiber.avg7 != null ? (
@@ -369,7 +325,7 @@ export default function Progress() {
 
       {/* Protein history */}
       <Card>
-        <CardTitle icon={Beef} title="Protein — last 14 days" right={
+        <CardTitle icon={Beef} color={TONE.protein.ink} title="Protein — last 14 days" right={
           <span className="text-xs text-muted-foreground">{proteinDaysHit}/14 days on target</span>
         } />
         <div className="h-36">
@@ -379,7 +335,7 @@ export default function Progress() {
               <YAxis domain={[0, (max: number) => Math.ceil((Math.max(max, proteinTarget) * 1.1) / 50) * 50]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v: number) => [`${v} g`, "Protein"]} labelFormatter={shortDate} />
               <ReferenceLine y={proteinTarget} stroke={CORAL} strokeDasharray="4 4" />
-              <Bar dataKey="proteinG" fill={PRIMARY} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="proteinG" fill={TONE.protein.ink} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -399,108 +355,26 @@ export default function Progress() {
       </div>
       )}
 
-      {/* Weight */}
-      {tab === "body" && bodyView === "weight" && (
-      <Card>
-        <CardTitle icon={Scale} title="Weight" right={
-          weeklyChange !== null ? (
-            <span className={`text-xs font-medium flex items-center gap-1 ${losingTooFast ? "text-coral" : "text-muted-foreground"}`}>
-              {weeklyChange < 0 ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
-              {weeklyChange > 0 ? "+" : ""}{weeklyChange}% / wk
-            </span>
-          ) : null
-        } />
-        <div className="flex gap-2">
-          <input className={inputCls} type="number" inputMode="decimal" step="0.1" placeholder="Morning weight (lb)"
-            value={weightInput} onChange={e => setWeightInput(e.target.value)} />
-          <Button size="sm" onClick={submitWeight} disabled={logWeight.isPending}>Log</Button>
-        </div>
-        {losingTooFast && (
-          <p className="text-xs text-coral mt-2 flex items-start gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            Losing more than ~1% per week. Faster loss raises the risk of losing muscle — check protein and strength trends.
-          </p>
-        )}
-        {weightSeries.length >= 2 ? (
-          <>
-            <div className="h-40 mt-3">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trend} margin={{ top: 6, right: 8, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 10 }} interval={6} axisLine={false} tickLine={false} />
-                  <YAxis domain={[(min: number) => Math.floor(min - 2), (max: number) => Math.ceil(max + 2)]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v: number, name: string) => [`${v} lb`, name === "avg" ? "7-day avg" : "Weigh-in"]} labelFormatter={shortDate} />
-                  {markers.map((m, i) => (
-                    <ReferenceLine key={`${m.date}-${m.compound}-${i}`} x={m.date} stroke={m.kind === "start" ? PRIMARY : CORAL} strokeDasharray="3 3" />
-                  ))}
-                  <Line type="monotone" dataKey="weightLb" stroke="none" dot={{ r: 2.5, fill: MUTED, stroke: "none" }} activeDot={false} isAnimationActive={false} />
-                  <Line type="monotone" dataKey="avg" stroke={PRIMARY} strokeWidth={2.5} dot={false} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Dots are weigh-ins; the line is the 7-day average. Dashed lines mark a dose start (green) or change (orange).</p>
-            {markers.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {markers.slice(-4).map((m, i) => (
-                  <li key={`${m.date}-${i}`} className="text-[11px] text-muted-foreground">
-                    <span style={{ color: m.kind === "start" ? PRIMARY : CORAL }}>●</span> {shortDate(m.date)} · {m.kind === "start" ? "started" : "changed to"} {m.compound} {fmtMg(m.doseMcg)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground mt-3">Log at least two weigh-ins to see a trend.</p>
-        )}
-        {(data?.recentWeights?.length ?? 0) > 0 && (
-          <div className="mt-3 space-y-1.5">
-            {data!.recentWeights.slice(0, 3).map(w => (
-              <div key={w.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{w.weightLb} lb · {new Date(w.loggedAt).toLocaleDateString()}</span>
-                <button onClick={() => deleteWeight.mutate({ id: w.id })} title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Waist (optional) */}
-        <div className="mt-4 border-t border-border/60 pt-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Ruler className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Waist</span>
-            <span className="text-[11px] text-muted-foreground">optional · helps tell fat loss from muscle loss</span>
-          </div>
-          <div className="flex gap-2">
-            <input className={inputCls} type="number" inputMode="decimal" step="0.1" placeholder="Waist at navel (in)"
-              value={waistInput} onChange={e => setWaistInput(e.target.value)} />
-            <Button size="sm" onClick={submitWaist} disabled={logWaist.isPending}>Log</Button>
-          </div>
-          {(waistsQuery.data?.length ?? 0) > 0 && (() => {
-            const w = waistsQuery.data!;
-            const change = w.length >= 2 ? Math.round((w[0].waistIn - w[w.length - 1].waistIn) * 10) / 10 : null;
-            return (
-              <div className="mt-2 space-y-1.5">
-                <p className="text-xs text-muted-foreground">
-                  Latest <span className="font-semibold text-foreground">{w[0].waistIn} in</span>
-                  {change !== null && <> · {change > 0 ? "+" : ""}{change} in since {new Date(w[w.length - 1].loggedAt).toLocaleDateString()}</>}
-                </p>
-                {w.slice(0, 3).map(x => (
-                  <div key={x.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{x.waistIn} in · {new Date(x.loggedAt).toLocaleDateString()}</span>
-                    <button onClick={() => deleteWaist.mutate({ id: x.id })} title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      </Card>
-
-      )}
+      {/* Weight, with the trend, goal and what else moved */}
+      {tab === "body" && bodyView === "weight" && data && (<>
+        <motion.div variants={item}>
+          <WeightCard
+            days={data.days}
+            recentWeights={data.recentWeights}
+            targets={data.targets}
+            tzOffsetMinutes={tzOffsetMinutes}
+            onChanged={refresh}
+          />
+        </motion.div>
+        <motion.div variants={item}>
+          <BodyInsights days={data.days} lifts={data.lifts} proteinTargetG={proteinTarget} tzOffsetMinutes={tzOffsetMinutes} />
+        </motion.div>
+      </>)}
 
       {/* Lifts */}
       {tab === "body" && bodyView === "strength" && (
       <Card>
-        <CardTitle icon={Dumbbell} title="Strength" />
+        <CardTitle icon={Dumbbell} color={TONE.strength.ink} title="Strength" />
         <div className="space-y-2">
           <input className={inputCls} list="known-exercises" placeholder="Exercise (e.g. Bench press)"
             value={lift.exercise} onChange={e => setLift(l => ({ ...l, exercise: e.target.value }))} />
@@ -537,12 +411,12 @@ export default function Progress() {
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={l.series} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                             <YAxis hide domain={["dataMin - 5", "dataMax + 5"]} />
-                            <Line type="monotone" dataKey="e1rm" stroke={dropping ? CORAL : PRIMARY} strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="e1rm" stroke={dropping ? CORAL : TONE.strength.ink} strokeWidth={2} dot={false} />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
                       <p className={`text-[11px] mt-1 ${dropping ? "text-coral" : "text-muted-foreground"}`}>
-                        {l.changePct > 0 ? "+" : ""}{l.changePct}% estimated 1RM over 4 weeks
+                        {l.changePct > 0 ? "+" : ""}{l.changePct}% estimated 1RM since {shortDate(l.series[0].date)}
                         {dropping ? " — strength is dropping; review protein and recovery" : ""}
                       </p>
                     </>

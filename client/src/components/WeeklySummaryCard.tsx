@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { intervalsByCompound } from "@shared/dose";
 import { weeklySummary } from "@shared/weekly";
 import { getSymptomLabel } from "@/lib/store";
+import { TONE, tint } from "@/lib/tones";
 
 const OPEN_KEY = "gutsync_week_open";
 function readOpen(): boolean {
@@ -63,6 +64,7 @@ export default function WeeklySummaryCard() {
       {open && (<>
       <div className="grid grid-cols-2 gap-2 mt-3">
         <Stat
+          tone={TONE.weight.ink}
           label="Weight (avg)"
           value={s.weight.thisAvg !== null ? `${s.weight.thisAvg} lb` : "–"}
           sub={delta !== null ? (
@@ -70,12 +72,14 @@ export default function WeeklySummaryCard() {
           ) : s.weight.weighIns === 0 ? "No weigh-ins this week" : "Need last week's weigh-ins to compare"}
         />
         <Stat
+          tone={TONE.protein.ink}
           label="Protein (avg)"
           value={s.protein.avg !== null ? `${s.protein.avg} g` : "–"}
           sub={s.protein.avg !== null ? `${s.protein.daysOnTarget} of 7 days on ${s.protein.target} g` : "Nothing logged"}
         />
         {hasDoses && (
           <Stat
+            tone={TONE.protocol.ink}
             label="Doses"
             value={`${s.doses.taken} / ${s.doses.expected}`}
             sub={s.doses.byCompound.map(c => `${c.name} ${c.taken}/${c.expected}`).join(" · ")}
@@ -83,6 +87,7 @@ export default function WeeklySummaryCard() {
         )}
         {showSideEffects && (
           <Stat
+            tone={TONE.symptoms.ink}
             label="Side effects"
             value={String(s.sideEffects.count)}
             sub={s.sideEffects.worst ? `Worst: ${getSymptomLabel(s.sideEffects.worst.type)} ${s.sideEffects.worst.severity}/5` : "None logged"}
@@ -95,10 +100,10 @@ export default function WeeklySummaryCard() {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub: React.ReactNode }) {
+function Stat({ label, value, sub, tone }: { label: string; value: string; sub: React.ReactNode; tone: string }) {
   return (
-    <motion.div className="rounded-xl bg-muted/50 px-3 py-2.5 min-w-0">
-      <p className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">{label}</p>
+    <motion.div className="rounded-xl px-3 py-2.5 min-w-0" style={{ background: tint(tone, 12) }}>
+      <p className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: tone }} />{label}</p>
       <p className="text-lg font-display text-foreground mt-0.5 whitespace-nowrap">{value}</p>
       <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{sub}</p>
     </motion.div>

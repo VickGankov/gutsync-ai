@@ -9,6 +9,7 @@ import { formatTimeAgo, getSymptomLabel } from "@/lib/store";
 import { summarizeToday } from "@shared/today";
 import { formatGal, formatGalTarget } from "@/lib/units";
 import { useSupplements } from "@/components/SupplementChecklist";
+import { TONE as T } from "@/lib/tones";
 
 /** Reference used only for the optional Today fiber bar; not advice. */
 const FIBER_REFERENCE_G = 25;
@@ -26,13 +27,8 @@ interface Props {
   reintroCheckInPending: boolean;
 }
 
-// One color per kind of data, so the same thing looks the same everywhere. Bright on the dark card.
 const TONE = {
-  meals: "oklch(0.91 0.2 120)",
-  symptoms: "oklch(0.76 0.15 25)",
-  protein: "oklch(0.77 0.14 295)",
-  water: "oklch(0.81 0.1 225)",
-  fiber: "oklch(0.83 0.14 80)",
+  meals: T.meals.onDark, symptoms: T.symptoms.onDark, protein: T.protein.onDark, water: T.water.onDark, fiber: T.fiber.onDark,
 } as const;
 
 function Tile({ href, icon, value, unit, label, progress, tone }: { href: string; icon: React.ReactNode; value: string; unit?: string; label: string; progress?: number; tone: string }) {

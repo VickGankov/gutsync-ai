@@ -46,7 +46,7 @@ describe("fitness helpers", () => {
     expect(s.today.proteinG).toBe(90);
     expect(s.today.waterMl).toBe(500);
     expect(s.today.weightLb).toBe(187.5);
-    expect(s.weeklyChangePct).toBeLessThan(-1); // 190 -> 187.5 in 6 days
+    expect(s.weeklyChangePct).toBeNull(); // two weigh-ins are not a trend
   });
 
   it("tracks best set per day and strength change per exercise", () => {
@@ -117,5 +117,21 @@ describe("fiber", () => {
       intake: [], weights: [], lifts: [],
     });
     expect(s.fiber.avg7).toBeNull();
+  });
+});
+
+describe("weekly change", () => {
+  const mk = (lbs: Array<[number, number]>) => buildFitnessSummary({
+    now: NOW, days: 14, tzOffsetMinutes: 0, meals: [], intake: [], lifts: [],
+    weights: lbs.map(([daysAgo, lb]) => ({ weightLb10: Math.round(lb * 10), loggedAt: NOW - daysAgo * DAY_MS - 1000 })),
+  });
+  it("uses a robust rate once there are enough weigh-ins", () => {
+    const s = mk([[12, 190], [9, 189], [6, 188], [3, 187], [0, 186]]);
+    expect(s.weeklyChangePct).toBeLessThan(-0.5);
+    expect(s.rate!.n).toBe(5);
+  });
+  it("ignores one noisy weigh-in", () => {
+    const s = mk([[12, 190], [9, 189], [6, 188], [3, 187], [1, 186], [0, 191]]);
+    expect(s.weeklyChangePct!).toBeLessThan(-0.4);
   });
 });

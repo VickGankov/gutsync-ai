@@ -215,6 +215,8 @@ export const fitnessProfile = mysqlTable("fitness_profile", {
   userId: int("userId").notNull().unique(),
   proteinTargetG: int("proteinTargetG").default(150).notNull(),
   waterTargetMl: int("waterTargetMl").default(3785).notNull(),
+  /** Optional goal body weight in tenths of a pound. */
+  goalWeightLb10: int("goalWeightLb10"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

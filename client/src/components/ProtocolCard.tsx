@@ -1,6 +1,7 @@
 // Dose log card (Progress page): log a dose, see what's next, and see side effects by day since a dose.
 // Records what the user took and felt. It gives no dosing advice.
 
+import { TONE } from "@/lib/tones";
 import { useMemo, useState } from "react";
 import { Syringe, Trash2, Plus, Loader2, Settings2 } from "lucide-react";
 import { Link } from "wouter";
@@ -102,7 +103,7 @@ export default function ProtocolCard() {
     <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Syringe className="w-4 h-4 text-primary" />
+          <Syringe className="w-4 h-4" style={{ color: TONE.protocol.ink }} />
           <h2 className="text-sm font-semibold">Dose log</h2>
         </div>
         <Button size="sm" variant={open ? "outline" : "default"} className="h-8 rounded-xl gap-1" onClick={() => setOpen(v => !v)}>

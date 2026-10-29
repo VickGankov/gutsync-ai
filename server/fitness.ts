@@ -2,6 +2,7 @@
 // Kept free of DB access so they can be unit tested directly.
 
 import type { MealFood } from "../drizzle/schema";
+import { recentRate } from "../shared/bodyTrend";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -132,17 +133,11 @@ export function buildFitnessSummary(params: {
     return { exercise: name, series, changePct };
   });
 
-  // Weekly weight change rate from first and last weigh-in in the window.
-  const weighed = daysOut.filter(d => d.weightLb !== null);
-  let weeklyChangePct: number | null = null;
-  if (weighed.length >= 2) {
-    const first = weighed[0];
-    const last = weighed[weighed.length - 1];
-    const spanDays = (Date.parse(last.date) - Date.parse(first.date)) / DAY_MS;
-    if (spanDays >= 3 && first.weightLb) {
-      weeklyChangePct = Math.round((((last.weightLb! - first.weightLb) / first.weightLb) * 100 * (7 / spanDays)) * 100) / 100;
-    }
-  }
+  // Weekly weight change from the last 14 days of weigh-ins, using a fit that ignores one-off outliers.
+  // Null until there are 4 weigh-ins spread over a week: two points can't say what the trend is.
+  const weighIns = daysOut.filter(d => d.weightLb !== null).map(d => ({ date: d.date, lb: d.weightLb as number }));
+  const rate = recentRate(weighIns, 14);
+  const weeklyChangePct = rate ? rate.pctPerWeek : null;
 
   // Fiber average over the last 7 days, counting only days that have fiber data (older meals have none).
   const fiberDays = daysOut.slice(-7).filter(d => d.fiberTracked);
@@ -157,6 +152,7 @@ export function buildFitnessSummary(params: {
     today: daysOut[daysOut.length - 1],
     lifts,
     weeklyChangePct,
+    rate,
     fiber,
   };
 }
