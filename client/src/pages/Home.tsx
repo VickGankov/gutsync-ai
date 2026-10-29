@@ -242,8 +242,8 @@ export default function Home() {
       <>
         <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
           <motion.div variants={item} className="rounded-2xl overflow-hidden mb-6 relative">
-            <div className="h-48 bg-gradient-to-br from-sage-light via-sage-light/60 to-sand/50 flex flex-col items-center justify-center text-center px-6">
-              <Leaf className="w-10 h-10 text-sage-dark mb-3" />
+            <div className="h-48 bg-gradient-to-br from-volt/40 via-volt/15 to-sand/50 flex flex-col items-center justify-center text-center px-6">
+              <Leaf className="w-10 h-10 text-primary mb-3" />
               <h1 className="text-foreground text-2xl font-display">Triggerplate</h1>
               <p className="text-muted-foreground text-sm mt-1">Discover your personal food triggers</p>
             </div>
@@ -389,7 +389,7 @@ export default function Home() {
               </div>
             </div>
             {score !== null && (
-              <div className="flex items-center gap-1.5 bg-sage-light/50 text-sage-dark px-3 py-1.5 rounded-full">
+              <div className="flex items-center gap-1.5 bg-secondary text-foreground px-3 py-1.5 rounded-full">
                 <TrendingUp className="w-3.5 h-3.5" />
                 <span className="text-xs font-semibold">
                   {score >= 70 ? "Good" : score >= 50 ? "Fair" : "Needs attention"}
@@ -418,7 +418,7 @@ export default function Home() {
             <span className="text-[11px] text-muted-foreground">
               {streakDays > 0 ? `${streakDays}-day logging streak` : "Log something today to start a streak"}
             </span>
-            <span className="text-[11px] text-sage-dark font-medium">
+            <span className="text-[11px] text-foreground/70 font-medium">
               {data?.totalMeals ?? 0} meals logged
             </span>
           </div>

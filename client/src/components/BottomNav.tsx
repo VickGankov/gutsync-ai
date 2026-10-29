@@ -23,14 +23,14 @@ function NavItem({ path, icon: Icon, label, isActive }: {
   return (
     <Link href={path}>
       <motion.div
-        className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors min-w-[48px]"
+        className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors min-w-[48px] ${isActive ? "bg-volt" : ""}`}
         whileTap={{ scale: 0.95 }}
       >
         <Icon
-          className={`w-5 h-5 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}
+          className={`w-5 h-5 transition-colors ${isActive ? "text-volt-foreground" : "text-muted-foreground"}`}
           strokeWidth={isActive ? 2.5 : 1.8}
         />
-        <span className={`text-[10px] font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+        <span className={`text-[10px] font-medium transition-colors ${isActive ? "text-volt-foreground" : "text-muted-foreground"}`}>
           {label}
         </span>
       </motion.div>
@@ -133,7 +133,7 @@ export default function BottomNav() {
                   className={`-mt-10 w-14 h-14 rounded-full shadow-lg flex items-center justify-center ring-4 ring-white/80 transition-colors select-none touch-none ${
                     showUploadHint
                       ? "bg-coral text-white shadow-coral/30"
-                      : "bg-primary text-primary-foreground shadow-primary/30"
+                      : "bg-primary text-volt shadow-primary/30"
                   }`}
                 >
                   <AnimatePresence mode="wait">

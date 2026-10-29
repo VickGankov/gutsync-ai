@@ -30,11 +30,11 @@ function Tile({ href, icon, value, unit, label, progress }: { href: string; icon
   return (
     <Link href={href} className="min-w-0 block">
       <div className="rounded-2xl bg-white/60 dark:bg-white/10 border border-white/70 dark:border-white/10 px-3 py-2.5 active:scale-95 transition-transform cursor-pointer">
-        <div className="flex items-center gap-1 text-sage-dark [&_svg]:hidden">{icon}<span className="text-[10px] uppercase tracking-wide font-medium truncate">{label}</span></div>
+        <div className="flex items-center gap-1 text-foreground/70 [&_svg]:hidden">{icon}<span className="text-[10px] uppercase tracking-wide font-medium truncate">{label}</span></div>
         <p className="text-lg font-display text-foreground mt-0.5 whitespace-nowrap">{value}{unit && <span className="text-xs font-sans text-muted-foreground ml-1">{unit}</span>}</p>
         {progress !== undefined && (
           <div className="mt-1.5 h-1.5 rounded-full bg-black/10 dark:bg-white/15 overflow-hidden">
-            <div className="h-full rounded-full bg-sage-dark" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }} />
+            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }} />
           </div>
         )}
       </div>
@@ -83,10 +83,10 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-3xl p-5 mb-4 border border-sage/20 bg-gradient-to-br from-sage-light/70 via-sage-light/30 to-sand/40"
+      className="relative overflow-hidden rounded-3xl p-5 mb-4 border border-border/60 bg-gradient-to-br from-volt/30 via-card to-sand/40"
     >
-      <Activity aria-hidden className="absolute -right-4 -top-4 w-28 h-28 text-sage/10 rotate-12" />
-      <p className="text-[11px] uppercase tracking-wider font-medium text-sage-dark">
+      <Activity aria-hidden className="absolute -right-4 -top-4 w-28 h-28 text-foreground/5 rotate-12" />
+      <p className="text-[11px] uppercase tracking-wider font-medium text-foreground/70">
         Today · {d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
       </p>
       <p className="font-display text-lg leading-snug text-foreground mt-1.5 relative">
@@ -126,7 +126,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
       {supps.items.length > 0 && (
         <div className="mt-2.5 relative">
-          <p className="text-[10px] uppercase tracking-wide font-medium text-sage-dark mb-1.5">Supplements · {supps.takenIds.size}/{supps.items.length}</p>
+          <p className="text-[10px] uppercase tracking-wide font-medium text-foreground/70 mb-1.5">Supplements · {supps.takenIds.size}/{supps.items.length}</p>
           <div className="flex flex-wrap gap-1.5">
             {supps.items.map(i => {
               const on = supps.takenIds.has(i.id);
@@ -136,7 +136,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
                   type="button"
                   onClick={() => supps.toggle(i.id)}
                   aria-pressed={on}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium border active:scale-95 transition-all ${on ? "bg-sage-dark text-white border-sage-dark" : "bg-white/60 dark:bg-white/10 border-white/70 dark:border-white/10 text-foreground"}`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border active:scale-95 transition-all ${on ? "bg-primary text-white border-primary" : "bg-white/60 dark:bg-white/10 border-white/70 dark:border-white/10 text-foreground"}`}
                 >
                   {on ? "✓ " : ""}{i.name}
                 </button>
@@ -154,7 +154,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
           </div>
         </Link>
       ) : (
-        <div className="mt-3 flex items-center gap-2 text-sm text-sage-dark relative">
+        <div className="mt-3 flex items-center gap-2 text-sm text-foreground/70 relative">
           <Check className="w-4 h-4" /> You're all caught up for now.
         </div>
       )}

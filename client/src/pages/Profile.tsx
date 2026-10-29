@@ -177,23 +177,23 @@ export default function Profile() {
       {/* Privacy & Data */}
       <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-sage-dark" />
+          <Shield className="w-4 h-4 text-primary" />
           Privacy & Data
         </h3>
         <div className="space-y-1 divide-y divide-border/50">
-          <SettingsRow icon={Shield} label="Privacy Policy" description="How Triggerplate handles your data" iconColor="text-sage-dark" action={
+          <SettingsRow icon={Shield} label="Privacy Policy" description="How Triggerplate handles your data" iconColor="text-primary" action={
             <a href="/privacy" className="text-xs font-semibold text-primary">View</a>
           } />
-          <SettingsRow icon={Shield} label="Terms of Service" description="The rules for using Triggerplate" iconColor="text-sage-dark" action={
+          <SettingsRow icon={Shield} label="Terms of Service" description="The rules for using Triggerplate" iconColor="text-primary" action={
             <a href="/terms" className="text-xs font-semibold text-primary">View</a>
           } />
-          <SettingsRow icon={Shield} label="Health Data Policy" description="How your health information is handled" iconColor="text-sage-dark" action={
+          <SettingsRow icon={Shield} label="Health Data Policy" description="How your health information is handled" iconColor="text-primary" action={
             <a href="/health-data-privacy" className="text-xs font-semibold text-primary">View</a>
           } />
-          <SettingsRow icon={Shield} label="Medical Disclaimer" description="What Triggerplate is and is not" iconColor="text-sage-dark" action={
+          <SettingsRow icon={Shield} label="Medical Disclaimer" description="What Triggerplate is and is not" iconColor="text-primary" action={
             <a href="/disclaimer" className="text-xs font-semibold text-primary">View</a>
           } />
-          <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-sage-dark" />
+          <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-primary" />
           <SettingsRow icon={Download} label="Export My Data" description="Download everything you've logged (JSON file)" iconColor="text-primary" action={
             <button onClick={handleExport} disabled={exporting} className="text-xs font-semibold text-primary disabled:opacity-60">
               {exporting ? "Preparing..." : "Download"}

@@ -114,7 +114,7 @@ export default function ProtocolCard() {
       {statuses.length > 0 ? (
         <div className="space-y-2 mb-3">
           {statuses.map(st => (
-            <div key={st.key} className="rounded-xl bg-sage-light/30 px-3.5 py-3">
+            <div key={st.key} className="rounded-xl bg-muted px-3.5 py-3">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="font-display text-lg leading-tight">{st.name} · {fmtMg(st.latest!.doseMcg)}</p>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Day {st.dayNumber}</span>
@@ -246,7 +246,7 @@ export default function ProtocolCard() {
               <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v: number) => [`${v} mg`, "Dose"]} />
-              <Bar dataKey="mg" fill="oklch(0.55 0.1 155)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="mg" fill="oklch(0.3 0.02 265)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

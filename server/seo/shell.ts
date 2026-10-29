@@ -23,8 +23,8 @@ export interface PageOpts {
 }
 
 const CSS = `
-:root{--bg:#fbfaf6;--fg:#23302a;--muted:#5d6b63;--brand:#3b8a5f;--brand-d:#2c6b49;--card:#fff;--line:#e5e3da}
-@media (prefers-color-scheme:dark){:root{--bg:#161b18;--fg:#e8ede9;--muted:#a3b0a8;--brand:#5fb487;--brand-d:#7cc9a0;--card:#1e2521;--line:#2e3832}}
+:root{--bg:#fbfaf6;--fg:#23302a;--muted:#5d6b63;--brand:#1d2128;--brand-d:#1d2128;--on-brand:#fff;--volt:#d4f53c;--card:#fff;--line:#e5e3da}
+@media (prefers-color-scheme:dark){:root{--bg:#161b18;--fg:#e8ede9;--muted:#a3b0a8;--brand:#d4f53c;--brand-d:#d4f53c;--on-brand:#1d2128;--card:#1e2521;--line:#2e3832}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 body{margin:0;overflow-wrap:break-word;background:var(--bg);color:var(--fg);font:17px/1.65 "Plus Jakarta Sans",system-ui,-apple-system,Segoe UI,sans-serif}
 a{color:var(--brand-d)}h1,h2,h3{font-family:"DM Serif Display",Georgia,serif;font-weight:400;line-height:1.2;margin:1.6em 0 .5em}
@@ -33,8 +33,8 @@ h1{font-size:2.3rem;margin-top:.4em}h2{font-size:1.6rem}h3{font-size:1.2rem}
 header.site{border-bottom:1px solid var(--line)}header.site .wide{display:flex;align-items:center;justify-content:space-between;height:60px}
 .logo{font-family:"DM Serif Display",Georgia,serif;font-size:1.4rem;color:var(--fg);text-decoration:none}
 nav a{margin-left:18px;color:var(--muted);text-decoration:none;font-size:.95rem}nav a:hover{color:var(--fg)}
-.btn{display:inline-block;background:var(--brand);color:#fff!important;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:600}
-.btn:hover{background:var(--brand-d)}.btn.ghost{background:transparent;color:var(--brand-d)!important;border:1px solid var(--line)}
+.btn{display:inline-block;background:var(--brand);color:var(--on-brand)!important;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:600}
+.btn:hover{opacity:.88}.btn.ghost{background:transparent;color:var(--brand-d)!important;border:1px solid var(--line)}
 .hero{padding:56px 0 32px;text-align:center}.hero p.lead{font-size:1.2rem;color:var(--muted);max-width:620px;margin:0 auto 24px}
 .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin:36px 0}
 .shots figure{margin:0;text-align:center}.shots img{width:100%;max-width:260px;height:auto;border-radius:16px;border:1px solid var(--line)}
@@ -69,7 +69,7 @@ export function render(o: PageOpts): string {
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${siteUrl()}/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#3b8a5f">
+<meta name="theme-color" content="#1d2128">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

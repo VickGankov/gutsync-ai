@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 const TINTS = [
-  "bg-sage-light/70 text-sage-dark",
+  "bg-volt/60 text-volt-foreground",
   "bg-coral-light/60 text-coral",
   "bg-amber-100 text-amber-700",
   "bg-sky-100 text-sky-700",

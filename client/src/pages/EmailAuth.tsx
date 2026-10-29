@@ -244,7 +244,7 @@ export default function EmailAuth() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sage-light/20 to-coral-light/20 px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-volt/15 to-sand/40 px-4 py-8">
       <div className="w-full max-w-md mx-auto flex flex-col gap-8">
         <header className="text-center">
           <img src="/favicon.svg" alt="" className="w-16 h-16 mx-auto rounded-2xl shadow-sm" />

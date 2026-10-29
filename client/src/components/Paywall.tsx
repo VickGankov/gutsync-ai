@@ -51,7 +51,7 @@ export default function Paywall({ isOpen, onClose, scansUsed, dailyLimit }: Payw
             className="w-full max-w-lg bg-background rounded-t-3xl overflow-hidden shadow-2xl"
           >
             <div className="relative px-6 pt-6 pb-4 text-center"
-              style={{ background: "linear-gradient(135deg, oklch(0.55 0.1 155 / 0.12), oklch(0.7 0.12 25 / 0.08))" }}>
+              style={{ background: "linear-gradient(135deg, oklch(0.91 0.2 120 / 0.25), oklch(0.25 0.015 265 / 0.06))" }}>
               <button onClick={onClose} aria-label="Close"
                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-colors">
                 <X className="w-4 h-4 text-muted-foreground" />
@@ -69,8 +69,8 @@ export default function Paywall({ isOpen, onClose, scansUsed, dailyLimit }: Payw
               <div className="grid grid-cols-2 gap-2 py-2">
                 {PREMIUM_FEATURES.map(({ icon: Icon, label }) => (
                   <div key={label} className="flex items-center gap-2 text-sm">
-                    <div className="w-6 h-6 rounded-full bg-sage-light/60 flex items-center justify-center shrink-0">
-                      <Icon className="w-3.5 h-3.5 text-sage-dark" />
+                    <div className="w-6 h-6 rounded-full bg-volt/50 flex items-center justify-center shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-primary" />
                     </div>
                     <span className="text-foreground/80 leading-tight">{label}</span>
                   </div>

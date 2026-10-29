@@ -28,7 +28,7 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-const PRIMARY = "oklch(0.55 0.1 155)";
+const PRIMARY = "oklch(0.3 0.02 265)";
 const CORAL = "oklch(0.7 0.12 25)";
 const MUTED = "oklch(0.75 0.04 80)";
 

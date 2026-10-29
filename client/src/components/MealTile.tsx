@@ -186,11 +186,11 @@ export default function MealTile({ meal, onSaved, onDeleted }: {
             className="w-12 h-12 rounded-xl object-cover shrink-0"
           />
         ) : (
-          <div className="w-12 h-12 rounded-xl bg-sage-light/40 flex items-center justify-center shrink-0" aria-hidden="true">
+          <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center shrink-0" aria-hidden="true">
             {emoji ? (
               <span className="text-2xl leading-none">{emoji}</span>
             ) : (
-              <TypeIcon className="w-5 h-5 text-sage-dark" />
+              <TypeIcon className="w-5 h-5 text-foreground/70" />
             )}
           </div>
         )}

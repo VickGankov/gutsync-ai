@@ -268,7 +268,7 @@ export default function Log() {
                   onClick={() => { setLogMode('positive'); setSelectedType(null); }}
                   className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                     logMode === 'positive'
-                      ? 'bg-sage-light/50 border border-sage text-sage-dark'
+                      ? 'bg-primary/10 border border-primary text-primary'
                       : 'bg-muted border border-border text-muted-foreground hover:border-border/80'
                   }`}
                 >
@@ -288,7 +288,7 @@ export default function Log() {
                       selectedType === opt.type
                         ? logMode === 'negative'
                           ? 'border-coral bg-coral/5 shadow-sm'
-                          : 'border-sage bg-sage-light/30 shadow-sm'
+                          : 'border-primary bg-primary/5 shadow-sm'
                         : 'border-border/50 hover:border-primary/30'
                     }`}
                   >
@@ -311,7 +311,7 @@ export default function Log() {
                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all ${
                             severity === level
                               ? level <= 2
-                                ? 'border-sage bg-sage text-white'
+                                ? 'border-primary bg-primary text-primary-foreground'
                                 : level <= 3
                                 ? 'border-sand-dark bg-sand-dark text-white'
                                 : 'border-coral bg-coral text-white'
@@ -331,7 +331,7 @@ export default function Log() {
                 <Button
                   className={`w-full rounded-xl h-11 ${
                     logMode === 'positive'
-                      ? 'bg-sage hover:bg-sage/90'
+                      ? 'bg-primary hover:bg-primary/90'
                       : 'bg-primary hover:bg-primary/90'
                   }`}
                   onClick={handleLogSymptom}

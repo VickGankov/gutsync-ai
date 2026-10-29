@@ -158,3 +158,8 @@ This file is the durable context for future Cursor chats in this workspace.
 - `server/report/model.ts` builds a plain model from the user's rows (`buildReport`, pure, tested); `server/report/pdf.ts` renders it with pdfkit (Helvetica only, Letter). pdfkit must stay in `dependencies` (build uses `--packages=external`).
 - Sections: overview, symptoms, "Foods that may be linked" (only possible/confirmed, never "common"; counts + range, no causal wording), reintroduction tests, body/nutrition/training, labs and protocol (only if the plan has those features; follows `hasFeature`), diary (last 14 logged days), how to read. Labs are shown against the range printed on the lab.
 - Available to all plans; UI is `DoctorReportCard` on Profile. Test data: `server/report/fixture.ts` (also used to eyeball the PDF).
+
+## Theme (Oct 29): charcoal + volt
+- Changed from cream/sage green to avoid looking like competitors. `--primary` is charcoal (oklch 0.25 0.015 265); bright accent is "volt" lime (`--volt`, Tailwind `bg-volt`/`text-volt-foreground`), used for active nav pill, camera icon, hero tints, avatars. `--accent` is now a neutral hover color (it was coral); coral stays as the warning/trigger color.
+- Green is kept on purpose as meaning (low FODMAP, mild symptoms, tolerated, gut-score gradient end): `sage*` classes. Do not use sage for brand decoration.
+- Also recolored: favicon/icons (charcoal + volt), `og-image.png`, manifest/theme-color `#1d2128`, landing CSS (`server/seo/shell.ts`), PDF report headings, and the 3 landing screenshots. After UI changes, regenerate screenshots and the OG image (HTML template approach: render 1200x630 in Playwright).

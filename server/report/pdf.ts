@@ -4,7 +4,7 @@
 import PDFDocument from "pdfkit";
 import type { ReportModel } from "./model";
 
-const GREEN = "#2c6b49", INK = "#23302a", MUTED = "#5d6b63", LINE = "#d9d6cb", BAND = "#f3f1ea", WARN = "#a05a00";
+const GREEN = "#1d2128", INK = "#23302a", MUTED = "#5d6b63", LINE = "#d9d6cb", BAND = "#f3f1ea", WARN = "#a05a00";
 const M = 48;
 
 type Doc = InstanceType<typeof PDFDocument>;
