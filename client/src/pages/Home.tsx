@@ -24,6 +24,7 @@ import InAppBrowserWarning from "@/components/InAppBrowserWarning";
 import SeverityBubble from "@/components/SeverityBubble";
 import TodayCard from "@/components/TodayCard";
 import WeeklySummaryCard from "@/components/WeeklySummaryCard";
+import FirstTriggerCard from "@/components/FirstTriggerCard";
 import InstallBanner from "@/components/InstallPrompt";
 import MealTile from "@/components/MealTile";
 import { REINTRO_GROUP_INFO, currentChallengeDay, type ReintroGroup } from "@shared/reintro";
@@ -425,6 +426,7 @@ export default function Home() {
         </motion.div>
 
         <motion.div variants={item}>
+          <FirstTriggerCard />
           <WeeklySummaryCard />
         </motion.div>
 

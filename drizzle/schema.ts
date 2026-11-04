@@ -137,6 +137,10 @@ export const subscriptions = mysqlTable("subscriptions", {
   expiresAt: bigint("expiresAt", { mode: "number" }),
   /** When the subscription was first activated */
   activatedAt: bigint("activatedAt", { mode: "number" }),
+  /** True when the customer has cancelled and access ends at expiresAt. */
+  cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
+  /** "month" or "year" for Stripe subscriptions. */
+  billingInterval: varchar("billingInterval", { length: 8 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -164,6 +168,14 @@ export const scanUsage = mysqlTable(
     userDateUnique: uniqueIndex("scan_usage_user_date_unique").on(table.userId, table.usageDate),
   })
 );
+
+/** One row per counted scan (photo, typed meal, label, lab report). */
+export const scanEvents = mysqlTable("scan_events", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  kind: varchar("kind", { length: 16 }).notNull(),
+  createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+});
 
 export type ScanUsage = typeof scanUsage.$inferSelect;
 export type InsertScanUsage = typeof scanUsage.$inferInsert;

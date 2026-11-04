@@ -46,6 +46,8 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      // The scan quota resets at the person's own midnight, so the server needs their UTC offset.
+      headers: () => ({ "x-tz-offset": String(new Date().getTimezoneOffset()) }),
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

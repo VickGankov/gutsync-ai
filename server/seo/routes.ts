@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { COOKIE_NAME } from "@shared/const";
 import { POSTS, findPost } from "./posts";
 import { esc, render, siteUrl, SUPPORT_EMAIL } from "./shell";
+import { FOODS, FOODS_UPDATED, VERDICT_TEXT, findFood } from "./foods";
 
 function send(res: Response, html: string, status = 200) {
   res.status(status).type("html").set("Cache-Control", "public, max-age=300").send(html);
@@ -20,7 +21,7 @@ export function landingPage(): string {
 <section class="hero wide">
 <h1>Track what you eat, take and feel. Find your possible triggers.</h1>
 <p class="lead">Triggerplate logs your meals, symptoms, doses, supplements, weight and labs in one place, then flags the foods that may be setting off your symptoms, using your own data.</p>
-<p><a class="btn" href="/auth">Start free</a> &nbsp; <a class="btn ghost" href="/blog">Read the guides</a></p>
+<p><a class="btn" href="/auth">Start free</a> &nbsp; <a class="btn ghost" href="/blog">Read the guides</a> &nbsp; <a class="btn ghost" href="/foods">Food checker</a></p>
 <p class="note">Free beta. No credit card to start.</p>
 </section>
 
@@ -122,6 +123,58 @@ ${p.body}
   });
 }
 
+const MONASH_APP = { label: "Monash University FODMAP Diet app and website (current serving sizes)", url: "https://www.monashfodmap.com/" };
+const FOOD_DISCLAIMER = "General information, not medical advice. This page summarizes how the food is generally classified in published low-FODMAP guidance. It is not Monash University data, and it gives no serving sizes on purpose: the amount decides the result, and the Monash app has current figures. Ask a doctor or registered dietitian before changing your diet.";
+
+export function foodsIndexPage(): string {
+  const groups = Array.from(new Set(FOODS.map(f => f.group)));
+  const sections = groups.map(g => `<h2>${esc(g)}</h2><ul class="posts">${FOODS.filter(f => f.group === g).map(f => `<li><a class="t" href="/foods/${f.slug}">Is ${esc(f.name.toLowerCase())} low FODMAP?</a><p class="meta">${VERDICT_TEXT[f.verdict].label}</p></li>`).join("")}</ul>`).join("");
+  return render({
+    title: "Is it low FODMAP? Food checker | Triggerplate",
+    description: "Plain-language answers on whether common foods are high or low FODMAP, why, and what people swap them for. Serving size always matters.",
+    path: "/foods",
+    body: `<main class="wrap"><h1>Is it low FODMAP?</h1><p class="lead note">Quick answers for common foods, in plain language. Serving size matters, so use these as a starting point and check the Monash app for amounts.</p>${sections}
+<div class="callout"><p><b>Not sure a food is your problem?</b> Lists only say what is likely. Your own log shows what actually happens to you.</p><p><a class="btn" href="/auth">Start free</a></p></div>
+<p class="note">${esc(FOOD_DISCLAIMER)}</p></main>`,
+  });
+}
+
+export function foodPage(slug: string): string | null {
+  const f = findFood(slug);
+  if (!f) return null;
+  const v = VERDICT_TEXT[f.verdict];
+  const answer = f.verdict === "high"
+    ? `${f.name} is generally classified as high FODMAP, mainly because of ${f.because}.`
+    : f.verdict === "low"
+      ? `${f.name} is generally classified as low FODMAP, because ${f.because}.`
+      : `${f.name} can be low or high FODMAP depending on the serving, because of ${f.because}.`;
+  const swaps = f.swaps?.length ? `<h2>What people use instead</h2><ul>${f.swaps.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  const related = FOODS.filter(x => x.slug !== f.slug && x.group === f.group).slice(0, 4);
+  const rel = related.length ? `<h2>Other ${esc(f.group.toLowerCase())}</h2><ul>${related.map(x => `<li><a href="/foods/${x.slug}">Is ${esc(x.name.toLowerCase())} low FODMAP?</a></li>`).join("")}</ul>` : "";
+  const body = `<main class="wrap"><article>
+<p class="meta"><a href="/foods">Food checker</a> · ${esc(f.group)}</p>
+<h1>Is ${esc(f.name.toLowerCase())} low FODMAP?</h1>
+<div class="callout"><p><b>${esc(v.label)}.</b> ${esc(answer)}</p></div>
+<h2>Details</h2><p>${esc(f.note)}</p>
+<p>Serving size always matters with FODMAPs. A food that is fine in a small amount can add up with other foods in the same meal, so for exact amounts check the <a href="${MONASH_APP.url}" rel="noopener nofollow">Monash app</a>.</p>
+${swaps}
+<div class="callout"><p><b>Does it actually bother you?</b> Triggerplate counts how often symptoms follow ${esc(f.name.toLowerCase())} in your own log, and shows a pattern as possible until a clean 3-day test backs it up.</p><p><a class="btn" href="/auth">Start free</a></p></div>
+${rel}
+<h2>Source</h2><ul class="sources"><li><a href="${MONASH_APP.url}" rel="noopener nofollow">${esc(MONASH_APP.label)}</a></li></ul>
+<p class="note">${esc(FOOD_DISCLAIMER)} Last reviewed ${FOODS_UPDATED}.</p>
+</article></main>`;
+  return render({
+    title: `Is ${f.name.toLowerCase()} low FODMAP? | Triggerplate`,
+    description: `${answer} Serving size matters.`,
+    path: `/foods/${f.slug}`,
+    body,
+    jsonLd: [{
+      "@context": "https://schema.org", "@type": "FAQPage",
+      mainEntity: [{ "@type": "Question", name: `Is ${f.name.toLowerCase()} low FODMAP?`, acceptedAnswer: { "@type": "Answer", text: `${answer} ${f.note}` } }],
+    }],
+  });
+}
+
 export function notFoundPage(): string {
   return render({
     title: "Page not found | Triggerplate", description: "That page doesn't exist.", path: "/blog",
@@ -131,7 +184,7 @@ export function notFoundPage(): string {
 }
 
 export function sitemapXml(): string {
-  const urls = [{ loc: "/", d: POSTS[0]?.published }, { loc: "/blog", d: POSTS[0]?.published }, ...POSTS.map(p => ({ loc: `/blog/${p.slug}`, d: p.published }))];
+  const urls = [{ loc: "/", d: POSTS[0]?.published }, { loc: "/blog", d: POSTS[0]?.published }, ...POSTS.map(p => ({ loc: `/blog/${p.slug}`, d: p.published })), { loc: "/foods", d: FOODS_UPDATED }, ...FOODS.map(f => ({ loc: `/foods/${f.slug}`, d: FOODS_UPDATED }))];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${siteUrl()}${u.loc}</loc>${u.d ? `<lastmod>${u.d}</lastmod>` : ""}</url>`).join("\n")}\n</urlset>\n`;
 }
 
@@ -148,6 +201,12 @@ export function registerSeoRoutes(app: Express) {
   app.get("/blog", (_req, res) => send(res, blogIndexPage()));
   app.get("/blog/:slug", (req, res) => {
     const html = postPage(req.params.slug);
+    if (!html) return send(res, notFoundPage(), 404);
+    send(res, html);
+  });
+  app.get("/foods", (_req, res) => send(res, foodsIndexPage()));
+  app.get("/foods/:slug", (req, res) => {
+    const html = foodPage(req.params.slug);
     if (!html) return send(res, notFoundPage(), 404);
     send(res, html);
   });

@@ -56,6 +56,11 @@ vi.mock("./db", () => ({
   upsertSubscription: vi.fn().mockResolvedValue(undefined),
   cancelSubscription: vi.fn().mockResolvedValue(undefined),
   getTodayScanCount: vi.fn().mockResolvedValue(0),
+  listScanEvents: vi.fn().mockResolvedValue([]),
+  getReintroChallenges: vi.fn().mockResolvedValue([]),
+  getActiveReintroChallenge: vi.fn().mockResolvedValue(undefined),
+  createReintroChallenge: vi.fn().mockResolvedValue(1),
+  getScanHistory: vi.fn().mockResolvedValue([]),
   incrementScanCount: vi.fn().mockResolvedValue(1),
 }));
 
@@ -679,10 +684,20 @@ describe("Triggerplate Server Procedures", () => {
       await expect(appRouter.createCaller(createAuthContext()).labs.addMany(row)).resolves.toBeDefined();
     });
 
-    it("locks the protocol for free users when the paywall is on", async () => {
+    it("locks the protocol for free users when the paywall is on, after the first free test", async () => {
       vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
+      vi.mocked(db.getReintroChallenges).mockResolvedValue([{ id: 1 } as any]);
       ENV.paywallEnabled = true;
       await expect(appRouter.createCaller(createAuthContext()).reintro.start({ foodGroup: "lactose" as any, testFood: "milk", doses: ["a", "b", "c"] })).rejects.toThrow(/PREMIUM_REQUIRED:protocol/);
+    });
+
+    it("lets a free user start their first test even with the paywall on", async () => {
+      vi.mocked(db.getEntitlement).mockResolvedValue(ent("free"));
+      vi.mocked(db.getReintroChallenges).mockResolvedValue([]);
+      vi.mocked(db.getActiveReintroChallenge).mockResolvedValue(undefined as any);
+      vi.mocked(db.createReintroChallenge).mockResolvedValue(7 as any);
+      ENV.paywallEnabled = true;
+      await expect(appRouter.createCaller(createAuthContext()).reintro.start({ foodGroup: "lactose" as any, testFood: "milk", doses: ["a", "b", "c"] })).resolves.toEqual({ id: 7 });
     });
   });
 
@@ -815,7 +830,7 @@ describe("Triggerplate Server Procedures", () => {
       const fakeBase64 = Buffer.from("fake-image-data").toString("base64");
 
       await caller.meals.analyzePhoto({ imageBase64: fakeBase64, mimeType: "image/jpeg" });
-      expect(db.incrementScanCount).toHaveBeenCalledWith(1);
+      expect(db.incrementScanCount).toHaveBeenCalledWith(1, "photo", 0);
     });
   });
 });
@@ -829,5 +844,17 @@ describe("symptoms.update / delete", () => {
     await caller.symptoms.delete({ id: 7 });
     expect(db.deleteSymptom).toHaveBeenCalledWith(1, 7);
     await expect(caller.symptoms.update({ id: 7, severity: 6 })).rejects.toThrow();
+  });
+});
+
+describe("tzFromRequest", () => {
+  it("reads the offset header and ignores anything odd", async () => {
+    const { tzFromRequest } = await import("./routers");
+    expect(tzFromRequest({ headers: { "x-tz-offset": "480" } })).toBe(480);
+    expect(tzFromRequest({ headers: { "x-tz-offset": "-330" } })).toBe(-330);
+    expect(tzFromRequest({ headers: { "x-tz-offset": "99999" } })).toBe(0);
+    expect(tzFromRequest({ headers: { "x-tz-offset": "abc" } })).toBe(0);
+    expect(tzFromRequest({ headers: {} })).toBe(0);
+    expect(tzFromRequest(undefined)).toBe(0);
   });
 });

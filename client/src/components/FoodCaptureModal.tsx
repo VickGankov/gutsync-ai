@@ -945,7 +945,7 @@ export default function FoodCaptureModal({ open, onClose, initialMode = "camera"
                       left === 0 ? "bg-coral-light/40 text-coral" : left === 1 ? "bg-sand text-sand-dark" : "bg-muted text-muted-foreground"
                     }`}>
                       {left === 0 ? (
-                        <><Lock className="w-3 h-3" /> No scans left today. They reset tomorrow, and manual logging still works</>
+                        <><Lock className="w-3 h-3" /> No scans left today. They reset at midnight, and manual logging still works</>
                       ) : (
                         <><Sparkles className="w-3 h-3" /> {left} of {subStatus.dailyLimit} scans left today</>
                       )}

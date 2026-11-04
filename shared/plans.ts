@@ -7,6 +7,8 @@ export type GatedFeature = "labs" | "protocol";
 export const SCAN_LIMITS: Record<Plan, number> = { free: 10, tester: 10, founder: 20, premium: 50 };
 export const GATED_FEATURES: GatedFeature[] = ["labs", "protocol"];
 export const MAX_FOUNDERS_DEFAULT = 30;
+/** What premium costs on the web (USD). Keep in step with the Stripe prices. */
+export const PRICES = { month: 10, year: 99 } as const;
 
 export function scanLimitFor(plan: Plan): number {
   return SCAN_LIMITS[plan];

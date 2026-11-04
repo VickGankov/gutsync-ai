@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { POSTS } from "./seo/posts";
-import { landingPage, blogIndexPage, postPage, sitemapXml, robotsTxt, registerSeoRoutes, notFoundPage } from "./seo/routes";
+import { landingPage, blogIndexPage, postPage, sitemapXml, robotsTxt, registerSeoRoutes, notFoundPage, foodsIndexPage, foodPage } from "./seo/routes";
+import { FOODS } from "./seo/foods";
 
 const BANNED = /retatrutide|semaglutide|tirzepatide|bpc-?157|tb-?500|cjc-?1295|ipamorelin|peptide/i;
 
@@ -40,6 +41,31 @@ describe("public pages", () => {
     for (const p of POSTS) expect(x).toContain(`/blog/${p.slug}</loc>`);
     expect(robotsTxt()).toContain("Sitemap:");
     expect(robotsTxt()).toContain("Disallow: /api/");
+  });
+});
+
+describe("food checker pages", () => {
+  it("renders every food with an answer, source, disclaimer and app link", () => {
+    for (const f of FOODS) {
+      const h = foodPage(f.slug)!;
+      expect(h).toContain(`Is ${f.name.toLowerCase()} low FODMAP?`);
+      expect(h).toContain("monashfodmap.com");
+      expect(h).toContain("not medical advice");
+      expect(h).toContain('href="/auth"');
+      expect(h).toContain("FAQPage");
+    }
+  });
+  it("has unique slugs, never gives gram figures, and keeps drug names out", () => {
+    expect(new Set(FOODS.map(f => f.slug)).size).toBe(FOODS.length);
+    const all = [foodsIndexPage(), ...FOODS.map(f => foodPage(f.slug)!)].join("\n");
+    expect(all).not.toMatch(BANNED);
+    expect(JSON.stringify(FOODS)).not.toMatch(/\d+\s?(g|grams|oz|cup|tbsp)\b/i);
+  });
+  it("is in the sitemap, and unknown foods 404", () => {
+    const x = sitemapXml();
+    expect(x).toContain("/foods</loc>");
+    for (const f of FOODS) expect(x).toContain(`/foods/${f.slug}</loc>`);
+    expect(foodPage("nope")).toBeNull();
   });
 });
 

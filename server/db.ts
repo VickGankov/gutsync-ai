@@ -9,7 +9,7 @@ import {
   InsertSymptom, symptoms,
   InsertCorrelation, correlations,
   subscriptions, type InsertSubscription,
-  scanUsage,
+  scanUsage, scanEvents,
   reintroChallenges,
   foodCache, productCache,
   triggerExplanations, type TriggerExplanation,
@@ -21,6 +21,7 @@ import {
 } from "../drizzle/schema";
 import { avatarKeyFromUrl } from "./storage";
 import { resolvePlan, scanLimitFor, type Plan } from "@shared/plans";
+import { localDateKey } from "./fitness";
 import type { ReintroCheckIn, ReintroOutcome } from "@shared/reintro";
 import { ENV } from './_core/env';
 
@@ -305,7 +306,10 @@ export async function upsertSubscription(data: InsertSubscription) {
       productId: data.productId ?? null,
       platform: data.platform ?? null,
       expiresAt: data.expiresAt ?? null,
-      activatedAt: data.activatedAt ?? null,
+      // Keep the first activation date: later webhook events must not reset "member since".
+      activatedAt: sql`coalesce(${subscriptions.activatedAt}, ${data.activatedAt ?? null})`,
+      cancelAtPeriodEnd: data.cancelAtPeriodEnd ?? false,
+      billingInterval: data.billingInterval ?? null,
       rcCustomerId: data.rcCustomerId ?? null,
       stripeCustomerId: data.stripeCustomerId ?? null,
       stripeSubscriptionId: data.stripeSubscriptionId ?? null,
@@ -318,17 +322,20 @@ export async function cancelSubscription(userId: number) {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
   await db.update(subscriptions)
-    .set({ tier: 'free', expiresAt: null })
+    .set({ tier: 'free', expiresAt: null, cancelAtPeriodEnd: false })
     .where(eq(subscriptions.userId, userId));
 }
 
 // ─── Scan Usage Queries ───
 
+/** The quota day is the person's own calendar day (tz = Date#getTimezoneOffset from their device; 0 = UTC). */
+const scanDay = (tz: number, now = Date.now()) => localDateKey(now, tz);
+
 /** Get today's scan count for a user. Returns 0 if no record. */
-export async function getTodayScanCount(userId: number): Promise<number> {
+export async function getTodayScanCount(userId: number, tz = 0): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = scanDay(tz);
   const result = await db
     .select({
       total: sql<number>`cast(coalesce(sum(${scanUsage.scanCount}), 0) as signed)`,
@@ -338,22 +345,39 @@ export async function getTodayScanCount(userId: number): Promise<number> {
   return Number(result[0]?.total ?? 0);
 }
 
-/** Increment today's scan count. Creates the record if it doesn't exist. */
-export async function incrementScanCount(userId: number): Promise<number> {
+/** Increment today's scan count and log the scan. Creates the record if it doesn't exist. */
+export async function incrementScanCount(userId: number, kind = "photo", tz = 0): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = scanDay(tz);
   await db.insert(scanUsage)
     .values({ userId, usageDate: today, scanCount: 1 })
     .onDuplicateKeyUpdate({ set: { scanCount: sql`${scanUsage.scanCount} + 1` } });
-  // Re-fetch the updated count
-  const result = await db
-    .select({
-      total: sql<number>`cast(coalesce(sum(${scanUsage.scanCount}), 0) as signed)`,
-    })
-    .from(scanUsage)
-    .where(and(eq(scanUsage.userId, userId), eq(scanUsage.usageDate, today)));
-  return Number(result[0]?.total ?? 1);
+  await db.insert(scanEvents).values({ userId, kind, createdAt: Date.now() });
+  return getTodayScanCount(userId, tz);
+}
+
+/** Scans logged since `fromTs`, newest first (for the "what used my scans" list). */
+export async function listScanEvents(userId: number, fromTs: number, limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ kind: scanEvents.kind, at: scanEvents.createdAt }).from(scanEvents)
+    .where(and(eq(scanEvents.userId, userId), gte(scanEvents.createdAt, fromTs)))
+    .orderBy(desc(scanEvents.createdAt)).limit(limit);
+}
+
+/** Scans per day for the last `days` local days, oldest first, including zero days. */
+export async function getScanHistory(userId: number, days: number, tz = 0) {
+  const db = await getDb();
+  const now = Date.now();
+  const keys = Array.from({ length: days }, (_, i) => scanDay(tz, now - (days - 1 - i) * 86_400_000));
+  const counts = new Map<string, number>();
+  if (db) {
+    const rows = await db.select({ d: scanUsage.usageDate, n: scanUsage.scanCount }).from(scanUsage)
+      .where(and(eq(scanUsage.userId, userId), gte(scanUsage.usageDate, keys[0])));
+    for (const r of rows) counts.set(r.d, Number(r.n));
+  }
+  return keys.map(date => ({ date, count: counts.get(date) ?? 0 }));
 }
 
 // ─── Reintroduction Challenges ───
@@ -761,7 +785,7 @@ export async function deleteUserAccount(userId: number): Promise<string[]> {
   if (avatarKey) keys.push(avatarKey);
   await db.transaction(async tx => {
     const owned = [
-      meals, symptoms, correlations, subscriptions, scanUsage, passwordResetTokens, reintroChallenges, fitnessProfile,
+      meals, symptoms, correlations, subscriptions, scanUsage, scanEvents, passwordResetTokens, reintroChallenges, fitnessProfile,
       weightLogs, waistLogs, supplements, supplementLogs, intakeLogs, liftLogs, triggerExplanations, doseLogs,
       doseSchedules, labResults, pushSubscriptions, notificationPrefs, notificationLog,
     ];

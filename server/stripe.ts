@@ -25,15 +25,17 @@ export function priceFor(interval: BillingInterval): string {
 
 type SubLike = {
   status: string;
+  cancel_at_period_end?: boolean | null;
+  cancel_at?: number | null;
   current_period_end?: number | null;
   items?: { data?: Array<{ current_period_end?: number | null }> };
 };
 
 /** Whether this Stripe subscription should give premium, and until when (ms). */
-export function premiumWindow(sub: SubLike): { active: boolean; expiresAt: number | null } {
+export function premiumWindow(sub: SubLike): { active: boolean; expiresAt: number | null; cancelling: boolean } {
   const active = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
   const end = sub.items?.data?.[0]?.current_period_end ?? sub.current_period_end ?? null;
-  return { active, expiresAt: end ? end * 1000 : null };
+  return { active, expiresAt: end ? end * 1000 : null, cancelling: active && (!!sub.cancel_at_period_end || sub.cancel_at != null) };
 }
 
 const idOf = (v: string | { id: string } | null | undefined) => (typeof v === "string" ? v : v?.id ?? null);
@@ -45,7 +47,7 @@ export async function applyStripeSubscription(sub: Stripe.Subscription): Promise
   if (!userId && customerId) userId = (await getSubscriptionByStripeCustomer(customerId))?.userId ?? 0;
   if (!userId) { console.warn("[stripe] subscription without a known user:", sub.id); return; }
 
-  const { active, expiresAt } = premiumWindow(sub as unknown as SubLike);
+  const { active, expiresAt, cancelling } = premiumWindow(sub as unknown as SubLike);
   if (!active) { await cancelSubscription(userId); return; }
   const price = sub.items?.data?.[0]?.price;
   await upsertSubscription({
@@ -55,6 +57,8 @@ export async function applyStripeSubscription(sub: Stripe.Subscription): Promise
     productId: price?.id ?? null,
     expiresAt: expiresAt ?? undefined,
     activatedAt: Date.now(),
+    cancelAtPeriodEnd: cancelling,
+    billingInterval: price?.recurring?.interval ?? null,
     stripeCustomerId: customerId,
     stripeSubscriptionId: sub.id,
   });

@@ -1,7 +1,8 @@
 // Upgrade and billing on the profile page. Hidden until payments are switched on server-side.
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Link } from "wouter";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import Paywall from "@/components/Paywall";
@@ -30,10 +31,18 @@ export default function BillingCard() {
   }, [utils]);
 
   const d = status.data;
-  if (!d || !d.billingEnabled) return null;
+  if (!d) return null;
+  const detail = (
+    <Link href="/billing" className="flex items-center justify-between text-xs text-muted-foreground bg-card border border-border/50 rounded-2xl px-5 py-3 mb-5">
+      <span>Plan, billing and scans today{d.dailyLimit !== null ? `: ${d.todayScans} / ${d.dailyLimit}` : ""}</span>
+      <ChevronRight className="w-4 h-4" />
+    </Link>
+  );
+  if (!d.billingEnabled) return detail;
 
   if (d.isPremium) {
     return (
+      <>
       <div className="bg-card border border-border/50 rounded-2xl p-5 mb-5 flex items-center gap-3">
         <Sparkles className="w-5 h-5 text-primary shrink-0" />
         <div className="flex-1">
@@ -46,6 +55,8 @@ export default function BillingCard() {
           </button>
         )}
       </div>
+      {detail}
+    </>
     );
   }
   return (
@@ -60,6 +71,7 @@ export default function BillingCard() {
           Upgrade
         </button>
       </div>
+      {detail}
       <Paywall isOpen={open} onClose={() => setOpen(false)} />
     </>
   );

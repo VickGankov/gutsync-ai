@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
 import Insights from "./pages/Insights";
 import Onboarding from "./pages/Onboarding";
+import Billing from "@/pages/Billing";
 import Profile from "./pages/Profile";
 import Reintro from "./pages/Reintro";
 import Progress from "./pages/Progress";
@@ -26,7 +27,7 @@ import HealthDataPrivacy from "./pages/HealthDataPrivacy";
 import ResetPassword from "./pages/ResetPassword";
 
 const AUTH_ROUTE = "/auth";
-const PROTECTED_PATHS = new Set(["/", "/log", "/insights", "/reintro", "/progress", "/profile"]);
+const PROTECTED_PATHS = new Set(["/", "/log", "/insights", "/reintro", "/progress", "/profile", "/billing"]);
 const PUBLIC_INFO_PATHS = new Set(["/privacy", "/terms", "/refunds", "/disclaimer", "/health-data-privacy"]);
 
 function buildAuthPath(pathname: string) {
@@ -100,6 +101,7 @@ function Router() {
         <Route path="/reintro" component={Reintro} />
         <Route path="/progress" component={Progress} />
         <Route path="/profile" component={Profile} />
+        <Route path="/billing" component={Billing} />
         <Route path="/privacy" component={PrivacyPolicy} />
         <Route path="/terms" component={Terms} />
         <Route path="/refunds" component={Refunds} />

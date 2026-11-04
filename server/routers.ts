@@ -1,3 +1,4 @@
+import { firstTriggerProgress } from "../shared/triggerProgress";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -44,6 +45,8 @@ import {
   cancelSubscription,
   getTodayScanCount,
   incrementScanCount,
+  listScanEvents,
+  getScanHistory,
   getReintroChallenges,
   getActiveReintroChallenge,
   createReintroChallenge,
@@ -219,17 +222,23 @@ async function analyzeMealText(text: string) {
   });
 }
 
+/** The person's UTC offset in minutes (Date#getTimezoneOffset), sent by the app on every request. 0 if absent or odd. */
+export function tzFromRequest(req: { headers?: Record<string, unknown> } | undefined): number {
+  const raw = Number(req?.headers?.["x-tz-offset"]);
+  return Number.isInteger(raw) && raw >= -840 && raw <= 840 ? raw : 0;
+}
+
 /**
  * Throws when the user has used today's scans for their plan. Free users get FREE_LIMIT_REACHED (which opens the
  * upgrade prompt); founders and premium get a plain message. Returns true when scans are not counted (unlimited).
  */
-async function enforceScanLimit(userId: number): Promise<boolean> {
+async function enforceScanLimit(userId: number, tz = 0): Promise<boolean> {
   const ent = await getEntitlement(userId);
   if (ent.dailyLimit !== null) {
-    const todayCount = await getTodayScanCount(userId);
+    const todayCount = await getTodayScanCount(userId, tz);
     if (todayCount >= ent.dailyLimit) {
       if (ent.plan === 'free') throw new TRPCError({ code: 'FORBIDDEN', message: `FREE_LIMIT_REACHED:${todayCount}` });
-      throw new TRPCError({ code: 'FORBIDDEN', message: `You've used today's ${ent.dailyLimit} scans. They reset tomorrow.` });
+      throw new TRPCError({ code: 'FORBIDDEN', message: `You've used today's ${ent.dailyLimit} scans. They reset at midnight.` });
     }
   }
   return ent.unlimited;
@@ -334,7 +343,7 @@ export const appRouter = router({
         labelMimeType: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const unlimited = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id, tzFromRequest(ctx.req));
 
         // Upload the photo and run the AI analysis at the same time.
         // The image is sent inline so the AI provider never has to fetch it from storage.
@@ -361,7 +370,7 @@ export const appRouter = router({
 
         // Increment scan usage for free-tier tracking
         if (!unlimited) {
-          await incrementScanCount(ctx.user.id);
+          await incrementScanCount(ctx.user.id, "photo", tzFromRequest(ctx.req));
         }
 
         return {
@@ -378,12 +387,12 @@ export const appRouter = router({
     analyzeText: protectedProcedure
       .input(z.object({ text: z.string().trim().min(2).max(600) }))
       .mutation(async ({ ctx, input }) => {
-        const unlimited = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id, tzFromRequest(ctx.req));
         const analysis = await analyzeMealText(input.text);
         if (!analysis.foods || analysis.foods.length === 0) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'NO_FOOD_DETECTED' });
         }
-        if (!unlimited) await incrementScanCount(ctx.user.id);
+        if (!unlimited) await incrementScanCount(ctx.user.id, "text", tzFromRequest(ctx.req));
         return {
           photoUrl: null,
           mealType: analysis.mealType,
@@ -397,12 +406,12 @@ export const appRouter = router({
     readLabel: protectedProcedure
       .input(z.object({ imageBase64: z.string(), mimeType: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
-        const unlimited = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id, tzFromRequest(ctx.req));
         const label = await readLabelImage(`data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64}`);
         if (label.ingredients.length < 2) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'LABEL_NOT_READABLE' });
         }
-        if (!unlimited) await incrementScanCount(ctx.user.id);
+        if (!unlimited) await incrementScanCount(ctx.user.id, "label", tzFromRequest(ctx.req));
         const verdict = classifyIngredients(label.ingredients);
         return {
           productName: label.productName || null,
@@ -534,7 +543,8 @@ export const appRouter = router({
         doses: z.tuple([z.string().trim().min(1).max(40), z.string().trim().min(1).max(40), z.string().trim().min(1).max(40)]),
       }))
       .mutation(async ({ ctx, input }) => {
-        await requireFeature(ctx.user.id, "protocol");
+        // The first test is free for everyone, so a free user can reach one confirmed result of their own.
+        if ((await getReintroChallenges(ctx.user.id)).length > 0) await requireFeature(ctx.user.id, "protocol");
         const active = await getActiveReintroChallenge(ctx.user.id);
         if (active) {
           throw new TRPCError({ code: "CONFLICT", message: "Finish or stop your current challenge before starting another." });
@@ -851,7 +861,7 @@ export const appRouter = router({
       .input(z.object({ fileBase64: z.string().max(14_000_000), mimeType: z.string().max(60) }))
       .mutation(async ({ ctx, input }) => {
         await requireFeature(ctx.user.id, "labs");
-        const unlimited = await enforceScanLimit(ctx.user.id);
+        const unlimited = await enforceScanLimit(ctx.user.id, tzFromRequest(ctx.req));
         const isPdf = input.mimeType === "application/pdf";
         if (!isPdf && !/^image\/(jpeg|png|webp|heic|heif)$/.test(input.mimeType)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Upload a photo, screenshot or PDF of your report." });
@@ -875,7 +885,7 @@ export const appRouter = router({
         if (result.rows.length === 0) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "No numeric results found in that file. Try a clearer photo, or enter the values by hand." });
         }
-        if (!unlimited) await incrementScanCount(ctx.user.id);
+        if (!unlimited) await incrementScanCount(ctx.user.id, "lab", tzFromRequest(ctx.req));
         // Fold names into markers the user already tracks, so a new report extends the same chart.
         const existing = await existingMarkers(ctx.user.id);
         return { ...result, rows: result.rows.map(r => ({ ...r, marker: matchExisting(r.marker, existing) })) };
@@ -1115,6 +1125,27 @@ export const appRouter = router({
       };
     }),
 
+    /** Where the person is on the way to a first confirmed trigger, and the one next step. */
+    firstTrigger: protectedProcedure
+      .input(z.object({ tzOffsetMinutes: z.number().int().min(-840).max(840).default(0) }).optional())
+      .query(async ({ ctx, input }) => {
+        const now = Date.now();
+        const [found, challenges, meals, symptoms] = await Promise.all([
+          loadTriggers(ctx.user.id, now),
+          getReintroChallenges(ctx.user.id),
+          getMealsInRange(ctx.user.id, now - 90 * 24 * 60 * 60 * 1000, now),
+          getSymptomsByUser(ctx.user.id, 500),
+        ]);
+        return firstTriggerProgress({
+          now,
+          tzOffsetMinutes: input?.tzOffsetMinutes ?? 0,
+          meals: meals.map(m => ({ loggedAt: m.loggedAt, foods: (m.foods as MealFood[]).map(f => ({ name: f.name })) })),
+          symptoms: symptoms.map(s => ({ type: s.type, loggedAt: s.loggedAt })),
+          triggers: found.triggers.map(t => ({ ...t, confirmation: confirmationFor(t.names, challenges as FinishedChallenge[]) })),
+          challenges,
+        });
+      }),
+
     /** AI write-up for one trigger, built from the counts and cached until they change. */
     explain: protectedProcedure
       .input(z.object({ key: z.string().min(1).max(255) }))
@@ -1172,10 +1203,16 @@ export const appRouter = router({
   subscription: router({
     /** Get the current user's subscription status and scan usage. */
     status: protectedProcedure.query(async ({ ctx }) => {
-      const [sub, todayScans, ent] = await Promise.all([
+      const tz = tzFromRequest(ctx.req);
+      const now = Date.now();
+      const dayMs = 86_400_000;
+      const startOfToday = Math.floor((now - tz * 60_000) / dayMs) * dayMs + tz * 60_000;
+      const [sub, todayScans, ent, events, history] = await Promise.all([
         getSubscription(ctx.user.id),
-        getTodayScanCount(ctx.user.id),
+        getTodayScanCount(ctx.user.id, tz),
         getEntitlement(ctx.user.id),
+        listScanEvents(ctx.user.id, startOfToday),
+        getScanHistory(ctx.user.id, 7, tz),
       ]);
       return {
         tier: sub?.tier ?? 'free',
@@ -1190,7 +1227,14 @@ export const appRouter = router({
         platform: sub?.platform ?? null,
         expiresAt: sub?.expiresAt ?? null,
         activatedAt: sub?.activatedAt ?? null,
+        cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
+        billingInterval: sub?.billingInterval ?? null,
         todayScans,
+        /** Next local midnight: when today's scans reset. */
+        scansResetAt: startOfToday + dayMs,
+        /** Scans counted today, newest first, so the number can be checked against what was done. */
+        scanEventsToday: events.map(e => ({ kind: e.kind, at: e.at })),
+        scanHistory: history,
         dailyLimit: ent.dailyLimit,
         scansRemaining: ent.dailyLimit === null ? null : Math.max(0, ent.dailyLimit - todayScans),
       };

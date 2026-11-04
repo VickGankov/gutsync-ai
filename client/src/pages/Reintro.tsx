@@ -3,7 +3,7 @@
 // and build a personal tolerance map.
 
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, FlaskConical, Check, Share2, Loader2, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,16 @@ export default function Reintro() {
     for (const c of completed) if (!map.has(c.foodGroup)) map.set(c.foodGroup, c);
     return map;
   }, [completed]);
+
+  // Arriving from the "first trigger" card (/reintro?group=...): open that test's setup once.
+  const [groupHandled, setGroupHandled] = useState(false);
+  useEffect(() => {
+    if (groupHandled || !listQuery.isSuccess) return;
+    setGroupHandled(true);
+    const g = new URLSearchParams(window.location.search).get("group");
+    if (g && !active && (REINTRO_GROUPS as readonly string[]).includes(g)) openSetup(g as ReintroGroup);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listQuery.isSuccess]);
 
   const lastFinishedAt = completed[0]?.finishedAt ?? null;
   const washoutLeftDays = lastFinishedAt

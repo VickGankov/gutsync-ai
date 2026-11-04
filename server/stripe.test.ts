@@ -51,3 +51,12 @@ describe("applyStripeSubscription", () => {
     expect(db.cancelSubscription).not.toHaveBeenCalled();
   });
 });
+
+describe("premiumWindow cancel flag", () => {
+  it("is cancelling when set to end at period end or cancelled for a date, never when inactive", () => {
+    expect(premiumWindow({ status: "active", cancel_at_period_end: true, current_period_end: 1 }).cancelling).toBe(true);
+    expect(premiumWindow({ status: "active", cancel_at: 1_900_000_000, current_period_end: 1 }).cancelling).toBe(true);
+    expect(premiumWindow({ status: "active", cancel_at_period_end: false, cancel_at: null, current_period_end: 1 }).cancelling).toBe(false);
+    expect(premiumWindow({ status: "canceled", cancel_at_period_end: true }).cancelling).toBe(false);
+  });
+});

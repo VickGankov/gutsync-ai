@@ -171,3 +171,10 @@ This file is the durable context for future Cursor chats in this workspace.
 - Goal weight: `fitness_profile.goalWeightLb10` (migration 0038); `fitness.setProfile` takes `goalWeightLb` (null clears, omit keeps).
 - UI: `components/body/WeightCard.tsx` (trend headline, 4/12 week chart with shaded protocol windows, goal + ETA, waist), `components/body/BodyInsights.tsx` (Fat or muscle?, Around protocol changes).
 - Colors: `client/src/lib/tones.ts` has one color per data type (meals lime, symptoms coral, protein violet, water sky, fiber amber, strength pink, protocol teal, weight ink). Use it for new data UI; green is reserved for "good/low FODMAP".
+
+## Billing page, scan proof, first trigger, food checker (Nov 4)
+- `/billing` (client/src/pages/Billing.tsx, linked from the Profile BillingCard, shown even when billing is off): plan, price (`PRICES`), renew/cancel date (`cancelAtPeriodEnd`, `billingInterval` on `subscriptions`), Stripe portal, scan counter N/limit, reset time, 7-day bars, and the list of scans counted today (`scan_events`, migration 0039).
+- Scan day = the user's local day: client sends `x-tz-offset` on every tRPC call; server `tzFromRequest`. Previously UTC (reset mid-afternoon in US time). Only successful AI reads are counted (photo/text/label/lab).
+- `activatedAt` is now kept from the first activation (the webhook used to overwrite it).
+- First confirmed trigger: `shared/triggerProgress.ts` + `insights.firstTrigger` + `FirstTriggerCard` on Home. Product decision: the FIRST reintroduction test is free even with the paywall on (`reintro.start` only gates once a challenge exists), otherwise free users can never reach a confirmed trigger.
+- Public food checker: `server/seo/foods.ts` (24 foods, high/low/depends, no gram figures, Monash cited as source, NOT Monash data), routes `/foods`, `/foods/:slug`, in sitemap, tests in `seo.test.ts`. `foodSeed.ts` is a separate approximate list and must not be used for public claims.

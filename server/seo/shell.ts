@@ -84,11 +84,11 @@ ${ld}
 <body>
 <header class="site"><div class="wide">
 <a class="logo" href="/">Triggerplate</a>
-<nav><a href="/blog">Blog</a><a href="/auth">Sign in</a></nav>
+<nav><a href="/foods">Food checker</a><a href="/blog">Blog</a><a href="/auth">Sign in</a></nav>
 </div></header>
 ${o.body}
 <footer class="site"><div class="wide">
-<p class="links"><a href="/blog">Blog</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/refunds">Refunds</a><a href="/disclaimer">Disclaimer</a><a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
+<p class="links"><a href="/foods">Food checker</a><a href="/blog">Blog</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/refunds">Refunds</a><a href="/disclaimer">Disclaimer</a><a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
 <p>Triggerplate is a logging and pattern-spotting tool. It does not diagnose, treat, or give medical advice. Talk to a doctor or registered dietitian about your symptoms and before changing your diet.</p>
 </div></footer>
 </body>
