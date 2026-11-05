@@ -17,6 +17,8 @@ vi.mock("./db", () => ({
   getSymptomsByUser: vi.fn().mockResolvedValue([]),
   getDosesByUser: vi.fn().mockResolvedValue([]),
   getDoseSchedules: vi.fn().mockResolvedValue([]),
+  setDoseSchedule: vi.fn().mockResolvedValue(undefined),
+  deleteAllDoseData: vi.fn().mockResolvedValue(undefined),
   updateSymptomSeverity: vi.fn().mockResolvedValue(undefined),
   deleteSymptom: vi.fn().mockResolvedValue(undefined),
   getFoodFactsByKeys: vi.fn().mockResolvedValue([]),
@@ -317,6 +319,29 @@ describe("Triggerplate Server Procedures", () => {
       expect(out.account?.email).toBe("test@example.com");
       expect(JSON.stringify(out)).not.toContain("password");
       await expect(appRouter.createCaller(createUnauthContext()).profile.exportData()).rejects.toThrow();
+    });
+  });
+
+  describe("dose schedules and protocol data", () => {
+    const caller = () => appRouter.createCaller(createAuthContext());
+    it("saves a weekday schedule sorted, de-duplicated, with the smallest gap as intervalDays", async () => {
+      await caller().dose.setSchedule({ compound: "  Thing ", schedule: { kind: "weekdays", days: [5, 1, 3, 1] } });
+      expect(db.setDoseSchedule).toHaveBeenLastCalledWith(1, "thing", { kind: "weekdays", intervalDays: 2, weekdays: "1,3,5" });
+    });
+    it("saves a 5 on / 2 off cycle with its start date", async () => {
+      await caller().dose.setSchedule({ compound: "Thing", schedule: { kind: "cycle", on: 5, off: 2, start: "2026-11-02" } });
+      expect(db.setDoseSchedule).toHaveBeenLastCalledWith(1, "thing", { kind: "cycle", intervalDays: 1, cycleOn: 5, cycleOff: 2, cycleStart: "2026-11-02" });
+    });
+    it("rejects an empty weekday list, a bad start date and out-of-range cycles", async () => {
+      await expect(caller().dose.setSchedule({ compound: "T", schedule: { kind: "weekdays", days: [] } })).rejects.toThrow();
+      await expect(caller().dose.setSchedule({ compound: "T", schedule: { kind: "cycle", on: 5, off: 2, start: "tomorrow" } })).rejects.toThrow();
+      await expect(caller().dose.setSchedule({ compound: "T", schedule: { kind: "cycle", on: 0, off: 2, start: "2026-11-02" } })).rejects.toThrow();
+      expect(db.setDoseSchedule).not.toHaveBeenCalled();
+    });
+    it("wipes only the signed-in user's dose data, and requires login", async () => {
+      await caller().dose.deleteAll();
+      expect(db.deleteAllDoseData).toHaveBeenLastCalledWith(1);
+      await expect(appRouter.createCaller(createUnauthContext()).dose.deleteAll()).rejects.toThrow();
     });
   });
 

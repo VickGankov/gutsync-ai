@@ -87,3 +87,28 @@ describe("startOfLocalDay", () => {
     expect(dateKeyOf(start - 1, tz)).not.toBe(k);
   });
 });
+
+describe("weeklySummary with a 5 on / 2 off schedule", () => {
+  const cycleRow = { compound: "Retatrutide", intervalDays: 1, kind: "cycle", cycleOn: 5, cycleOff: 2, cycleStart: "2026-10-05" };
+  const days = mkDays([200, 200, 200, 200, 200, 200, 200, 198, 198, 198, 198, 198, 198, 198], 140);
+  // Week is Fri 10/9 to Thu 10/15. Scheduled: Fri, Mon, Tue, Wed, Thu = 5. Sat and Sun are rest days.
+  const onDay = (id: number, key: string) => ({ id, compound: "Retatrutide", doseMcg: 1000, site: null, loggedAt: Date.parse(`${key}T14:00:00Z`) });
+  const all = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"].map((k, i) => onDay(i + 1, k));
+
+  it("expects only the scheduled days, so full adherence reads 5 of 5, not 5 of 7", () => {
+    const doses = all;
+    const s = weeklySummary({ days, doses, intervals: intervalsByCompound(doses, [cycleRow]), symptoms: [], proteinTarget: 150, tzOffsetMinutes: 0, now: NOW });
+    expect(s.doses).toMatchObject({ taken: 5, expected: 5 });
+  });
+  it("shows a real miss as a miss", () => {
+    const doses = all.filter(d => d.id !== 7); // skipped Tue 10/13
+    const s = weeklySummary({ days, doses, intervals: intervalsByCompound(doses, [cycleRow]), symptoms: [], proteinTarget: 150, tzOffsetMinutes: 0, now: NOW });
+    expect(s.doses).toMatchObject({ taken: 4, expected: 5 });
+  });
+  it("a stored cycle becomes a daily-gap interval that carries its schedule", () => {
+    const iv = intervalsByCompound(all, [cycleRow]).get("retatrutide")!;
+    expect(iv.explicit).toBe(true);
+    expect(iv.days).toBe(1);
+    expect(iv.schedule).toEqual({ kind: "cycle", on: 5, off: 2, start: "2026-10-05" });
+  });
+});

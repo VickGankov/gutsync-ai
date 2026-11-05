@@ -41,9 +41,21 @@ export function landingPage(): string {
 <div class="card"><h3>One-tap symptoms</h3><p>Log bloating, pain, nausea, fatigue and more in a tap, with severity and time.</p></div>
 <div class="card"><h3>Honest trigger spotting</h3><p>A food is only flagged as a <em>possible</em> trigger after it has appeared in at least five meals over four days. Foods you eat constantly are marked "too common to tell apart".</p></div>
 <div class="card"><h3>Reintroduction tests</h3><p>Confirm a suspect with a guided three-day challenge. Only a completed test can mark a trigger as matching your result.</p></div>
-<div class="card"><h3>Your whole protocol</h3><p>Doses and supplements, weight, strength, protein and water, and lab results (such as cholesterol) on one timeline.</p></div>
+<div class="card"><h3>Your whole protocol</h3><p>Doses on any schedule, including weekdays only or 5 days on and 2 off, with injection-site rotation and a vial-mix calculator. Plus supplements, weight, strength, protein, water and lab results on one timeline.</p></div>
 <div class="card"><h3>Private by design</h3><p>We do not sell your data or use your health information for advertising. Delete your account any time.</p></div>
 </div>
+</section>
+
+<section class="wrap" id="privacy">
+<h2>Your health data stays yours</h2>
+<p>What you log about your body and your protocol is sensitive. Here is exactly how Triggerplate treats it:</p>
+<ul>
+<li><b>Never sold, never used for ads.</b> No advertising trackers, and no sharing with third parties for their own purposes.</li>
+<li><b>Doses stay out of the AI.</b> Your dose log, schedules, injection sites and notes are never sent to the AI service. Only the meal photos, typed meals and lab reports you choose to scan are, so they can be read.</li>
+<li><b>Nothing on your lock screen.</b> Reminders never name anything you take.</li>
+<li><b>You are in control.</b> Export everything, wipe just your dose log, or delete your whole account from inside the app.</li>
+</ul>
+<p class="note">Read the full <a href="/health-data-privacy">consumer health data policy</a> and <a href="/privacy">privacy policy</a>, including the hosting and database providers that store your data.</p>
 </section>
 
 <section class="wide">
@@ -56,6 +68,8 @@ export function landingPage(): string {
 
 <section class="wrap">
 <h2>Common questions</h2>
+<h3>Who can see what I log?</h3>
+<p>Only you, inside your account. We do not sell it or use it for advertising, and your dose log is never sent to the AI. See <a href="#privacy">how we treat your health data</a>.</p>
 <h3>Does Triggerplate diagnose anything?</h3>
 <p>No. It is a logging and pattern-spotting tool. Talk to a doctor or registered dietitian about symptoms and before changing your diet.</p>
 <h3>How does it decide something is a trigger?</h3>

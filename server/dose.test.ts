@@ -85,3 +85,44 @@ describe("per-compound schedules", () => {
     expect(r[0].day).toBe(2);
   });
 });
+
+import { siteUsage, suggestSite, siteReuseNote } from "../shared/dose";
+
+describe("injection site rotation", () => {
+  const withSite = (id: number, daysAgo: number, site: string | null) => ({ id, compound: "X", doseMcg: 1000, site, loggedAt: NOW - daysAgo * D });
+  it("suggests a never-used site first, then the one rested longest", () => {
+    expect(suggestSite(siteUsage([], [], NOW))).toBe("abdomen_left");
+    const doses = [withSite(1, 1, "abdomen_left"), withSite(2, 8, "abdomen_right"), withSite(3, 15, "thigh_left"), withSite(4, 3, "thigh_right"), withSite(5, 5, "arm_left"), withSite(6, 6, "arm_right")];
+    expect(suggestSite(siteUsage(doses, [], NOW))).toBe("thigh_left");
+  });
+  it("reports days since each site and 28-day counts", () => {
+    const u = siteUsage([withSite(1, 2, "arm_left"), withSite(2, 9, "arm_left"), withSite(3, 40, "arm_left")], [], NOW);
+    const arm = u.find(x => x.site === "arm_left")!;
+    expect(arm.daysAgo).toBe(2);
+    expect(arm.count28).toBe(2);
+    expect(u.find(x => x.site === "thigh_left")!.daysAgo).toBeNull();
+  });
+  it("ignores doses with no site or an unknown one", () => {
+    const u = siteUsage([withSite(1, 1, null), withSite(2, 1, "neck")], [], NOW);
+    expect(u.every(x => x.lastAt === null)).toBe(true);
+  });
+  it("attaches a logged injection-site reaction to the site used just before it, and avoids that site", () => {
+    const doses = [withSite(1, 5, "abdomen_left"), withSite(2, 2, "abdomen_right")];
+    const reaction = { type: "injection_site_reaction", severity: 3, loggedAt: NOW - 1 * D };
+    const u = siteUsage(doses, [reaction], NOW);
+    expect(u.find(x => x.site === "abdomen_right")!.reactions).toBe(1);
+    expect(suggestSite(u)).not.toBe("abdomen_right");
+    // a reaction more than 3 days after the dose is not tied to it
+    expect(siteUsage([withSite(1, 10, "arm_left")], [{ type: "injection_site_reaction", severity: 2, loggedAt: NOW }], NOW).find(x => x.site === "arm_left")!.reactions).toBe(0);
+  });
+  it("only warns about reuse when a more rested site exists", () => {
+    const u = siteUsage([withSite(1, 0, "thigh_left")], [], NOW);
+    expect(siteReuseNote(u, "thigh_left")).toContain("used today");
+    expect(siteReuseNote(u, "abdomen_left")).toBeNull();
+    // every site used within the last day: nothing is more rested, so no note
+    const all = siteUsage(["abdomen_left", "abdomen_right", "thigh_left", "thigh_right", "arm_left", "arm_right"].map((x, i) => withSite(i, i === 0 ? 0 : 1, x)), [], NOW);
+    expect(siteReuseNote(all, "abdomen_right")).toBeNull();
+    const mixed = siteUsage([withSite(1, 1, "abdomen_right"), withSite(2, 10, "thigh_left")], [], NOW);
+    expect(siteReuseNote(mixed, "abdomen_right")).toContain("yesterday");
+  });
+});

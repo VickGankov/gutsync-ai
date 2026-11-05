@@ -61,7 +61,7 @@ import {
   createLiftLog,
   deleteLiftLog,
   getFitnessDataInRange,
-  createDose, getDosesByUser, deleteDose, getDoseSchedules, setDoseSchedule,
+  createDose, getDosesByUser, deleteDose, getDoseSchedules, setDoseSchedule, deleteAllDoseData,
 } from "./db";
 import {
   REINTRO_GROUPS,
@@ -74,6 +74,7 @@ import { findProduct } from "./productLookup";
 import { loadTriggers, getOrCreateExplanation, triggerKey } from "./triggerInsights";
 import { ofMeals, pct } from "../shared/triggers";
 import { SITES, compoundKey, fmtMg } from "../shared/dose";
+import { minGapDays } from "../shared/doseSchedule";
 import { googleConfigured } from "./googleAuth";
 import { pushConfigured, vapidPublicKey, sendToUser } from "./reminders";
 import { cleanSensitivities } from "../shared/sensitivities";
@@ -927,7 +928,7 @@ export const appRouter = router({
       const [doses, schedules] = await Promise.all([getDosesByUser(ctx.user.id, 200), getDoseSchedules(ctx.user.id)]);
       return {
         doses,
-        schedules: schedules.map(s => ({ compound: s.compoundKey, intervalDays: s.intervalDays })),
+        schedules: schedules.map(s => ({ compound: s.compoundKey, intervalDays: s.intervalDays, kind: s.kind, weekdays: s.weekdays, cycleOn: s.cycleOn, cycleOff: s.cycleOff, cycleStart: s.cycleStart })),
       };
     }),
 
@@ -966,9 +967,38 @@ export const appRouter = router({
     setInterval: protectedProcedure
       .input(z.object({ compound: z.string().trim().min(1).max(80), days: z.number().int().min(1).max(60) }))
       .mutation(async ({ ctx, input }) => {
-        await setDoseSchedule(ctx.user.id, compoundKey(input.compound).slice(0, 80), input.days);
+        await setDoseSchedule(ctx.user.id, compoundKey(input.compound).slice(0, 80), { kind: "interval", intervalDays: input.days });
         return { success: true } as const;
       }),
+
+    /** Weekday or on/off cycle schedule. intervalDays keeps the smallest gap so older code still reads a sensible number. */
+    setSchedule: protectedProcedure
+      .input(z.object({
+        compound: z.string().trim().min(1).max(80),
+        schedule: z.discriminatedUnion("kind", [
+          z.object({ kind: z.literal("interval"), days: z.number().int().min(1).max(60) }),
+          z.object({ kind: z.literal("weekdays"), days: z.array(z.number().int().min(0).max(6)).min(1).max(7) }),
+          z.object({ kind: z.literal("cycle"), on: z.number().int().min(1).max(60), off: z.number().int().min(0).max(60), start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
+        ]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const s = input.schedule;
+        const key = compoundKey(input.compound).slice(0, 80);
+        if (s.kind === "interval") await setDoseSchedule(ctx.user.id, key, { kind: "interval", intervalDays: s.days });
+        else if (s.kind === "weekdays") {
+          const days = Array.from(new Set(s.days)).sort((a, b) => a - b);
+          await setDoseSchedule(ctx.user.id, key, { kind: "weekdays", intervalDays: minGapDays({ kind: "weekdays", days }), weekdays: days.join(",") });
+        } else {
+          await setDoseSchedule(ctx.user.id, key, { kind: "cycle", intervalDays: minGapDays(s), cycleOn: s.on, cycleOff: s.off, cycleStart: s.start });
+        }
+        return { success: true } as const;
+      }),
+
+    /** Deletes every logged dose and schedule. Cannot be undone. */
+    deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+      await deleteAllDoseData(ctx.user.id);
+      return { success: true } as const;
+    }),
   }),
 
   fitness: router({

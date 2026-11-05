@@ -1,6 +1,7 @@
 // Weekly progress summary and weight-trend helpers. Pure: the page feeds in what it already loaded.
 
 import { compoundKey, DAY_MS, NEGATIVE_SYMPTOMS, type DoseRow, type Interval, type SymptomRow } from "./dose";
+import { expectedInRange } from "./doseSchedule";
 
 export interface DayPoint { date: string; weightLb: number | null; proteinG: number }
 
@@ -88,9 +89,12 @@ export function weeklySummary(params: {
     const first = Math.min(...list.map(d => d.loggedAt));
     const taken = list.filter(d => d.loggedAt >= weekStart).length;
     // Started inside this week: count the doses that have come due since the first one.
-    const expected = first >= weekStart
-      ? Math.floor((now - first) / (iv.days * DAY_MS)) + 1
-      : Math.max(1, Math.round(7 / iv.days));
+    // Weekday and cycle schedules count only their scheduled days (rest days are not "missed").
+    const expected = iv.schedule.kind !== "interval"
+      ? expectedInRange(iv.schedule, weekStartKey, dateKeyOf(now, tzOffsetMinutes), dateKeyOf(first, tzOffsetMinutes))
+      : first >= weekStart
+        ? Math.floor((now - first) / (iv.days * DAY_MS)) + 1
+        : Math.max(1, Math.round(7 / iv.days));
     byCompound.push({ name: iv.name, taken, expected });
   });
 

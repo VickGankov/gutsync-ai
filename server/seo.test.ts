@@ -44,6 +44,21 @@ describe("public pages", () => {
   });
 });
 
+describe("landing privacy and protocol claims", () => {
+  const h = landingPage();
+  it("states the privacy commitments specifically and links the policies", () => {
+    expect(h).toContain("Your health data stays yours");
+    expect(h).toContain("Never sold, never used for ads");
+    expect(h).toContain("never sent to the AI");
+    expect(h).toContain("/health-data-privacy");
+  });
+  it("describes the protocol tools without naming any compound", () => {
+    expect(h).toContain("5 days on and 2 off");
+    expect(h).toContain("vial-mix calculator");
+    expect(h).not.toMatch(BANNED);
+  });
+});
+
 describe("food checker pages", () => {
   it("renders every food with an answer, source, disclaimer and app link", () => {
     for (const f of FOODS) {

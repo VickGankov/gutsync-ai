@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { getSymptomLabel } from "@/lib/store";
 import {
-  COMPOUND_PRESETS, SITES, SITE_LABEL, compoundKey, fmtMg, intervalsByCompound, isSpaced, mgToMcg, nextSite,
-  sideEffectsByDay, statusByCompound, type Site,
+  COMPOUND_PRESETS, SITES, SITE_LABEL, compoundKey, fmtMg, intervalsByCompound, isSpaced, mgToMcg,
+  sideEffectsByDay, siteReuseNote, siteUsage, statusByCompound, suggestSite, type Site,
 } from "@shared/dose";
+import { describeSchedule, scheduleStatus } from "@shared/doseSchedule";
+import ScheduleEditor from "@/components/protocol/ScheduleEditor";
+import ReconCalculator from "@/components/protocol/ReconCalculator";
+import ProtocolPrivacy from "@/components/protocol/ProtocolPrivacy";
 
 const inputCls =
   "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -43,7 +47,7 @@ export default function ProtocolCard() {
   const [other, setOther] = useState("");
   const [mg, setMg] = useState<string | null>(null);
   const [unit, setUnit] = useState<"mg" | "mcg">("mg");
-  const [site, setSite] = useState<Site | null>(null);
+  const [site, setSite] = useState<Site | "none" | null>(null);
   const [notes, setNotes] = useState("");
   const [when, setWhen] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -54,7 +58,11 @@ export default function ProtocolCard() {
   const compoundValue = compound ?? latest?.compound ?? "Retatrutide";
   const isPreset = (COMPOUND_PRESETS as readonly string[]).includes(compoundValue);
   const mgValue = mg ?? (latest ? String(unit === "mg" ? latest.doseMcg / 1000 : latest.doseMcg) : "");
-  const siteValue = site ?? nextSite(latest?.site);
+  const usage = useMemo(() => siteUsage(doses, symptoms), [doses, symptoms]);
+  const suggested = suggestSite(usage);
+  // `site` is a chosen site, "none" when the person skips it, or null to follow the suggestion.
+  const siteValue: Site | null = site === null ? suggested : site === "none" ? null : site;
+  const reuseNote = siteValue ? siteReuseNote(usage, siteValue) : null;
 
   const refresh = () => { utils.dose.list.invalidate(); };
   const logDose = trpc.dose.log.useMutation({
@@ -66,11 +74,12 @@ export default function ProtocolCard() {
     onError: (e) => toast.error(e.message),
   });
   const deleteDose = trpc.dose.delete.useMutation({ onSuccess: refresh, onError: (e) => toast.error(e.message) });
-  const saveInterval = trpc.dose.setInterval.useMutation({
-    onSuccess: () => { refresh(); setEditKey(null); },
+
+  const saveSchedule = trpc.dose.setSchedule.useMutation({
+    onSuccess: () => { refresh(); setEditKey(null); toast.success("Schedule saved"); },
     onError: (e) => toast.error(e.message),
   });
-
+  const tz = new Date().getTimezoneOffset();
   const intervals = useMemo(() => intervalsByCompound(doses, schedules), [doses, schedules]);
   const statuses = useMemo(() => statusByCompound(doses, intervals), [doses, intervals]);
 
@@ -86,9 +95,17 @@ export default function ProtocolCard() {
     if (!name) return toast.error("Enter the compound name");
     if (!Number.isFinite(amount) || amount <= 0) return toast.error(`Enter the dose in ${unit}`);
     const at = when ? new Date(when).getTime() : undefined;
-    logDose.mutate({ compound: name, doseMcg: unit === "mg" ? mgToMcg(amount) : Math.round(amount), site: siteValue, ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
+    logDose.mutate({ compound: name, doseMcg: unit === "mg" ? mgToMcg(amount) : Math.round(amount), ...(siteValue ? { site: siteValue } : {}), ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
   };
 
+  const fmtDay = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: "long" });
+  const planText = (ss: ReturnType<typeof scheduleStatus>) => {
+    const next = ss.nextKey ? fmtDay(ss.nextKey) : "";
+    if (ss.state === "due") return "Dose due today";
+    if (ss.state === "done") return `Today's dose is logged. Next: ${next}`;
+    if (ss.state === "overdue") return `Missed ${fmtDay(ss.missedKey!)}'s dose. Next: ${next}`;
+    return `Rest day. Next dose ${next}`;
+  };
   const dueText = (st: (typeof statuses)[number]) =>
     st.state === "due" ? "Next dose due today"
     : st.state === "overdue" ? `Next dose was due ${Math.abs(st.daysUntil)} day${Math.abs(st.daysUntil) === 1 ? "" : "s"} ago`
@@ -114,33 +131,43 @@ export default function ProtocolCard() {
       {/* Status, one row per compound */}
       {statuses.length > 0 ? (
         <div className="space-y-2 mb-3">
-          {statuses.map(st => (
+          {statuses.map(st => {
+            const sched = st.interval.schedule;
+            const plan = sched.kind !== "interval";
+            const ss = plan ? scheduleStatus(sched, doses.filter(d => compoundKey(d.compound) === st.key).map(d => d.loggedAt), Date.now(), tz) : null;
+            const overdue = ss ? ss.state === "overdue" : st.state === "overdue";
+            return (
             <div key={st.key} className="rounded-xl bg-muted px-3.5 py-3">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="font-display text-lg leading-tight">{st.name} · {fmtMg(st.latest!.doseMcg)}</p>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Day {st.dayNumber}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Day {ss ? ss.dayNumber : st.dayNumber}</span>
               </div>
-              <p className={`text-xs mt-1 ${st.state === "overdue" ? "text-coral font-medium" : "text-muted-foreground"}`}>
+              <p className="text-xs mt-1 text-muted-foreground">
                 Last dose {new Date(st.latest!.loggedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                 {st.latest!.site && ` · ${SITE_LABEL[st.latest!.site as Site] ?? st.latest!.site}`}
               </p>
-              <p className="text-xs text-foreground mt-0.5">{dueText(st)}</p>
+              <p className={`text-xs mt-0.5 ${overdue ? "text-coral font-medium" : "text-foreground"}`}>
+                {ss ? planText(ss) : dueText(st)}
+              </p>
+              {ss && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+                  <span className="rounded-full bg-background px-2 py-0.5">{ss.streak} scheduled dose{ss.streak === 1 ? "" : "s"} in a row</span>
+                  {ss.expected28 > 0 && <span className="rounded-full bg-background px-2 py-0.5">{ss.taken28} of {ss.expected28} taken (28 days)</span>}
+                </div>
+              )}
               <div className="mt-1.5 text-[11px] text-muted-foreground">
                 {editKey === st.key ? (
-                  <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); const v = Number((e.currentTarget.elements.namedItem("days") as HTMLInputElement).value); if (v >= 1) saveInterval.mutate({ compound: st.name, days: Math.round(v) }); }}>
-                    Every
-                    <input name="days" type="number" min={1} max={60} defaultValue={st.interval.days} className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-foreground" />
-                    days
-                    <Button type="submit" size="sm" className="h-7">Save</Button>
-                  </form>
+                  <ScheduleEditor current={sched} saving={saveSchedule.isPending} onCancel={() => setEditKey(null)}
+                    onSave={s2 => saveSchedule.mutate({ compound: st.name, schedule: s2 })} />
                 ) : (
                   <button onClick={() => setEditKey(st.key)} className="inline-flex items-center gap-1">
-                    <Settings2 className="w-3 h-3" /> Every {st.interval.days} day{st.interval.days === 1 ? "" : "s"}{st.interval.explicit ? "" : " (from your doses)"} · change
+                    <Settings2 className="w-3 h-3" /> {describeSchedule(sched)}{st.interval.explicit ? "" : " (from your doses)"} · change
                   </button>
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         !open && <p className="text-sm text-muted-foreground mb-3">No doses logged yet. Log your first dose to start tracking day count, injection sites and side effects.</p>
@@ -181,12 +208,27 @@ export default function ProtocolCard() {
             </label>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">Injection site {latest && <span className="normal-case tracking-normal">(next in rotation selected)</span>}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {SITES.map(s => (
-                <button key={s} type="button" className={chip(siteValue === s)} onClick={() => setSite(s)}>{SITE_LABEL[s]}</button>
-              ))}
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">Injection site {doses.some(d => d.site) && <span className="normal-case tracking-normal">(rested longest is selected)</span>}</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {usage.map(u => {
+                const on = siteValue === u.site;
+                return (
+                  <button key={u.site} type="button" onClick={() => setSite(u.site)}
+                    className={`rounded-xl border px-3 py-2 text-left transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-muted/60 border-transparent"}`}>
+                    <span className="flex items-center justify-between text-xs font-medium">
+                      {SITE_LABEL[u.site]}
+                      {u.reactions > 0 && <span title="A reaction was logged after a dose here" className="h-2 w-2 rounded-full" style={{ background: "oklch(0.7 0.15 25)" }} />}
+                    </span>
+                    <span className={`block text-[10px] ${on ? "opacity-80" : "text-muted-foreground"}`}>
+                      {u.daysAgo === null ? "Not used yet" : u.daysAgo === 0 ? "Used today" : `${u.daysAgo} day${u.daysAgo === 1 ? "" : "s"} ago`}{u.count28 > 0 ? ` · ${u.count28}× in 28 d` : ""}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+            <button type="button" className={`${chip(site === "none")} mt-1.5`} onClick={() => setSite(site === "none" ? null : "none")}>No site / not an injection</button>
+            {reuseNote && <p className="text-[11px] text-muted-foreground mt-1.5">{reuseNote}</p>}
+            {usage.some(u => u.reactions > 0) && <p className="text-[11px] text-muted-foreground mt-1">Red dot: you logged an injection-site reaction within 3 days of a dose there. If it persists or worsens, tell your doctor.</p>}
           </div>
           <input className={inputCls} placeholder="Note (optional): vial, batch, how it went" maxLength={500} value={notes} onChange={e => setNotes(e.target.value)} />
           <Button className="w-full" onClick={submit} disabled={logDose.isPending}>
@@ -194,6 +236,8 @@ export default function ProtocolCard() {
           </Button>
         </div>
       )}
+
+      <ReconCalculator />
 
       {/* Side effects */}
       {latest && focus && (
@@ -273,6 +317,7 @@ export default function ProtocolCard() {
         </div>
       )}
 
+      <ProtocolPrivacy hasData={doses.length > 0} expanded={doses.length === 0} />
       <p className="text-[10px] text-muted-foreground mt-3 leading-snug">A personal log, not medical advice. Tell your doctor what you take; seek care for severe or persistent vomiting or abdominal pain.</p>
     </section>
   );

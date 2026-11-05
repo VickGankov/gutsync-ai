@@ -1,6 +1,8 @@
 // Dose log helpers: formatting, injection-site rotation, schedule status and side effects by day since a dose.
 // Pure and client/server safe. This only records and summarises what the user logged; it gives no dosing advice.
 
+import { minGapDays, parseSchedule, type Schedule } from "./doseSchedule";
+
 export const DAY_MS = 86_400_000;
 
 export const SITES = ["abdomen_left", "abdomen_right", "thigh_left", "thigh_right", "arm_left", "arm_right"] as const;
@@ -48,7 +50,10 @@ export function doseStatus(doses: DoseRow[], intervalDays: number, now: number =
 
 export const compoundKey = (name: string) => name.toLowerCase().replace(/\s+/g, " ").trim();
 
-export interface Interval { name: string; days: number; explicit: boolean }
+/** `days` is the smallest gap between doses (for weekday and cycle schedules too), `schedule` the full plan. */
+export interface Interval { name: string; days: number; explicit: boolean; schedule: Schedule }
+
+export interface ScheduleRow { compound: string; intervalDays: number; kind?: string | null; weekdays?: string | null; cycleOn?: number | null; cycleOff?: number | null; cycleStart?: string | null }
 
 /**
  * Days between doses for each compound: the schedule the user set, otherwise the median gap
@@ -56,7 +61,7 @@ export interface Interval { name: string; days: number; explicit: boolean }
  */
 export function intervalsByCompound(
   doses: DoseRow[],
-  schedules: Array<{ compound: string; intervalDays: number }> = [],
+  schedules: ScheduleRow[] = [],
 ): Map<string, Interval> {
   const out = new Map<string, Interval>();
   const byKey = new Map<string, DoseRow[]>();
@@ -64,14 +69,15 @@ export function intervalsByCompound(
     const k = compoundKey(d.compound);
     byKey.set(k, [...(byKey.get(k) ?? []), d]);
   }
-  const explicit = new Map(schedules.map(x => [compoundKey(x.compound), x.intervalDays]));
+  const explicit = new Map(schedules.map(x => [compoundKey(x.compound), parseSchedule(x)]));
   byKey.forEach((list, k) => {
     const sorted = [...list].sort((a, b) => a.loggedAt - b.loggedAt);
     const name = sorted[sorted.length - 1].compound;
-    if (explicit.has(k)) { out.set(k, { name, days: explicit.get(k)!, explicit: true }); return; }
+    if (explicit.has(k)) { const sc = explicit.get(k)!; out.set(k, { name, days: minGapDays(sc), explicit: true, schedule: sc }); return; }
     const gaps = sorted.slice(1).map((d, i) => (d.loggedAt - sorted[i].loggedAt) / DAY_MS).sort((a, b) => a - b);
     const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 7;
-    out.set(k, { name, days: Math.max(1, Math.round(median)), explicit: false });
+    const days = Math.max(1, Math.round(median));
+    out.set(k, { name, days, explicit: false, schedule: { kind: "interval", days } });
   });
   return out;
 }
@@ -140,4 +146,50 @@ export function sideEffectsByDay(doses: DoseRow[], symptoms: SymptomRow[], days 
     .filter(p => p.n >= 3)
     .sort((a, b) => b.n - a.n);
   return { chart, peaks, total: chart.reduce((a, d) => a + d.count, 0) };
+}
+
+// ─── Injection site rotation ───
+
+export interface SiteUse { site: Site; lastAt: number | null; daysAgo: number | null; count28: number; reactions: number }
+
+/**
+ * For each site: when it was last used, how often in the last 28 days, and how many times an
+ * injection-site reaction was logged within `reactionDays` after a dose there. Counts what was
+ * logged; a reaction logged near a dose does not prove the site caused it.
+ */
+export function siteUsage(doses: DoseRow[], symptoms: SymptomRow[] = [], now: number = Date.now(), reactionDays = 3): SiteUse[] {
+  const withSite = doses.filter(d => (SITES as readonly string[]).includes(d.site ?? ""));
+  const reactions = new Map<string, number>();
+  for (const s of symptoms) {
+    if (s.type !== "injection_site_reaction") continue;
+    let hit: DoseRow | null = null;
+    for (const d of withSite) if (d.loggedAt <= s.loggedAt && s.loggedAt - d.loggedAt <= reactionDays * DAY_MS && (!hit || d.loggedAt > hit.loggedAt)) hit = d;
+    if (hit) reactions.set(hit.site!, (reactions.get(hit.site!) ?? 0) + 1);
+  }
+  return SITES.map(site => {
+    const here = withSite.filter(d => d.site === site);
+    const lastAt = here.length ? Math.max(...here.map(d => d.loggedAt)) : null;
+    return {
+      site, lastAt,
+      daysAgo: lastAt === null ? null : Math.max(0, Math.floor((now - lastAt) / DAY_MS)),
+      count28: here.filter(d => now - d.loggedAt <= 28 * DAY_MS).length,
+      reactions: reactions.get(site) ?? 0,
+    };
+  });
+}
+
+/** The site rested longest (never-used first; ties keep the usual order). Skips sites with a logged reaction when another is free of one. */
+export function suggestSite(usage: SiteUse[]): Site {
+  const pool = usage.some(u => u.reactions === 0) ? usage.filter(u => u.reactions === 0) : usage;
+  return [...pool].sort((a, b) => (a.lastAt ?? -Infinity) - (b.lastAt ?? -Infinity))[0].site;
+}
+
+/** A plain note when the chosen site was used very recently while a more rested one exists. */
+export function siteReuseNote(usage: SiteUse[], chosen: Site, recentDays = 3): string | null {
+  const u = usage.find(x => x.site === chosen);
+  if (!u || u.daysAgo === null || u.daysAgo >= recentDays) return null;
+  const rested = usage.some(x => x.site !== chosen && (x.daysAgo === null || x.daysAgo > u.daysAgo!));
+  if (!rested) return null;
+  const when = u.daysAgo === 0 ? "today" : u.daysAgo === 1 ? "yesterday" : `${u.daysAgo} days ago`;
+  return `${SITE_LABEL[chosen]} was used ${when}. Another site has had longer to rest.`;
 }

@@ -588,10 +588,28 @@ export async function getDoseSchedules(userId: number) {
   return db.select().from(doseSchedules).where(eq(doseSchedules.userId, userId));
 }
 
-export async function setDoseSchedule(userId: number, compoundKey: string, intervalDays: number) {
+export interface DoseScheduleInput {
+  intervalDays: number;
+  kind: "interval" | "weekdays" | "cycle";
+  weekdays?: string | null;
+  cycleOn?: number | null;
+  cycleOff?: number | null;
+  cycleStart?: string | null;
+}
+
+export async function setDoseSchedule(userId: number, compoundKey: string, s: DoseScheduleInput) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(doseSchedules).values({ userId, compoundKey, intervalDays }).onDuplicateKeyUpdate({ set: { intervalDays } });
+  const v = { intervalDays: s.intervalDays, kind: s.kind, weekdays: s.weekdays ?? null, cycleOn: s.cycleOn ?? null, cycleOff: s.cycleOff ?? null, cycleStart: s.cycleStart ?? null };
+  await db.insert(doseSchedules).values({ userId, compoundKey, ...v }).onDuplicateKeyUpdate({ set: v });
+}
+
+/** Removes every dose and dose schedule for the user (the "delete my protocol data" button). */
+export async function deleteAllDoseData(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(doseLogs).where(eq(doseLogs.userId, userId));
+  await db.delete(doseSchedules).where(eq(doseSchedules.userId, userId));
 }
 
 

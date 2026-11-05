@@ -380,6 +380,12 @@ export const doseSchedules = mysqlTable("dose_schedules", {
   userId: int("userId").notNull(),
   compoundKey: varchar("compoundKey", { length: 80 }).notNull(),
   intervalDays: int("intervalDays").notNull(),
+  /** "interval" (every N days), "weekdays" (e.g. 1,2,3,4,5) or "cycle" (N on, M off from cycleStart). */
+  kind: varchar("kind", { length: 10 }).notNull().default("interval"),
+  weekdays: varchar("weekdays", { length: 20 }),
+  cycleOn: int("cycleOn"),
+  cycleOff: int("cycleOff"),
+  cycleStart: varchar("cycleStart", { length: 10 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (t) => ({ userCompound: uniqueIndex("dose_schedules_user_compound").on(t.userId, t.compoundKey) }));
 
