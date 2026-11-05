@@ -1,4 +1,4 @@
-const CACHE_NAME = 'triggerplate-v2';
+const CACHE_NAME = 'triggerplate-v3';
 const urlsToCache = [
   '/',
   '/index.html',
