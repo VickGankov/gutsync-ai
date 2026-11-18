@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { TONE, tint } from "@/lib/tones";
+import Disclosure from "@/components/Disclosure";
 import { fmtMg } from "@shared/dose";
 import { doseMarkers } from "@shared/weekly";
 import { addDays, aroundChanges, dayNum, goalEta, rateBetween, recentRate, trendSeries, type WeighIn } from "@shared/bodyTrend";
@@ -110,7 +111,6 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
 
   const tooFast = !!rate && rate.pctPerWeek <= -1;
   const Arrow = !rate ? Minus : rate.lbPerWeek < -0.1 ? TrendingDown : rate.lbPerWeek > 0.1 ? TrendingUp : Minus;
-  const offTrend = latest ? Math.round((latest.lb - latest.trend) * 10) / 10 : 0;
 
   return (
     <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
@@ -123,9 +123,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="font-display text-4xl leading-none">{latest.trend}<span className="text-base font-sans text-muted-foreground ml-1">lb</span></p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Trend weight · last weigh-in {latest.lb} lb{Math.abs(offTrend) >= 0.5 ? ` (${offTrend > 0 ? "+" : ""}${offTrend} vs trend, normal day-to-day swing)` : ""}
-            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">Trend · last weigh-in {latest.lb} lb</p>
           </div>
           <div className="text-right shrink-0">
             {rate ? (
@@ -135,17 +133,17 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
             ) : (
               <p className="text-xs text-muted-foreground max-w-[9rem]">Pace needs 4 weigh-ins over a week</p>
             )}
-            {rate && <p className="text-[11px] text-muted-foreground">{rate.pctPerWeek > 0 ? "+" : ""}{rate.pctPerWeek}% a week · last 2 weeks</p>}
+            {rate && <p className="text-[11px] text-muted-foreground">{rate.pctPerWeek > 0 ? "+" : ""}{rate.pctPerWeek}% a week</p>}
           </div>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Log your weight to start a trend. Weigh at the same time each morning if you can.</p>
+        <p className="text-xs text-muted-foreground">Log your weight to start a trend. Mornings work best.</p>
       )}
 
       {tooFast && (
         <p className="text-xs text-coral mt-3 flex items-start gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-          Losing more than about 1% a week. Faster loss makes losing muscle more likely, so check the muscle section below.
+          Losing over 1% a week can cost muscle. Check "Fat or muscle?" below.
         </p>
       )}
 
@@ -188,17 +186,19 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
             </ResponsiveContainer>
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Dots are weigh-ins; the line is your trend, which smooths out water and food swings.
-            {bands.length > 0 && <> <span className="inline-block w-2.5 h-2.5 rounded-sm align-middle" style={{ background: tint(TONE.meals.ink, 45) }} /> Shaded bands mark when you started or changed a protocol dose.</>}
+            Dots: weigh-ins. Line: trend.
+            {bands.length > 0 && <> <span className="inline-block w-2.5 h-2.5 rounded-sm align-middle" style={{ background: tint(TONE.meals.ink, 45) }} /> Shaded: a protocol start or change.</>}
           </p>
           {bands.length > 0 && (
-            <ul className="mt-1.5 space-y-0.5">
-              {bands.slice(-3).map(w => (
-                <li key={w.start} className="text-[11px] text-muted-foreground">
-                  {md(w.start)}{w.end !== w.start ? `–${md(w.end)}` : ""} · {w.items.map(i => `${i.kind === "start" ? "started" : "changed"} ${i.compound} ${fmtMg(i.doseMcg)}`).join(", ")}
-                </li>
-              ))}
-            </ul>
+            <Disclosure title="Protocol changes" hint={`${bands.length}`} className="mt-1 border-t border-border/50">
+              <ul className="space-y-0.5">
+                {bands.slice(-3).map(w => (
+                  <li key={w.start} className="text-[11px] text-muted-foreground">
+                    {md(w.start)}{w.end !== w.start ? `–${md(w.end)}` : ""} · {w.items.map(i => `${i.kind === "start" ? "started" : "changed"} ${i.compound} ${fmtMg(i.doseMcg)}`).join(", ")}
+                  </li>
+                ))}
+              </ul>
+            </Disclosure>
           )}
         </>
       )}
@@ -216,10 +216,10 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {eta?.state === "reached" && "You're at your goal."}
                   {eta?.state === "projected" && (eta.from === eta.to
-                    ? `At your recent pace: around ${long(eta.from!)}.`
-                    : `At your recent pace: roughly ${long(eta.from!)} to ${long(eta.to!)}. A guess that moves as your pace does.`)}
-                  {eta?.state === "away" && "Your recent pace isn't heading toward the goal, so there's no date to project."}
-                  {eta?.state === "unknown" && "A date appears once your pace is clear (4 weigh-ins over a week)."}
+                    ? `At your pace: around ${long(eta.from!)}.`
+                    : `At your pace: ${long(eta.from!)} to ${long(eta.to!)}. A guess that shifts with your pace.`)}
+                  {eta?.state === "away" && "Your pace isn't heading toward the goal, so no date."}
+                  {eta?.state === "unknown" && "A date shows once your pace is clear."}
                 </p>
               </div>
               <button className="text-[11px] font-semibold text-primary shrink-0" onClick={() => { setGoalInput(String(goal)); setEditGoal(true); }}>Edit</button>
@@ -241,47 +241,42 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
       )}
 
       {recentWeights.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          {recentWeights.slice(0, 3).map(w => (
-            <div key={w.id} className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{w.weightLb} lb · {new Date(w.loggedAt).toLocaleDateString()}</span>
-              <button onClick={() => deleteWeight.mutate({ id: w.id })} title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-            </div>
-          ))}
-        </div>
+        <Disclosure title="Recent weigh-ins" hint={`${Math.min(recentWeights.length, 3)}`} className="mt-3 border-t border-border/50">
+          <div className="space-y-1.5">
+            {recentWeights.slice(0, 3).map(w => (
+              <div key={w.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{w.weightLb} lb · {new Date(w.loggedAt).toLocaleDateString()}</span>
+                <button onClick={() => deleteWeight.mutate({ id: w.id })} title="Delete" aria-label="Delete weigh-in"><Trash2 className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+          </div>
+        </Disclosure>
       )}
 
       {/* Waist (optional) */}
-      <div className="mt-4 border-t border-border/60 pt-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Ruler className="w-4 h-4" style={{ color: INK }} />
-          <span className="text-sm font-semibold">Waist</span>
-          <span className="text-[11px] text-muted-foreground">optional · helps tell fat loss from muscle loss</span>
-        </div>
+      <Disclosure title="Waist" hint={waistsQuery.data?.length ? `${waistsQuery.data[0].waistIn} in` : "optional"} className="mt-1 border-t border-border/50">
         <div className="flex gap-2">
           <input className={inputCls} type="number" inputMode="decimal" step="0.1" placeholder="Waist at navel (in)"
             value={waistInput} onChange={e => setWaistInput(e.target.value)} />
           <Button size="sm" onClick={submitWaist} disabled={logWaist.isPending}>Log</Button>
         </div>
+        <p className="text-[11px] text-muted-foreground mt-1.5">Helps tell fat loss from muscle loss.</p>
         {(waistsQuery.data?.length ?? 0) > 0 && (() => {
           const w = waistsQuery.data!;
           const change = w.length >= 2 ? Math.round((w[0].waistIn - w[w.length - 1].waistIn) * 10) / 10 : null;
           return (
             <div className="mt-2 space-y-1.5">
-              <p className="text-xs text-muted-foreground">
-                Latest <span className="font-semibold text-foreground">{w[0].waistIn} in</span>
-                {change !== null && <> · {change > 0 ? "+" : ""}{change} in since {new Date(w[w.length - 1].loggedAt).toLocaleDateString()}</>}
-              </p>
+              {change !== null && <p className="text-xs text-muted-foreground">{change > 0 ? "+" : ""}{change} in since {new Date(w[w.length - 1].loggedAt).toLocaleDateString()}</p>}
               {w.slice(0, 3).map(x => (
                 <div key={x.id} className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{x.waistIn} in · {new Date(x.loggedAt).toLocaleDateString()}</span>
-                  <button onClick={() => deleteWaist.mutate({ id: x.id })} title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => deleteWaist.mutate({ id: x.id })} title="Delete" aria-label="Delete waist entry"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
             </div>
           );
         })()}
-      </div>
+      </Disclosure>
     </section>
   );
 }

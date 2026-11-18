@@ -18,6 +18,7 @@ import { describeSchedule, scheduleStatus } from "@shared/doseSchedule";
 import ScheduleEditor from "@/components/protocol/ScheduleEditor";
 import ReconCalculator from "@/components/protocol/ReconCalculator";
 import ProtocolPrivacy from "@/components/protocol/ProtocolPrivacy";
+import Disclosure from "@/components/Disclosure";
 
 const inputCls =
   "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -50,7 +51,6 @@ export default function ProtocolCard() {
   const [site, setSite] = useState<Site | "none" | null>(null);
   const [notes, setNotes] = useState("");
   const [when, setWhen] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [focusKey, setFocusKey] = useState<string | null>(null);
 
@@ -170,7 +170,7 @@ export default function ProtocolCard() {
           })}
         </div>
       ) : (
-        !open && <p className="text-sm text-muted-foreground mb-3">No doses logged yet. Log your first dose to start tracking day count, injection sites and side effects.</p>
+        !open && <p className="text-sm text-muted-foreground mb-3">No doses yet. Log one to see your day count, sites and side effects.</p>
       )}
 
       {/* Log form */}
@@ -228,7 +228,7 @@ export default function ProtocolCard() {
             </div>
             <button type="button" className={`${chip(site === "none")} mt-1.5`} onClick={() => setSite(site === "none" ? null : "none")}>No site / not an injection</button>
             {reuseNote && <p className="text-[11px] text-muted-foreground mt-1.5">{reuseNote}</p>}
-            {usage.some(u => u.reactions > 0) && <p className="text-[11px] text-muted-foreground mt-1">Red dot: you logged an injection-site reaction within 3 days of a dose there. If it persists or worsens, tell your doctor.</p>}
+            {usage.some(u => u.reactions > 0) && <p className="text-[11px] text-muted-foreground mt-1">Red dot: a reaction was logged within 3 days of a dose here. If it persists, tell your doctor.</p>}
           </div>
           <input className={inputCls} placeholder="Note (optional): vial, batch, how it went" maxLength={500} value={notes} onChange={e => setNotes(e.target.value)} />
           <Button className="w-full" onClick={submit} disabled={logDose.isPending}>
@@ -241,7 +241,7 @@ export default function ProtocolCard() {
 
       {/* Side effects */}
       {latest && focus && (
-        <div className="mb-3">
+        <Disclosure title="Side effects by day after a dose" hint={!isSpaced(focus.interval) ? "needs spaced doses" : undefined} className="border-t border-border/50">
           {statuses.length > 1 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
               {statuses.map(st => (
@@ -249,12 +249,8 @@ export default function ProtocolCard() {
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-xs font-semibold">Side effects by day after a dose</p>
-            <Link href="/log?tab=symptoms" className="text-xs text-primary font-medium">Log how you feel →</Link>
-          </div>
           {!isSpaced(focus.interval) ? (
-            <p className="text-xs text-muted-foreground">{focus.name} is taken daily, so a day-after-dose pattern wouldn't tell you anything. Spaced doses (every 2+ days) get this chart.</p>
+            <p className="text-xs text-muted-foreground">{focus.name} is taken daily, so a day-after chart wouldn't show anything. It needs doses 2 or more days apart.</p>
           ) : effects.total >= 3 ? (
             <>
               <div className="h-28">
@@ -278,13 +274,16 @@ export default function ProtocolCard() {
               )}
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">Log a few symptoms after your doses and the day-by-day pattern shows up here.</p>
+            <p className="text-xs text-muted-foreground">Log a few symptoms after your doses and the pattern shows up here.</p>
           )}
-        </div>
+          <Link href="/log?tab=symptoms" className="mt-2 inline-block text-xs text-primary font-medium">Log how you feel →</Link>
+        </Disclosure>
       )}
 
       {/* Dose history */}
-      {chartData.length >= 2 && (
+      {doses.length > 0 && (
+        <Disclosure title="History" hint={`${doses.length} dose${doses.length === 1 ? "" : "s"}`} className="border-t border-border/50">
+        {chartData.length >= 2 && (
         <div className="h-24 mb-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
@@ -297,13 +296,7 @@ export default function ProtocolCard() {
         </div>
       )}
 
-      {doses.length > 0 && (
-        <button className="text-xs text-primary font-medium" onClick={() => setShowHistory(v => !v)}>
-          {showHistory ? "Hide history" : `History (${doses.length})`}
-        </button>
-      )}
-      {showHistory && (
-        <div className="mt-2 space-y-1.5 border-t border-border/60 pt-2">
+          <div className="space-y-1.5">
           {doses.slice(0, 20).map(d => (
             <div key={d.id} className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
@@ -314,7 +307,8 @@ export default function ProtocolCard() {
               <button onClick={() => deleteDose.mutate({ id: d.id })} title="Delete"><Trash2 className="w-3.5 h-3.5 text-muted-foreground" /></button>
             </div>
           ))}
-        </div>
+          </div>
+        </Disclosure>
       )}
 
       <ProtocolPrivacy hasData={doses.length > 0} expanded={doses.length === 0} />

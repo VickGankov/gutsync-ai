@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { Dumbbell, Info } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { TONE, tint } from "@/lib/tones";
+import Disclosure from "@/components/Disclosure";
 import { fmtMg } from "@shared/dose";
 import { doseMarkers } from "@shared/weekly";
 import { addDays, aroundChanges, retentionCheck, type ChangeWindow, type Signal, type SignalState } from "@shared/bodyTrend";
@@ -74,24 +75,27 @@ export default function BodyInsights({ days, lifts, proteinTargetG, tzOffsetMinu
           <h2 className="text-sm font-semibold">Fat or muscle?</h2>
         </div>
         <p className="text-sm font-medium rounded-lg px-3 py-2 mt-2" style={{ background: tint(tone, 14) }}>{check.headline}</p>
-        <ul className="mt-2 divide-y divide-border/50">{check.signals.map(s => <SignalRow key={s.key} s={s} />)}</ul>
-        <p className="text-[11px] text-muted-foreground mt-2 flex gap-1.5">
+        <Disclosure title="Why" hint={`${check.signals.length} signals`} className="mt-1">
+          <ul className="divide-y divide-border/50">{check.signals.map(s => <SignalRow key={s.key} s={s} />)}</ul>
+        </Disclosure>
+        <p className="text-[11px] text-muted-foreground flex gap-1.5">
           <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
-          Signals from your own logs, not a body-composition scan. Strength, waist and protein together say more than the scale alone.
+          From your own logs, not a body scan.
         </p>
       </section>
 
       {windows.length > 0 && (
-        <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
-          <h2 className="text-sm font-semibold">Around protocol changes</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Weight pace in the 2 weeks before and after each change.</p>
-          <div className="mt-3 space-y-3">
-            {windows.map(w => <WindowRow key={w.start} w={w} />)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-3 flex gap-1.5">
-            <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
-            This shows timing only. Weight also moves with food, water, sleep, training and illness, so it can't show that a dose changed anything.
-          </p>
+        <section className="bg-card border border-border/60 rounded-2xl px-4 py-1 mb-4">
+          <Disclosure title="Around protocol changes" hint={`${windows.length} change${windows.length === 1 ? "" : "s"}`}>
+            <p className="text-[11px] text-muted-foreground">Weight pace in the 2 weeks before and after each change.</p>
+            <div className="mt-3 space-y-3">
+              {windows.map(w => <WindowRow key={w.start} w={w} />)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3 flex gap-1.5 pb-2">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
+              Timing only. Weight also moves with food, water, sleep and training, so this can't show a dose changed anything.
+            </p>
+          </Disclosure>
         </section>
       )}
     </>

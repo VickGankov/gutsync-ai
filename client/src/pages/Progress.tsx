@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import ProtocolCard from "@/components/ProtocolCard";
 import SupplementChecklist from "@/components/SupplementChecklist";
 import LabsPanel from "@/components/LabsPanel";
+import Disclosure from "@/components/Disclosure";
 import { readFiberPref, writeFiberPref } from "@/components/TodayCard";
 import WeightCard from "@/components/body/WeightCard";
 import BodyInsights from "@/components/body/BodyInsights";
@@ -251,7 +252,7 @@ export default function Progress() {
           <span className="text-sm font-semibold">{today?.proteinG ?? 0}<span className="text-muted-foreground font-normal"> / {proteinTarget} g</span></span>
         } />
         <ProgressBar value={today?.proteinG ?? 0} target={proteinTarget} color={TONE.protein.ink} />
-        <p className="text-[11px] text-muted-foreground mt-1.5">Includes AI estimates from scanned meals plus quick adds.</p>
+        <p className="text-[11px] text-muted-foreground mt-1.5">Includes scanned meals and quick adds.</p>
         <div className="flex gap-2 mt-3">
           {[20, 30, 50].map(g => (
             <Button key={g} variant="outline" size="sm" className="flex-1" onClick={() => addIntake("protein", g)} disabled={logIntake.isPending}>
@@ -284,14 +285,16 @@ export default function Progress() {
         </div>
 
         {(data?.recentIntake?.length ?? 0) > 0 && (
-          <div className="mt-4 border-t border-border/60 pt-3 space-y-1.5">
-            {data!.recentIntake.slice(0, 4).map(e => (
-              <div key={e.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{e.kind === "protein" ? `${e.amount} g protein` : `${mlToOz(e.amount)} oz water`} · {new Date(e.loggedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-                <button onClick={() => deleteIntake.mutate({ id: e.id })} title="Undo"><Trash2 className="w-3.5 h-3.5" /></button>
-              </div>
-            ))}
-          </div>
+          <Disclosure title="Recent quick adds" hint={`${Math.min(data!.recentIntake.length, 4)}`} className="mt-3 border-t border-border/60">
+            <div className="space-y-1.5">
+              {data!.recentIntake.slice(0, 4).map(e => (
+                <div key={e.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{e.kind === "protein" ? `${e.amount} g protein` : `${mlToOz(e.amount)} oz water`} · {new Date(e.loggedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+                  <button onClick={() => deleteIntake.mutate({ id: e.id })} title="Undo" aria-label="Undo"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          </Disclosure>
         )}
       </Card>
 
@@ -304,23 +307,25 @@ export default function Progress() {
         {data?.fiber.avg7 != null ? (
           <p className="text-sm">
             7-day average <span className="font-semibold">~{data.fiber.avg7} g</span>
-            <span className="text-muted-foreground"> over {data.fiber.daysCounted} days · typical reference 25–38 g</span>
+            <span className="text-muted-foreground"> · typical 25–38 g</span>
           </p>
         ) : (
-          <p className="text-xs text-muted-foreground">Needs at least 2 days of meals logged after this feature arrived to show an average.</p>
+          <p className="text-xs text-muted-foreground">An average appears after 2 days of logged meals.</p>
         )}
         {data?.fiber.avg7 != null && data.fiber.daysCounted >= 3 && data.fiber.avg7 < 20 && (
-          <p className="text-xs text-muted-foreground mt-2">Your logged meals average below the typical range. Low fiber can add to constipation, and eating much less overall can too. Worth raising with your doctor or a dietitian if it persists.</p>
+          <p className="text-xs text-muted-foreground mt-2">Below the typical range. If it persists, worth raising with your doctor or a dietitian.</p>
         )}
-        <p className="text-[11px] text-muted-foreground mt-2">Rough AI estimate from photos and typed meals. Packaged items with no fiber data aren't counted, so the real number is likely higher.</p>
-        <label className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={fiberOnToday}
-            onChange={e => { setFiberOnToday(e.target.checked); writeFiberPref(e.target.checked); }}
-          />
-          Show fiber on the Today card
-        </label>
+        <Disclosure title="About this estimate" className="mt-1 border-t border-border/60">
+          <p className="text-[11px] text-muted-foreground">A rough AI estimate from photos and typed meals. Packaged items with no fiber data aren't counted, so the real number is likely higher.</p>
+          <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={fiberOnToday}
+              onChange={e => { setFiberOnToday(e.target.checked); writeFiberPref(e.target.checked); }}
+            />
+            Show fiber on the Today card
+          </label>
+        </Disclosure>
       </Card>
 
       {/* Protein history */}
@@ -417,7 +422,7 @@ export default function Progress() {
                       </div>
                       <p className={`text-[11px] mt-1 ${dropping ? "text-coral" : "text-muted-foreground"}`}>
                         {l.changePct > 0 ? "+" : ""}{l.changePct}% estimated 1RM since {shortDate(l.series[0].date)}
-                        {dropping ? " — strength is dropping; review protein and recovery" : ""}
+                        {dropping ? ". Strength is dropping: check protein and recovery." : ""}
                       </p>
                     </>
                   )}
@@ -426,18 +431,20 @@ export default function Progress() {
             })}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground mt-3">Log your top set for each main lift to track strength through the cut.</p>
+          <p className="text-xs text-muted-foreground mt-3">Log your top set for each main lift to track strength.</p>
         )}
 
         {(data?.recentLifts?.length ?? 0) > 0 && (
-          <div className="mt-4 border-t border-border/60 pt-3 space-y-1.5">
-            {data!.recentLifts.slice(0, 5).map(l => (
-              <div key={l.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{l.exercise} · {l.weightLb}×{l.reps}{l.sets > 1 ? ` ×${l.sets}` : ""} · {new Date(l.loggedAt).toLocaleDateString()}</span>
-                <button onClick={() => deleteLift.mutate({ id: l.id })} title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-              </div>
-            ))}
-          </div>
+          <Disclosure title="Recent sets" hint={`${Math.min(data!.recentLifts.length, 5)}`} className="mt-3 border-t border-border/60">
+            <div className="space-y-1.5">
+              {data!.recentLifts.slice(0, 5).map(l => (
+                <div key={l.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{l.exercise} · {l.weightLb}×{l.reps}{l.sets > 1 ? ` ×${l.sets}` : ""} · {new Date(l.loggedAt).toLocaleDateString()}</span>
+                  <button onClick={() => deleteLift.mutate({ id: l.id })} title="Delete" aria-label="Delete set"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          </Disclosure>
         )}
       </Card>
       )}

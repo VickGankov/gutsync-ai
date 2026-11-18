@@ -187,4 +187,4 @@ This file is the durable context for future Cursor chats in this workspace.
 
 ## UX pass: less text, more collapsed (Nov 18)
 - `client/src/components/Disclosure.tsx`: reusable collapsed-by-default section (title, optional right-hand hint like a count, chevron, aria-expanded). Use it for secondary detail on every tab; keep one short always-visible line for anything that must stay visible (e.g. "Timing only, not medical advice").
-- Labs tab done: intro cut to one line, history / "what you were taking" / privacy collapsed, merge-or-rename moved into History, sheet intros shortened. Remaining tabs to do: Body, Protocol, Nutrition, Insights, Home, Profile.
+- Labs tab done: intro cut to one line, history / "what you were taking" / privacy collapsed, merge-or-rename moved into History, sheet intros shortened. Body, Protocol (dose log + supplements) and Nutrition done too: weigh-ins, waist, protocol changes, signals, side-effect chart, dose history, quick adds, fiber disclaimer, strength sets all collapsed. Remaining: Insights, Home, Profile.

@@ -62,10 +62,10 @@ export default function SupplementChecklist() {
         <h2 className="text-sm font-semibold">Supplements</h2>
         {items.length > 0 && <span className="text-xs text-muted-foreground ml-auto">{takenIds.size} / {items.length} today</span>}
       </div>
-      <p className="text-[11px] text-muted-foreground mb-3">Your own list: tick what you took today. The optional dose is saved with each day, so dose changes show next to your blood work. No recommendations here.</p>
+      <p className="text-[11px] text-muted-foreground mb-3">Tick what you took today. Doses show next to your blood work.</p>
 
       {items.length === 0 ? (
-        <p className="text-xs text-muted-foreground mb-3">Add the things you take, like magnesium, electrolytes or creatine.</p>
+        <p className="text-xs text-muted-foreground mb-3">Add what you take, like magnesium or creatine.</p>
       ) : (
         <div className="space-y-1.5 mb-3">
           {items.map(i => {

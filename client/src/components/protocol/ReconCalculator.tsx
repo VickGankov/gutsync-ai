@@ -51,7 +51,7 @@ export default function ReconCalculator() {
       </button>
       {open && (
         <div className="mt-2 rounded-xl border border-border/60 p-3 space-y-3">
-          <p className="text-[11px] text-muted-foreground">Turns a vial mix into syringe units. Enter the numbers from your prescriber's or pharmacist's instructions or the vial label. It doesn't suggest any dose.</p>
+          <p className="text-[11px] text-muted-foreground">Converts a vial mix to syringe units. Use the numbers from your prescriber, pharmacist or vial label. It never suggests a dose.</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs text-muted-foreground">
               <span className="flex items-center justify-between">In the vial <UnitToggle value={vialUnit} onChange={setVialUnit} /></span>
@@ -94,7 +94,7 @@ export default function ReconCalculator() {
               <details className="text-xs text-muted-foreground">
                 <summary className="cursor-pointer">Show the working</summary>
                 <ol className="mt-1 space-y-0.5 list-decimal pl-4">{result.steps.map(s => <li key={s}>{s}</li>)}</ol>
-                <p className="mt-1">Check it by hand once. A 10× slip (mg vs mcg, or the wrong mL) is the usual mistake.</p>
+                <p className="mt-1">Check it once by hand: a 10× slip (mg vs mcg) is the usual mistake.</p>
               </details>
               <label className="text-xs text-muted-foreground block">
                 Want an easier draw? Units you'd like for this dose
@@ -105,7 +105,7 @@ export default function ReconCalculator() {
               )}
             </div>
           )}
-          <p className="text-[10px] text-muted-foreground leading-snug">Assumes U-100 syringes (100 units = 1 mL). Arithmetic only, not medical advice: confirm the mix and the amount with whoever prescribed or supplied it.</p>
+          <p className="text-[10px] text-muted-foreground leading-snug">U-100 syringes (100 units = 1 mL). Arithmetic only: confirm the mix with whoever prescribed or supplied it.</p>
         </div>
       )}
     </div>
