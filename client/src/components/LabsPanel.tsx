@@ -124,7 +124,7 @@ export default function LabsPanel() {
       }
       const res = await extract.mutateAsync({ fileBase64: base64, mimeType });
       setDraft({
-        collectedOn: res.collectedOn, skipped: res.skipped,
+        collectedOn: res.collectedOn, skipped: res.skipped, skippedItems: res.skippedItems,
         rows: res.rows.map(r => ({ marker: r.marker, value: String(r.value), unit: r.unit, refLow: r.refLow == null ? "" : String(r.refLow), refHigh: r.refHigh == null ? "" : String(r.refHigh) })),
       });
     } catch (e: any) {

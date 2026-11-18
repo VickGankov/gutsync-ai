@@ -9,7 +9,16 @@ import { trpc } from "@/lib/trpc";
 import { dateKeyOf } from "@shared/weekly";
 
 export interface DraftRow { marker: string; value: string; unit: string; refLow: string; refHigh: string }
-export interface Draft { collectedOn: string | null; skipped: number; rows: DraftRow[] }
+export interface SkippedItem { marker: string; value: string; unit: string; reason: "not_a_number" | "no_unit" | "no_name" | "over_limit" }
+export interface Draft { collectedOn: string | null; skipped: number; skippedItems: SkippedItem[]; rows: DraftRow[] }
+
+const WHY: Record<SkippedItem["reason"], string> = {
+  not_a_number: "not a plain number",
+  no_unit: "no unit found",
+  no_name: "no test name",
+  over_limit: "too many results at once",
+};
+const printed = (s: SkippedItem) => [s.value, s.unit].filter(Boolean).join(" ");
 
 const inputCls = "bg-background border border-border rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/30";
 const todayKey = () => dateKeyOf(Date.now(), new Date().getTimezoneOffset());
@@ -45,9 +54,18 @@ export default function LabImportSheet({ draft, onClose }: { draft: Draft | null
           Compare each row with your report. Reading can get a digit or unit wrong, so fix anything off, and remove rows you don't want. Nothing is saved until you tap Save. Your report was read by an AI service and the file isn't kept. Only what you confirm here is saved, to your account.
         </p>
         {draft.skipped > 0 && (
-          <p className="text-xs rounded-lg bg-amber-100/70 text-amber-800 px-3 py-2 mb-3">
-            {draft.skipped} result{draft.skipped === 1 ? " was" : "s were"} left out (not a plain number, like "&lt;0.5", or missing a unit). Add those by hand if you need them.
-          </p>
+          <div className="text-xs rounded-lg bg-amber-100/70 text-amber-800 px-3 py-2 mb-3">
+            <p className="font-medium">Not added ({draft.skipped}). Add {draft.skipped === 1 ? "this one" : "these"} by hand if you need {draft.skipped === 1 ? "it" : "them"}:</p>
+            <ul className="mt-1 space-y-0.5">
+              {draft.skippedItems.map((s, i) => (
+                <li key={i}>
+                  <span className="font-medium">{s.marker || "Unnamed result"}</span>
+                  {printed(s) && <> · {printed(s)}</>}
+                  <span className="opacity-80"> ({WHY[s.reason]})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         <label className="block text-xs text-muted-foreground mb-3">

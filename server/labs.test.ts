@@ -124,7 +124,35 @@ describe("report extraction cleanup", () => {
     expect(r.rows[0]).toMatchObject({ refLow: null, refHigh: null });
   });
   it("survives garbage", () => {
-    expect(cleanExtraction(null)).toEqual({ collectedOn: null, rows: [], skipped: 0 });
+    expect(cleanExtraction(null)).toEqual({ collectedOn: null, rows: [], skipped: 0, skippedItems: [] });
     expect(cleanExtraction({ results: "x" }).rows).toEqual([]);
+  });
+});
+
+describe("cleanExtraction names what it left out", () => {
+  it("lists each skipped result with what was printed and why", () => {
+    const r = cleanExtraction({
+      collectedOn: "2026-11-04",
+      results: [
+        { marker: "Glucose", value: "83", unit: "mg/dL", refLow: "65", refHigh: "99" },
+        { marker: "Testosterone, Free", value: "<0.5", unit: "ng/dL", refLow: "", refHigh: "" },
+        { marker: "Vitamin D", value: "31", unit: "", refLow: "", refHigh: "" },
+        { marker: "", value: "5", unit: "mg", refLow: "", refHigh: "" },
+        { marker: "HIV", value: "Negative", unit: "", refLow: "", refHigh: "" },
+      ],
+    }, "2026-11-18");
+    expect(r.rows).toHaveLength(1);
+    expect(r.skipped).toBe(4);
+    expect(r.skippedItems).toEqual([
+      { marker: "Testosterone, Free", value: "<0.5", unit: "ng/dL", reason: "not_a_number" },
+      { marker: "Vitamin D", value: "31", unit: "", reason: "no_unit" },
+      { marker: "", value: "5", unit: "mg", reason: "no_name" },
+      { marker: "HIV", value: "Negative", unit: "", reason: "not_a_number" },
+    ]);
+  });
+  it("keeps the count and the list in step, and trims long strings", () => {
+    const r = cleanExtraction({ collectedOn: "", results: [{ marker: "x".repeat(200), value: "high", unit: "u", refLow: "", refHigh: "" }] });
+    expect(r.skippedItems).toHaveLength(r.skipped);
+    expect(r.skippedItems[0].marker.length).toBe(60);
   });
 });

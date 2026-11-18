@@ -6,7 +6,10 @@ import { invokeLLM } from "./_core/llm";
 import { normalizeMarker } from "../shared/labs";
 
 export interface ExtractedLab { marker: string; value: number; unit: string; refLow: number | null; refHigh: number | null }
-export interface ExtractResult { collectedOn: string | null; rows: ExtractedLab[]; skipped: number }
+export type SkipReason = "not_a_number" | "no_unit" | "no_name" | "over_limit";
+/** A result the report had but that was not added, as printed, so the person can add it by hand. */
+export interface SkippedLab { marker: string; value: string; unit: string; reason: SkipReason }
+export interface ExtractResult { collectedOn: string | null; rows: ExtractedLab[]; skipped: number; skippedItems: SkippedLab[] }
 
 const MAX_ROWS = 100;
 
@@ -61,21 +64,25 @@ export function parsePlainNumber(raw: unknown): number | null {
 export function cleanExtraction(parsed: any, today = new Date().toISOString().slice(0, 10)): ExtractResult {
   const list: any[] = Array.isArray(parsed?.results) ? parsed.results : [];
   const rows: ExtractedLab[] = [];
-  let skipped = 0;
+  const skippedItems: SkippedLab[] = [];
+  const asPrinted = (x: unknown, max: number) => (typeof x === "string" ? x.trim().slice(0, max) : typeof x === "number" ? String(x) : "");
+  const skip = (r: any, reason: SkipReason) => skippedItems.push({ marker: asPrinted(r?.marker, 60), value: asPrinted(r?.value, 24), unit: asPrinted(r?.unit, 24), reason });
   for (const r of list) {
     const marker = typeof r?.marker === "string" ? normalizeMarker(r.marker) : "";
     const value = parsePlainNumber(r?.value);
     const unit = typeof r?.unit === "string" ? r.unit.trim().slice(0, 24) : "";
-    if (!marker || value === null || !unit) { skipped++; continue; }
+    if (!marker) { skip(r, "no_name"); continue; }
+    if (value === null) { skip(r, "not_a_number"); continue; }
+    if (!unit) { skip(r, "no_unit"); continue; }
     let refLow = parsePlainNumber(r?.refLow);
     let refHigh = parsePlainNumber(r?.refHigh);
     if (refLow !== null && refHigh !== null && refLow > refHigh) { refLow = null; refHigh = null; }
-    if (rows.length >= MAX_ROWS) { skipped++; continue; }
+    if (rows.length >= MAX_ROWS) { skip(r, "over_limit"); continue; }
     rows.push({ marker, value, unit, refLow, refHigh });
   }
   const d = typeof parsed?.collectedOn === "string" ? parsed.collectedOn.trim() : "";
   const collectedOn = /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(`${d}T00:00:00Z`)) && d <= today ? d : null;
-  return { collectedOn, rows, skipped };
+  return { collectedOn, rows, skipped: skippedItems.length, skippedItems };
 }
 
 export type LabSource = { kind: "image"; dataUrl: string } | { kind: "text"; text: string };
