@@ -34,7 +34,7 @@ export default function LabMergeSheet({ marker, others, onClose, onDone }: {
           <button onClick={onClose} aria-label="Close" className="p-1 text-muted-foreground"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Move every <span className="font-medium text-foreground">{marker}</span> result under another name. Pick a marker you already have to combine them into one chart, or type a new name.
+          Move every <span className="font-medium text-foreground">{marker}</span> result under another name. Pick an existing marker to combine them.
         </p>
 
         {others.length > 0 && (
@@ -50,7 +50,7 @@ export default function LabMergeSheet({ marker, others, onClose, onDone }: {
         <label className="block text-xs text-muted-foreground">New name
           <input className={`${inputCls} mt-1`} value={target} maxLength={60} placeholder="e.g. LDL cholesterol" onChange={e => setTarget(e.target.value)} />
         </label>
-        {merging && <p className="text-[11px] text-muted-foreground mt-2">Results from both will share one chart. If they use different units, the chart shows the newest unit and says how many it left out.</p>}
+        {merging && <p className="text-[11px] text-muted-foreground mt-2">One chart for both. With different units, it shows the newest unit.</p>}
 
         <div className="flex gap-2 mt-5">
           <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>

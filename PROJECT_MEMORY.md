@@ -184,3 +184,7 @@ This file is the durable context for future Cursor chats in this workspace.
 - `shared/reconstitution.ts`: arithmetic only (vial mcg / water mL -> mcg/mL -> mL -> units, U-100 assumed). It must NEVER suggest a dose, vial size or water amount; all inputs are typed by the user. Warnings: dose > vial (mg/mcg slip), > syringe, < 5 units. Last numbers kept in localStorage only.
 - Injection sites: `siteUsage` / `suggestSite` (rested longest, avoids sites with a reaction logged within 3 days) / `siteReuseNote`. Reaction dot is a correlation by timing, not a cause.
 - Privacy: INVARIANT, keep true or change the copy in ProtocolPrivacy.tsx, landing #privacy and the health data policy: doses/compounds/sites/notes are never part of any AI request (trigger explainer gets food/symptom counts only), reminders never name a compound, no ad trackers, `dose.deleteAll` wipes doses + schedules. Public pages must not name compounds (seo.test.ts BANNED).
+
+## UX pass: less text, more collapsed (Nov 18)
+- `client/src/components/Disclosure.tsx`: reusable collapsed-by-default section (title, optional right-hand hint like a count, chevron, aria-expanded). Use it for secondary detail on every tab; keep one short always-visible line for anything that must stay visible (e.g. "Timing only, not medical advice").
+- Labs tab done: intro cut to one line, history / "what you were taking" / privacy collapsed, merge-or-rename moved into History, sheet intros shortened. Remaining tabs to do: Body, Protocol, Nutrition, Insights, Home, Profile.

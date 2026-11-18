@@ -51,7 +51,7 @@ export default function LabEntrySheet({ open, onClose, knownMarkers, lastUnitFor
           <h2 className="text-lg font-semibold">Add a lab result</h2>
           <button onClick={onClose} aria-label="Close" className="p-1 text-muted-foreground"><X className="w-5 h-5" /></button>
         </div>
-        <p className="text-xs text-muted-foreground mb-4">Copy the value, unit and range as printed on your report.</p>
+        <p className="text-xs text-muted-foreground mb-4">Copy the value, unit and range as printed.</p>
 
         <div className="space-y-3">
           <label className="block text-xs text-muted-foreground">Marker

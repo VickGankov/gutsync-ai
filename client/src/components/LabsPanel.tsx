@@ -3,6 +3,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { FlaskConical, Plus, Upload, Trash2, Loader2, ShieldCheck } from "lucide-react";
+import Disclosure from "@/components/Disclosure";
 import { toast } from "sonner";
 import { friendlyPlanError } from "@shared/plans";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
@@ -40,12 +41,11 @@ function RunsStrip({ runs, fromKey, toKey, drawDates }: { runs: Run[]; fromKey: 
   }, [runs]);
 
   if (rows.length === 0) {
-    return <p className="text-xs text-muted-foreground mt-3">No supplements or doses logged in this period. Tick supplements on the Protocol tab, or log doses, to see them here.</p>;
+    return <p className="text-[11px] text-muted-foreground mt-2">Nothing from your Protocol tab was logged in this period.</p>;
   }
   return (
-    <div className="mt-3">
-      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5">What you were taking</p>
-      <div className="space-y-2.5">
+    <Disclosure title="What you were taking" hint={`${rows.length} item${rows.length === 1 ? "" : "s"}`} className="mt-2 border-t border-border/50">
+      <div className="space-y-2.5 pt-1">
         {rows.map(row => (
           <div key={row.key}>
             <div className="flex items-baseline justify-between gap-2 text-xs mb-1">
@@ -71,8 +71,8 @@ function RunsStrip({ runs, fromKey, toKey, drawDates }: { runs: Run[]; fromKey: 
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-2">Thin vertical lines are blood draws. Lighter segments mark a dose change or a break.</p>
-    </div>
+      <p className="text-[10px] text-muted-foreground mt-2">Vertical lines: blood draws. Faded segments: a dose change or break.</p>
+    </Disclosure>
   );
 }
 
@@ -149,9 +149,7 @@ export default function LabsPanel() {
         <FlaskConical className="w-4 h-4 text-primary" />
         <h2 className="text-sm font-semibold">Blood work</h2>
       </div>
-      <p className="text-[11px] text-muted-foreground mb-3">
-        Track how a marker moves next to what you were taking. This shows timing only, and can't tell you what caused a change. Not medical advice: ranges are the ones printed on your own report.
-      </p>
+      <p className="text-[11px] text-muted-foreground mb-3">Timing only, not medical advice. Ranges are the ones on your own report.</p>
 
       <div className="flex gap-2 mb-3">
         <button type="button" onClick={() => setEntryOpen(true)} className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium">
@@ -166,7 +164,7 @@ export default function LabsPanel() {
       </div>
 
       {labs.isLoading ? null : markers.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No results yet. Import a report (photo, screenshot or text PDF) or add a value by hand. Importing counts as one scan.</p>
+        <p className="text-xs text-muted-foreground">No results yet. Import a report or add one by hand (an import uses 1 scan).</p>
       ) : (
         <>
           <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -183,16 +181,14 @@ export default function LabsPanel() {
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-semibold">{fmt(latest.value)}</span>
                 <span className="text-xs text-muted-foreground">{unit} · {short(latest.drawnOn)}</span>
-                <button type="button" onClick={() => setMergeOpen(true)} className="ml-auto text-[11px] text-primary font-medium">Merge or rename</button>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {status === "in" && `Within the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
-                {status === "below" && `Below the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
-                {status === "above" && `Above the range on your report (${rangeText(latest.refLow, latest.refHigh)}).`}
-                {status === null && "No range entered for this result."}
+                {status === "in" && `In range (${rangeText(latest.refLow, latest.refHigh)}).`}
+                {status === "below" && `Below range (${rangeText(latest.refLow, latest.refHigh)}). Mention it to your doctor.`}
+                {status === "above" && `Above range (${rangeText(latest.refLow, latest.refHigh)}). Mention it to your doctor.`}
+                {status === null && "No range entered."}
                 {change && ` ${change.delta >= 0 ? "+" : ""}${fmt(change.delta)} ${unit}${change.pct != null ? ` (${change.pct >= 0 ? "+" : ""}${Math.round(change.pct)}%)` : ""} since ${short(change.fromOn)}.`}
               </p>
-              {status && status !== "in" && <p className="text-[11px] text-muted-foreground mt-1">Worth mentioning to your doctor if you haven't already.</p>}
 
               {points.length >= 2 ? (
                 <div className="h-36 mt-3">
@@ -211,21 +207,21 @@ export default function LabsPanel() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground mt-3">One result so far. Add another to see how it moves.</p>
+                <p className="text-xs text-muted-foreground mt-3">One result so far. Add another to see a trend.</p>
               )}
               {points.length >= 1 && (
                 <div className="flex justify-between text-[10px] text-muted-foreground mt-1"><span>{short(fromKey)}</span><span>{short(toKey)}</span></div>
               )}
-              {skipped > 0 && <p className="text-[11px] text-amber-700 mt-1">{skipped} older result{skipped === 1 ? " uses" : "s use"} a different unit and {skipped === 1 ? "isn't" : "aren't"} on the chart.</p>}
+              {skipped > 0 && <p className="text-[11px] text-amber-700 mt-1">{skipped} older result{skipped === 1 ? "" : "s"} in another unit {skipped === 1 ? "isn't" : "aren't"} charted.</p>}
 
               <RunsStrip runs={overlay.data?.runs ?? []} fromKey={fromKey} toKey={toKey} drawDates={points.map(p => p.drawnOn)} />
               {points.length >= 2 && daysBetween(points[0].drawnOn, latest.drawnOn) > 0 && points.length < 3 && (
-                <p className="text-[11px] text-muted-foreground mt-2">{`With only ${points.length} results, treat any pattern as a hint at most.`}</p>
+                <p className="text-[11px] text-muted-foreground mt-2">{`Only ${points.length} results: a hint at most.`}</p>
               )}
             </>
           )}
 
-          <div className="mt-4 border-t border-border/50 pt-2">
+          <Disclosure title="History" hint={`${mine.length} result${mine.length === 1 ? "" : "s"}`} className="mt-2 border-t border-border/50">
             {[...mine].reverse().map(r => (
               <div key={r.id} className="flex items-center gap-2 py-1.5 text-xs">
                 <span className="text-muted-foreground w-16 shrink-0">{short(r.drawnOn)}</span>
@@ -238,17 +234,19 @@ export default function LabsPanel() {
                 </button>
               </div>
             ))}
-          </div>
+            <button type="button" onClick={() => setMergeOpen(true)} className="mt-1 text-[11px] text-primary font-medium">Merge or rename this marker</button>
+          </Disclosure>
         </>
       )}
 
-      <div className="mt-4 flex gap-2.5 rounded-xl bg-primary/5 px-3 py-2.5">
-        <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          <span className="font-medium text-foreground">Your results stay yours.</span> Reports are read by an AI service over an encrypted connection, and the file isn't kept.
-          Only the results you confirm are saved, to your account, and only you can see them in the app. We never sell your health data, and you can delete any result at any time.
-        </p>
-      </div>
+      <Disclosure title="Your results stay private" className="mt-2 border-t border-border/50">
+        <div className="flex gap-2.5 rounded-xl bg-primary/5 px-3 py-2.5">
+          <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            An AI service reads your report and the file isn't kept. Only results you confirm are saved, visible only to you, and never sold. Delete any result any time.
+          </p>
+        </div>
+      </Disclosure>
 
       <LabEntrySheet open={entryOpen} onClose={() => setEntryOpen(false)} knownMarkers={markers} lastUnitFor={lastUnitFor} presetMarker={marker} />
       {mergeOpen && marker && (
