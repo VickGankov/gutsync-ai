@@ -4,6 +4,7 @@
 import { useMemo, useRef, useState } from "react";
 import { FlaskConical, Plus, Upload, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import Disclosure from "@/components/Disclosure";
+import MarkerPicker, { type MarkerOption } from "@/components/MarkerPicker";
 import { toast } from "sonner";
 import { friendlyPlanError } from "@shared/plans";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
@@ -96,6 +97,12 @@ export default function LabsPanel() {
     return Array.from(latest.entries()).sort((a, b) => b[1].localeCompare(a[1])).map(([m]) => m);
   }, [rows]);
   const marker = picked && markers.includes(picked) ? picked : markers[0] ?? null;
+  // One entry per marker, from its most recent draw, so the dropdown can show the latest value and range status.
+  const options: MarkerOption[] = useMemo(() => {
+    const newest = new Map<string, (typeof rows)[number]>();
+    rows.forEach(r => { const cur = newest.get(r.marker); if (!cur || r.drawnOn >= cur.drawnOn) newest.set(r.marker, r); });
+    return Array.from(newest.values()).map(r => ({ marker: r.marker, status: rangeStatus(r.value, r.refLow, r.refHigh), value: fmt(r.value), unit: r.unit }));
+  }, [rows]);
   const mine = useMemo(() => rows.filter(r => r.marker === marker), [rows, marker]);
   const { points, unit, skipped } = useMemo(() => pointsInLatestUnit(mine), [mine]);
   const latest = points[points.length - 1];
@@ -167,14 +174,7 @@ export default function LabsPanel() {
         <p className="text-xs text-muted-foreground">No results yet. Import a report or add one by hand (an import uses 1 scan).</p>
       ) : (
         <>
-          <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {markers.map(m => (
-              <button key={m} type="button" onClick={() => setPicked(m)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border ${m === marker ? "bg-primary text-primary-foreground border-primary" : "bg-muted/60 text-muted-foreground border-transparent"}`}>
-                {m}
-              </button>
-            ))}
-          </div>
+          <MarkerPicker options={options} selected={marker} onSelect={setPicked} />
 
           {latest && (
             <>
