@@ -110,11 +110,11 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   },
   {
     key: "ss31", owner: true, name: "SS-31 (elamipretide)", aliases: ["elamipretide"],
-    benefits: ["Directly repairs cardiolipin in the inner mitochondrial membrane, fixing structural leaks to resolve the root cause of cellular oxidative stress and setting the stage for NAD+ utilization."],
-    sideEffects: ["Universally reported as having minimal to no side effects, with the most common issue simply being minor, temporary redness or itching at the subcutaneous injection site.", "FDA's label for elamipretide (Forzinity) lists injection site reactions as the most common side effect. Serious allergic reactions have also been reported, such as rash, itching, cough or trouble breathing"],
+    benefits: [],
+    sideEffects: [],
     members: ["Members describe a non-stimulant kind of energy and clarity, and say workouts feel easier", "Main side effect is exhaustion at higher doses (2.5–5 mg), which eased when people lowered the dose", "Many vendors have stopped carrying it"],
-    track: ["injection_site_reaction", "energy_boost", "better_recovery", "fatigue"],
-    source: "FDA Forzinity approval and prescribing information, 2025",
+    track: ["energy_boost", "fatigue", "injection_site_reaction"],
+    source: "Project Biohacked member reports",
     reviewed: "2026-11",
   },
   {
