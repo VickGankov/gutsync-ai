@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { getSymptomEmoji, getSymptomLabel } from "@/lib/store";
 import Disclosure from "@/components/Disclosure";
-import { EVIDENCE_LABEL, infoFor, trackFor } from "@shared/compoundInfo";
+import { infoFor, trackFor } from "@shared/compoundInfo";
 import { NEGATIVE_SYMPTOMS } from "@shared/dose";
 
 type SymptomType = Parameters<ReturnType<typeof trpc.symptoms.log.useMutation>["mutate"]>[0]["type"];
@@ -40,30 +40,29 @@ export default function CompoundAbout({ name }: { name: string }) {
   return (
     <Disclosure title={`About ${isBlend ? "this blend" : name}`} hint={isBlend ? `${parts.length} parts` : undefined} className="mt-2 border-t border-border/50">
       <div className="space-y-3">
-        <p className="text-[11px] text-muted-foreground leading-snug">Mostly what users report, plus ideas from early studies. Not proven, and not medical advice.</p>
+        <p className="text-[11px] text-muted-foreground leading-snug">
+          Anecdotal reports only, and several of the most active posters are tied to vendors. Not proven and not medical advice. Talk to your doctor. Logs show timing, not cause.
+        </p>
         {blend && (
           <div className="space-y-2">
             <p className="text-sm font-medium">{blend.name}</p>
             <List label="Benefits" items={blend.benefits} />
             <List label="Side effects" items={blend.sideEffects} />
-            <List label="Still debated" items={blend.debated ?? []} />
-            <p className="text-[10px] text-muted-foreground">Source: {blend.source} · reviewed {blend.reviewed}</p>
+            <List label="Members also report" items={blend.members ?? []} />
           </div>
         )}
-        {known.map(i => (
-          <div key={i.key} className="space-y-2">
-            {(blend || multi) && <p className="text-sm font-medium">{i.name}</p>}
-            <p className="text-xs leading-snug">
-              <span className="font-medium">{EVIDENCE_LABEL[i.evidence]}.</span> {i.status}
-            </p>
-            {!blend && <List label="Benefits" items={i.benefits} />}
-            {!blend && <List label="Side effects" items={i.sideEffects} />}
-            {!blend && <List label="Still debated" items={i.debated ?? []} />}
-            {!blend && <List label="Talk to a doctor if" items={i.seekCare} />}
-            <p className="text-[10px] text-muted-foreground">Source: {i.source} · reviewed {i.reviewed}</p>
-          </div>
-        ))}
-        {blend && <List label="Talk to a doctor if" items={Array.from(new Set(known.flatMap(i => i.seekCare)))} />}
+        {known.map(i => {
+          const full = !blend || i.owner;
+          if (!full && !i.members?.length) return null;
+          return (
+            <div key={i.key} className="space-y-2">
+              {(blend || multi) && <p className="text-sm font-medium">{i.name}</p>}
+              {full && <List label="Benefits" items={i.benefits} />}
+              {full && <List label="Side effects" items={i.sideEffects} />}
+              <List label="Members also report" items={i.members ?? []} />
+            </div>
+          );
+        })}
         {unknown.length > 0 && (
           <p className="text-xs text-muted-foreground">No notes yet for {unknown.join(", ")}.</p>
         )}
@@ -91,7 +90,6 @@ export default function CompoundAbout({ name }: { name: string }) {
                 ))}
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground mt-2">Timing only. These logs show patterns, not what caused them.</p>
           </div>
         )}
       </div>
