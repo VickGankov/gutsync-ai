@@ -171,7 +171,7 @@ export default function ProtocolCard() {
               : st.state === "due" ? "Due today" : st.state === "overdue" ? "Overdue" : `In ${st.daysUntil} day${st.daysUntil === 1 ? "" : "s"}`;
             const chipTone = overdue ? "bg-coral/15 text-coral" : due ? "bg-primary text-primary-foreground" : ss?.state === "done" ? "bg-background text-muted-foreground" : "bg-background text-foreground";
             return (
-            <div key={st.key} className="rounded-2xl bg-muted/70 px-4 pt-3.5 pb-1.5">
+            <div key={st.key} className="rounded-2xl border border-border/70 bg-card px-4 pt-3.5 pb-1.5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-display text-lg leading-tight truncate">{st.name}</p>
@@ -199,7 +199,7 @@ export default function ProtocolCard() {
                 );
                 // Logged today: a calm confirmation instead of a button, with Edit and a deliberate "log another".
                 if (today) return (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-background px-3 py-2.5">
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5" style={{ background: "color-mix(in oklab, oklch(0.75 0.14 150) 13%, var(--card))", borderColor: "color-mix(in oklab, oklch(0.65 0.14 150) 30%, var(--border))" }}>
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, oklch(0.7 0.15 150) 25%, transparent)", color: "oklch(0.45 0.12 150)" }}><Check className="h-3.5 w-3.5" /></span>
                     <span className="min-w-0 flex-1 text-sm"><span className="font-medium">Logged {clock}</span><span className="text-muted-foreground"> · {fmtMg(l.doseMcg)}{l.site ? ` · ${SITE_LABEL[l.site as Site] ?? l.site}` : ""}</span></span>
                     <button type="button" onClick={() => setCardEditId(l.id)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium hover:bg-muted"><Pencil className="h-3 w-3" />Edit</button>

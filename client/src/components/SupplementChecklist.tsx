@@ -75,7 +75,7 @@ export default function SupplementChecklist() {
                 <button
                   type="button"
                   onClick={() => toggle(i.id)}
-                  className={`flex-1 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-left border transition-colors ${on ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/40 border-transparent text-muted-foreground"}`}
+                  className={`flex-1 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-left border transition-colors ${on ? "bg-primary/10 border-primary/30 text-foreground" : "bg-card border-border/60 text-muted-foreground"}`}
                   aria-pressed={on}
                 >
                   <span className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${on ? "bg-primary border-primary text-primary-foreground" : "border-border"}`}>{on ? "✓" : ""}</span>
@@ -89,7 +89,7 @@ export default function SupplementChecklist() {
                   </form>
                 ) : (
                   <button type="button" onClick={() => { setEditing(i.id); setDraftDose(i.dose ?? ""); }}
-                    className="text-[11px] text-muted-foreground px-2 py-1.5 rounded-lg bg-muted/50 max-w-[6.5rem] truncate" aria-label={`Set dose for ${i.name}`}>
+                    className="text-[11px] text-muted-foreground px-2 py-1.5 rounded-lg bg-card border border-border/60 max-w-[6.5rem] truncate" aria-label={`Set dose for ${i.name}`}>
                     {i.dose ?? "+ dose"}
                   </button>
                 )}

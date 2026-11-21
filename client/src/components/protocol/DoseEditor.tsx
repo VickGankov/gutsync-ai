@@ -40,7 +40,7 @@ export default function DoseEditor({ dose, onClose }: { dose: EditableDose; onCl
   };
 
   return (
-    <div className="rounded-xl bg-muted/50 p-3 my-1.5 space-y-2.5">
+    <div className="rounded-xl border border-border/60 bg-card p-3 my-1.5 shadow-sm space-y-2.5">
       <input className={inputCls} value={compound} maxLength={80} onChange={e => setCompound(e.target.value)} placeholder="Compound" aria-label="Compound" />
       <div className="space-y-2.5">
         <label className="block text-[11px] text-muted-foreground">

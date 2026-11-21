@@ -2,7 +2,7 @@
 // Every number is typed by the person. It never fills in or suggests a dose, vial size or amount of water.
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Calculator } from "lucide-react";
+import { AlertTriangle, Calculator, ChevronDown } from "lucide-react";
 import { SYRINGES, reconstitute, validateRecon, waterForUnits, type SyringeUnits } from "@shared/reconstitution";
 
 const KEY = "tp_recon_v1";
@@ -46,11 +46,19 @@ export default function ReconCalculator() {
 
   return (
     <div className="mb-3">
-      <button className="flex items-center gap-1.5 text-xs text-primary font-medium" onClick={() => setOpen(v => !v)}>
-        <Calculator className="w-3.5 h-3.5" /> {open ? "Hide calculator" : "Reconstitution calculator"}
+      <button type="button" aria-expanded={open} onClick={() => setOpen(v => !v)}
+        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 text-left shadow-sm transition-colors hover:bg-muted/40">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--primary)", color: "var(--volt)" }}>
+          <Calculator className="h-4.5 w-4.5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Reconstitution calculator</span>
+          <span className="block text-xs text-muted-foreground">Turn a vial mix into syringe units</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="mt-2 rounded-xl border border-border/60 p-3 space-y-3">
+        <div className="mt-2 rounded-xl border border-border/60 bg-card p-3 space-y-3">
           <p className="text-[11px] text-muted-foreground">Converts a vial mix to syringe units. Use the numbers from your prescriber, pharmacist or vial label. It never suggests a dose.</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs text-muted-foreground">

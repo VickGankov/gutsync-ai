@@ -17,7 +17,7 @@ export default function ProtocolPrivacy({ hasData, expanded }: { hasData: boolea
   });
 
   return (
-    <div className="mt-3 rounded-xl bg-muted/60 px-3 py-2.5">
+    <div className="mt-3 rounded-xl border border-border/60 bg-card px-3 py-2.5">
       <button className="flex w-full items-center gap-1.5 text-xs font-semibold" onClick={() => setOpen(v => !v)} aria-expanded={open}>
         <Lock className="w-3.5 h-3.5" /> Your protocol stays private
         <span className="ml-auto text-[11px] font-normal text-primary">{open ? "Hide" : "Details"}</span>
