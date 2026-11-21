@@ -61,7 +61,7 @@ import {
   createLiftLog,
   deleteLiftLog,
   getFitnessDataInRange,
-  createDose, getDosesByUser, deleteDose, getDoseSchedules, setDoseSchedule, deleteAllDoseData,
+  createDose, getDosesByUser, updateDose, deleteDose, getDoseSchedules, setDoseSchedule, deleteAllDoseData,
 } from "./db";
 import {
   REINTRO_GROUPS,
@@ -955,6 +955,31 @@ export const appRouter = router({
           loggedAt: at,
         });
         return { id };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int(),
+        compound: z.string().trim().min(1).max(80),
+        doseMcg: z.number().int().min(1).max(50_000),
+        site: z.enum(SITES).nullable(),
+        notes: z.string().max(500).nullable(),
+        loggedAt: z.number().int(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const now = Date.now();
+        if (input.loggedAt > now + 5 * 60_000 || input.loggedAt < now - 5 * 366 * 86_400_000) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Dose time can't be in the future or more than 5 years ago" });
+        }
+        const ok = await updateDose(ctx.user.id, input.id, {
+          compound: input.compound,
+          doseMcg: input.doseMcg,
+          site: input.site,
+          notes: input.notes?.trim() || null,
+          loggedAt: input.loggedAt,
+        });
+        if (!ok) throw new TRPCError({ code: "NOT_FOUND", message: "Dose not found" });
+        return { success: true } as const;
       }),
 
     delete: protectedProcedure

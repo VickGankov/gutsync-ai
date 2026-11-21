@@ -576,6 +576,18 @@ export async function getDosesByUser(userId: number, limit = 100) {
   return db.select().from(doseLogs).where(eq(doseLogs.userId, userId)).orderBy(desc(doseLogs.loggedAt)).limit(limit);
 }
 
+export interface DoseEdit { compound: string; doseMcg: number; site: string | null; notes: string | null; loggedAt: number }
+
+/** Edits one of the user's own dose logs. Returns false when the row is not theirs. */
+export async function updateDose(userId: number, id: number, edit: DoseEdit): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [row] = await db.select({ id: doseLogs.id }).from(doseLogs).where(and(eq(doseLogs.id, id), eq(doseLogs.userId, userId))).limit(1);
+  if (!row) return false;
+  await db.update(doseLogs).set(edit).where(and(eq(doseLogs.id, id), eq(doseLogs.userId, userId)));
+  return true;
+}
+
 export async function deleteDose(userId: number, id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

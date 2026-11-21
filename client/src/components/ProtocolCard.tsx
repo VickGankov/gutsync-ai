@@ -3,7 +3,7 @@
 
 import { TONE } from "@/lib/tones";
 import { useMemo, useState } from "react";
-import { Syringe, Trash2, Plus, Loader2, Settings2, Zap } from "lucide-react";
+import { Syringe, Plus, Loader2, Settings2, Zap, Pencil } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
@@ -20,6 +20,7 @@ import ReconCalculator from "@/components/protocol/ReconCalculator";
 import ProtocolPrivacy from "@/components/protocol/ProtocolPrivacy";
 import Disclosure from "@/components/Disclosure";
 import CompoundAbout from "@/components/protocol/CompoundAbout";
+import DoseEditor from "@/components/protocol/DoseEditor";
 import { joinBlend, splitBlend } from "@shared/compoundInfo";
 
 const inputCls =
@@ -50,6 +51,7 @@ export default function ProtocolCard() {
   const [other, setOther] = useState("");
   const [blendMode, setBlendMode] = useState(false);
   const [confirmKey, setConfirmKey] = useState<string | null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
   const [mg, setMg] = useState<string | null>(null);
   const [unit, setUnit] = useState<"mg" | "mcg">("mg");
   const [site, setSite] = useState<Site | "none" | null>(null);
@@ -161,32 +163,27 @@ export default function ProtocolCard() {
             const plan = sched.kind !== "interval";
             const ss = plan ? scheduleStatus(sched, doses.filter(d => compoundKey(d.compound) === st.key).map(d => d.loggedAt), Date.now(), tz) : null;
             const overdue = ss ? ss.state === "overdue" : st.state === "overdue";
+            const due = ss ? ss.state === "due" || ss.state === "overdue" : st.state === "due" || st.state === "overdue";
+            const nextDay = ss?.nextKey ? fmtDay(ss.nextKey) : "";
+            const chipText = ss
+              ? ss.state === "due" ? "Due today" : ss.state === "done" ? "Done today" : ss.state === "overdue" ? "Overdue" : `Next ${nextDay}`
+              : st.state === "due" ? "Due today" : st.state === "overdue" ? "Overdue" : `In ${st.daysUntil} day${st.daysUntil === 1 ? "" : "s"}`;
+            const chipTone = overdue ? "bg-coral/15 text-coral" : due ? "bg-primary text-primary-foreground" : ss?.state === "done" ? "bg-background text-muted-foreground" : "bg-background text-foreground";
             return (
-            <div key={st.key} className="rounded-xl bg-muted px-3.5 py-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="font-display text-lg leading-tight">{st.name} · {fmtMg(st.latest!.doseMcg)}</p>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Day {ss ? ss.dayNumber : st.dayNumber}</span>
-              </div>
-              <p className="text-xs mt-1 text-muted-foreground">
-                Last dose {new Date(st.latest!.loggedAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-                {st.latest!.site && ` · ${SITE_LABEL[st.latest!.site as Site] ?? st.latest!.site}`}
-              </p>
-              <p className={`text-xs mt-0.5 ${overdue ? "text-coral font-medium" : "text-foreground"}`}>
-                {ss ? planText(ss) : dueText(st)}
-              </p>
-              {ss && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-                  <span className="rounded-full bg-background px-2 py-0.5">{ss.streak} scheduled dose{ss.streak === 1 ? "" : "s"} in a row</span>
-                  {ss.expected28 > 0 && <span className="rounded-full bg-background px-2 py-0.5">{ss.taken28} of {ss.expected28} taken (28 days)</span>}
+            <div key={st.key} className="rounded-2xl bg-muted/70 px-4 pt-3.5 pb-1.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-display text-lg leading-tight truncate">{st.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{fmtMg(st.latest!.doseMcg)}{st.latest!.site && suggested ? ` · next ${SITE_LABEL[suggested]}` : ""}</p>
                 </div>
-              )}
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${chipTone}`}>{chipText}</span>
+              </div>
               {(() => {
-                const due = ss ? ss.state === "due" || ss.state === "overdue" : st.state === "due" || st.state === "overdue";
                 const recent = recentDose(st.key);
                 const hrs = recent ? Math.max(1, Math.round((Date.now() - recent.loggedAt) / 3_600_000)) : 0;
                 const busy = quickLog.isPending;
                 return confirmKey === st.key && recent ? (
-                  <div className="mt-2 rounded-xl bg-background px-3 py-2">
+                  <div className="mt-3 rounded-xl bg-background px-3 py-2">
                     <p className="text-xs">A dose was logged {hrs} hour{hrs === 1 ? "" : "s"} ago. Log another?</p>
                     <div className="mt-1.5 flex gap-2">
                       <Button size="sm" className="h-8 rounded-xl" disabled={busy} onClick={() => oneTap(st, true)}>Log again</Button>
@@ -194,23 +191,36 @@ export default function ProtocolCard() {
                     </div>
                   </div>
                 ) : (
-                  <Button size="sm" variant={due ? "default" : "outline"} className="mt-2 h-9 w-full rounded-xl gap-1.5" disabled={busy} onClick={() => oneTap(st)}>
+                  <Button size="sm" variant={due ? "default" : "outline"} className="mt-3 h-10 w-full rounded-xl gap-1.5" disabled={busy} onClick={() => oneTap(st)}>
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                    Log {fmtMg(st.latest!.doseMcg)}{st.latest!.site && suggested ? ` · ${SITE_LABEL[suggested]}` : ""}
+                    Log {fmtMg(st.latest!.doseMcg)}
                   </Button>
                 );
               })()}
-              <div className="mt-1.5 text-[11px] text-muted-foreground">
-                {editKey === st.key ? (
-                  <ScheduleEditor current={sched} saving={saveSchedule.isPending} onCancel={() => setEditKey(null)}
-                    onSave={s2 => saveSchedule.mutate({ compound: st.name, schedule: s2 })} />
-                ) : (
-                  <button onClick={() => setEditKey(st.key)} className="inline-flex items-center gap-1">
-                    <Settings2 className="w-3 h-3" /> {describeSchedule(sched)}{st.interval.explicit ? "" : " (from your doses)"} · change
-                  </button>
+              <Disclosure title="Details" hint={`Day ${ss ? ss.dayNumber : st.dayNumber}`} className="mt-2 border-t border-border/40">
+                <p className="text-xs text-muted-foreground">
+                  Last dose {new Date(st.latest!.loggedAt).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  {st.latest!.site && ` · ${SITE_LABEL[st.latest!.site as Site] ?? st.latest!.site}`}
+                </p>
+                <p className={`text-xs mt-0.5 ${overdue ? "text-coral font-medium" : "text-foreground"}`}>{ss ? planText(ss) : dueText(st)}</p>
+                {ss && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+                    <span className="rounded-full bg-background px-2 py-0.5">{ss.streak} scheduled dose{ss.streak === 1 ? "" : "s"} in a row</span>
+                    {ss.expected28 > 0 && <span className="rounded-full bg-background px-2 py-0.5">{ss.taken28} of {ss.expected28} taken (28 days)</span>}
+                  </div>
                 )}
-              </div>
-              <CompoundAbout name={st.latest!.compound} />
+                <div className="mt-2 text-[11px] text-muted-foreground">
+                  {editKey === st.key ? (
+                    <ScheduleEditor current={sched} saving={saveSchedule.isPending} onCancel={() => setEditKey(null)}
+                      onSave={s2 => saveSchedule.mutate({ compound: st.name, schedule: s2 })} />
+                  ) : (
+                    <button onClick={() => setEditKey(st.key)} className="inline-flex items-center gap-1">
+                      <Settings2 className="w-3 h-3" /> {describeSchedule(sched)}{st.interval.explicit ? "" : " (from your doses)"} · change
+                    </button>
+                  )}
+                </div>
+                <CompoundAbout name={st.latest!.compound} />
+              </Disclosure>
             </div>
             );
           })}
@@ -348,16 +358,22 @@ export default function ProtocolCard() {
         </div>
       )}
 
-          <div className="space-y-1.5">
-          {doses.slice(0, 20).map(d => (
-            <div key={d.id} className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
+          <div className="space-y-0.5">
+          {doses.slice(0, 20).map(d => editId === d.id ? (
+            <DoseEditor key={d.id} dose={d} onClose={() => setEditId(null)} />
+          ) : (
+            <button key={d.id} type="button" onClick={() => setEditId(d.id)} aria-label={`Edit ${d.compound} dose`}
+              className="w-full flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 -mx-2 text-left text-xs hover:bg-muted/60">
+              <span className="min-w-0">
                 <span className="text-foreground font-medium">{fmtMg(d.doseMcg)}</span> {d.compound}
-                {d.site && ` · ${SITE_LABEL[d.site as Site] ?? d.site}`} · {new Date(d.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                {d.notes && <span className="block text-[11px] italic">{d.notes}</span>}
+                <span className="block text-[11px] text-muted-foreground">
+                  {new Date(d.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  {d.site && ` · ${SITE_LABEL[d.site as Site] ?? d.site}`}
+                  {d.notes && ` · ${d.notes}`}
+                </span>
               </span>
-              <button onClick={() => deleteDose.mutate({ id: d.id })} title="Delete"><Trash2 className="w-3.5 h-3.5 text-muted-foreground" /></button>
-            </div>
+              <Pencil className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            </button>
           ))}
           </div>
         </Disclosure>
