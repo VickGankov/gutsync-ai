@@ -110,9 +110,9 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   },
   {
     key: "ss31", owner: true, name: "SS-31 (elamipretide)", aliases: ["elamipretide"],
-    benefits: [],
-    sideEffects: [],
-    members: ["Members describe a non-stimulant kind of energy and clarity, and say workouts feel easier", "Main side effect is exhaustion at higher doses (2.5–5 mg), which eased when people lowered the dose", "Many vendors have stopped carrying it"],
+    benefits: ["Members describe a non-stimulant kind of energy and clarity", "Members say workouts feel easier"],
+    sideEffects: ["Exhaustion at higher doses (2.5–5 mg), which eased when people lowered the dose"],
+    members: ["Many vendors have stopped carrying it"],
     track: ["energy_boost", "fatigue", "injection_site_reaction"],
     source: "Project Biohacked member reports",
     reviewed: "2026-11",

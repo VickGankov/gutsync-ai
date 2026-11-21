@@ -56,6 +56,12 @@ describe("compound notes", () => {
       for (const t of i.track) expect(known.has(t), `${i.name}: ${t}`).toBe(true);
     }
   });
+  it("every compound and blend has both benefits and side effects", () => {
+    for (const i of [...COMPOUND_INFO, ...BLEND_INFO]) {
+      expect(i.benefits.length, `${i.name} benefits`).toBeGreaterThan(0);
+      expect(i.sideEffects.length, `${i.name} side effects`).toBeGreaterThan(0);
+    }
+  });
   it("member notes are non-empty and carry no imperative dosing ('take', 'inject', 'use')", () => {
     for (const i of [...COMPOUND_INFO, ...BLEND_INFO]) for (const m of i.members ?? []) {
       expect(m.length).toBeGreaterThan(10);
