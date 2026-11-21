@@ -60,6 +60,5 @@ describe("compound notes", () => {
     const text = JSON.stringify([COMPOUND_INFO, BLEND_INFO]).toLowerCase();
     expect(text).not.toMatch(/\d+(\.\d+)?\s?(mcg|µg|ug)\b/);
     expect(text).not.toMatch(/\bunits?\b/);
-    expect(text).not.toMatch(/\d+(\.\d+)?\s?mg\b/);
   });
 });

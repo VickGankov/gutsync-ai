@@ -44,8 +44,8 @@ export default function CompoundAbout({ name }: { name: string }) {
         {blend && (
           <div className="space-y-2">
             <p className="text-sm font-medium">{blend.name}</p>
-            <List label="Reported benefits" items={blend.benefits} />
-            <List label="Reported side effects" items={blend.sideEffects} />
+            <List label="Benefits" items={blend.benefits} />
+            <List label="Side effects" items={blend.sideEffects} />
             <List label="Still debated" items={blend.debated ?? []} />
             <p className="text-[10px] text-muted-foreground">Source: {blend.source} · reviewed {blend.reviewed}</p>
           </div>
@@ -56,8 +56,8 @@ export default function CompoundAbout({ name }: { name: string }) {
             <p className="text-xs leading-snug">
               <span className="font-medium">{EVIDENCE_LABEL[i.evidence]}.</span> {i.status}
             </p>
-            {!blend && <List label="Reported benefits" items={i.benefits} />}
-            {!blend && <List label="Reported side effects" items={i.sideEffects} />}
+            {!blend && <List label="Benefits" items={i.benefits} />}
+            {!blend && <List label="Side effects" items={i.sideEffects} />}
             {!blend && <List label="Still debated" items={i.debated ?? []} />}
             {!blend && <List label="Talk to a doctor if" items={i.seekCare} />}
             <p className="text-[10px] text-muted-foreground">Source: {i.source} · reviewed {i.reviewed}</p>

@@ -1,7 +1,7 @@
 // Short, hand-written reference notes for the compounds people log, plus blend handling.
 // Static on purpose: never generated at runtime, never sent to the AI, shown only inside the signed-in app.
-// Benefits and side effects here are mostly what users report, plus mechanisms proposed from animal or early
-// studies. They are not proven effects. No dosing, no timing or injection instructions, no promises.
+// Benefits and side effects for NAD+, SS-31, MOTS-c, 5-amino-1MQ, Retatrutide and the three blends are the owner's own wording, kept verbatim.
+// Other entries are written as user reports. The status line, doctor-if list and the FDA label note on SS-31 were added beside that text.
 // Every entry needs a source and a review date; re-check status and wording before changing anything here.
 
 export type EvidenceLevel = "approved" | "late-trials" | "early-trials" | "animal-only";
@@ -44,8 +44,8 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   {
     key: "retatrutide", name: "Retatrutide", evidence: "late-trials",
     status: "Investigational triple agonist (GIP, GLP-1, glucagon). Phase 3 results are positive and the maker plans an FDA filing in early 2027.",
-    benefits: ["Strong appetite suppression, often described as quieter 'food noise'", "Rapid early weight loss", "Muscle may be easier to keep with high protein and resistance training (user reports)"],
-    sideEffects: ["Nausea", "Cramping, with diarrhea and constipation alternating", "Fatigue", "Higher resting heart rate", "Skin hypersensitivity (allodynia) that feels like sunburn or a deep cold ache, reported by some users at higher doses"],
+    benefits: ["Extreme appetite suppression (often described as completely silencing \"food noise\"), rapid initial weight loss, and potential lean muscle preservation when combined with high protein intake and resistance training."],
+    sideEffects: ["Nausea, GI distress (cramping and alternating bouts of diarrhea and constipation), profound fatigue, and an elevated resting heart rate. A highly specific side effect heavily documented on Reddit is allodynia—a bizarre skin hypersensitivity that feels like a sunburn or intense cold radiating deep into the bones, typically emerging at doses above 3mg."],
     seekCare: ["Severe or lasting vomiting or belly pain", "Signs of dehydration", "Chest pain or a heart rate that stays high"],
     track: ["less_food_noise", "fewer_cravings", "low_appetite", "nausea", "diarrhea", "constipation", "fatigue", "racing_heart", "skin_sensitivity", "injection_site_reaction"],
     source: "Eli Lilly TRIUMPH-2/3 announcement, Jul 2026; Jastreboff et al., NEJM 2023; user reports",
@@ -105,8 +105,8 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   {
     key: "motsc", name: "MOTS-c", evidence: "animal-only",
     status: "A peptide made by mitochondria. Mostly animal and cell studies, with a few early human studies. Not approved.",
-    benefits: ["Proposed to promote new mitochondria and improve insulin sensitivity, from animal and early studies", "Some users call it 'exercise in a bottle' and report better endurance and fat loss"],
-    sideEffects: ["Jitteriness or feeling overstimulated", "Trouble sleeping when taken late in the day (user reports)", "Injection site irritation"],
+    benefits: ["Drives mitochondrial biogenesis (creating brand-new mitochondria) and aggressively spikes insulin sensitivity. It is widely referred to on Reddit as \"exercise in a bottle\" because of how dramatically it improves cardiovascular endurance and accelerates fat loss."],
+    sideEffects: ["Because it ramps up cellular energy and mimics the metabolic effects of exercise, injecting MOTS-c too late in the afternoon is a fast track to severe insomnia. Some users also report feeling uncomfortably jittery or overstimulated."],
     seekCare: ["Allergic-type reactions", "Spreading redness or swelling at an injection site"],
     track: ["energy_boost", "better_recovery", "jitteriness", "poor_sleep", "injection_site_reaction"],
     source: "Lee et al., Cell Metab 2015; user reports",
@@ -125,8 +125,8 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   {
     key: "nad", name: "NAD+", evidence: "early-trials",
     status: "A coenzyme used in cell energy production. Injectable forms are sold mainly through clinics and online, and human evidence for injected NAD+ is limited. Not approved as a drug.",
-    benefits: ["Users report less brain fog and steadier daytime energy", "Users report quicker recovery from hard training or illness"],
-    sideEffects: ["The 'NAD flush': a sudden wave of heat, chest tightness, racing heart and nausea lasting a few minutes, reported more with high doses or fast injections", "Stinging at the injection site"],
+    benefits: ["Provides the raw fuel for cellular energy production. Users frequently report massive reductions in brain fog, sharp increases in sustained daytime energy, and accelerated recovery from intense training or illness."],
+    sideEffects: ["The highly documented \"NAD flush.\" If you inject a high dose or push the plunger too fast, you will likely experience a sudden, intense wave of heat, chest tightness, a racing heart, and nausea that lasts for 3 to 5 minutes. Subcutaneous injections of pure NAD+ are also notorious for stinging at the injection site."],
     seekCare: ["Chest pain that does not pass quickly", "Trouble breathing or fainting", "Allergic-type reactions"],
     track: ["reduced_brain_fog", "energy_boost", "better_recovery", "flushing", "racing_heart", "nausea", "injection_site_reaction"],
     source: "User reports; limited human data on injected NAD+",
@@ -135,8 +135,8 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   {
     key: "ss31", name: "SS-31 (elamipretide)", aliases: ["elamipretide"], evidence: "approved",
     status: "Elamipretide (Forzinity) got FDA accelerated approval in Sept 2025 to improve muscle strength in Barth syndrome, a rare mitochondrial disease. Use for anything else is unstudied.",
-    benefits: ["Proposed to repair cardiolipin in the inner mitochondrial membrane and ease cellular oxidative stress"],
-    sideEffects: ["Injection site reactions are the most common, usually redness or itching", "Serious allergic reactions have been reported"],
+    benefits: ["Directly repairs cardiolipin in the inner mitochondrial membrane, fixing structural leaks to resolve the root cause of cellular oxidative stress and setting the stage for NAD+ utilization."],
+    sideEffects: ["Universally reported as having minimal to no side effects, with the most common issue simply being minor, temporary redness or itching at the subcutaneous injection site.", "FDA label note: serious allergic reactions have been reported with elamipretide."],
     seekCare: ["Rash, hives, itching that spreads, cough or trouble breathing after an injection", "Injection site reactions that keep getting worse"],
     track: ["injection_site_reaction", "energy_boost", "better_recovery", "fatigue"],
     source: "FDA Forzinity approval and prescribing information, 2025",
@@ -145,8 +145,8 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   {
     key: "5amino1mq", name: "5-amino-1MQ", evidence: "animal-only",
     status: "A small molecule that blocks NNMT, an enzyme linked to fat storage. Evidence is mostly from cell and animal studies. Not approved.",
-    benefits: ["Proposed to reduce fat build-up and raise metabolic rate, from animal studies", "Users report it helps break through weight-loss plateaus"],
-    sideEffects: ["Restlessness", "Trouble sleeping when taken late in the day (user reports)", "Mild stomach upset, since it is often taken as capsules"],
+    benefits: ["Blocks the NNMT enzyme, which prevents fat accumulation and forces the body to burn existing fat stores, effectively raising your basal metabolic rate. It is heavily praised for breaking through stubborn weight loss plateaus."],
+    sideEffects: ["Like MOTS-c, the most common complaints are restlessness and sleep disruption if taken late in the day. Because it is often taken orally in capsules, it can occasionally cause mild GI upset."],
     seekCare: ["Palpitations or chest discomfort", "Allergic-type reactions"],
     track: ["jitteriness", "poor_sleep", "nausea"],
     source: "NNMT inhibitor animal studies; user reports",
@@ -157,23 +157,22 @@ export const COMPOUND_INFO: CompoundInfo[] = [
 export const BLEND_INFO: BlendInfo[] = [
   {
     keys: ["cjc1295", "ipamorelin"], name: "CJC-1295 / Ipamorelin",
-    benefits: ["Deeper sleep", "Faster muscle recovery", "Easier to keep or add muscle while eating in a calorie deficit (user reports)"],
-    sideEffects: ["The 'peptide flush': sudden heat in the face and a fast heartbeat right after the injection", "Daytime lethargy or a 'hangover' feeling when a night dose disrupts sleep", "Water retention, with swollen hands or feet", "Dizzy spells", "Head pressure"],
+    benefits: ["Deepened sleep architecture, accelerated muscle recovery, and an improved ability to add or maintain muscle mass while in a caloric deficit."],
+    sideEffects: ["The infamous \"peptide flush\" (a sudden rush of heat to the face and rapid heart rate immediately post-injection), severe daytime lethargy or a \"hangover\" feeling if the nighttime dose disrupts sleep, water retention leading to swollen hands or feet, dizzy spells, and head pressure."],
     track: ["better_sleep", "better_recovery", "flushing", "racing_heart", "fatigue", "water_retention", "dizziness", "headache"],
     source: "User reports", reviewed: "2026-11",
   },
   {
     keys: ["bpc157", "tb500"], name: "BPC-157 / TB-500 (the 'Wolverine' stack)",
-    benefits: ["Users report large drops in pain and restored range of motion in chronic joint, meniscus and shoulder injuries", "BPC-157 is proposed to grow blood vessels in poorly supplied tendons, and TB-500 to help cells move to injured muscle. Both ideas come from animal and cell work"],
-    sideEffects: ["Generally reported as well tolerated", "Injection site irritation"],
-    debated: ["Whether BPC-157's effect on blood vessels could feed an undiagnosed tumor is argued both ways. There is no human evidence to settle it."],
+    benefits: ["Unrivaled soft tissue repair. BPC-157 drives angiogenesis (new blood vessel growth) to tendons and ligaments that usually lack blood flow, while TB-500 upregulates cell migration to rebuild torn muscle. Users widely report massive pain reduction and restored range of motion in chronic joint, meniscus, and shoulder injuries."],
+    sideEffects: ["Generally exceptionally well-tolerated. The most prominent debate on Reddit involves a theoretical risk: because BPC-157 stimulates new blood vessels, users frequently argue over whether it could inadvertently supply blood to pre-existing, undiagnosed tumors, though the clinical evidence remains heavily conflicting."],
     track: ["better_recovery", "joint_pain", "injection_site_reaction"],
     source: "User reports; animal literature", reviewed: "2026-11",
   },
   {
     keys: ["nad", "motsc", "5amino1mq"], name: "NAD+ / MOTS-c / 5-amino-1MQ",
-    benefits: ["The aim is metabolic: MOTS-c for mitochondria and insulin sensitivity, 5-amino-1MQ for fat storage and metabolic rate, NAD+ as cell fuel", "This combination has not been studied as a blend"],
-    sideEffects: ["The NAD flush: heat, redness, chest tightness and a racing heart, reported more with high doses or fast injections", "Jitteriness, overstimulation or poor sleep, reported more when taken late in the day"],
+    benefits: ["A massive metabolic overhaul. MOTS-c drives mitochondrial biogenesis and spikes insulin sensitivity, 5-amino-1MQ blocks the NNMT enzyme to prevent fat accumulation and boost the basal metabolic rate, and NAD+ provides the raw fuel for the newly repaired mitochondrial network."],
+    sideEffects: ["NAD+ notoriously causes a harsh systemic \"flush\" (intense warmth, redness, chest tightness, and a racing heart) if injected too quickly or at high doses. The MOTS-c and 5-amino-1MQ additions can cause jitteriness, overstimulation, or severe sleep disruption if the blend is injected too late in the afternoon."],
     track: ["energy_boost", "flushing", "racing_heart", "jitteriness", "poor_sleep"],
     source: "User reports", reviewed: "2026-11",
   },
