@@ -144,10 +144,10 @@ export default function ProtocolCard() {
   }));
 
   return (
-    <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+    <section className="tc tc-protocol border rounded-2xl p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Syringe className="w-4 h-4" style={{ color: TONE.protocol.ink }} />
+          <span className="tc-chip"><Syringe className="w-4 h-4" style={{ color: TONE.protocol.ink }} /></span>
           <h2 className="text-sm font-semibold">Dose log</h2>
         </div>
         <Button size="sm" variant={open ? "outline" : "default"} className="h-8 rounded-xl gap-1" onClick={() => setOpen(v => !v)}>

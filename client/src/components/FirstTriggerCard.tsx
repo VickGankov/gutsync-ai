@@ -14,7 +14,7 @@ export default function FirstTriggerCard() {
 
   const current = d.steps.findIndex(s => !s.done);
   return (
-    <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4" aria-label="Path to your first confirmed trigger">
+    <section className="tc tc-symptoms border rounded-2xl p-4 mb-4" aria-label="Path to your first confirmed trigger">
       <div className="flex items-center gap-2 mb-3">
         <FlaskConical className="w-4 h-4 text-primary" />
         <h2 className="text-sm font-semibold">Your first confirmed trigger</h2>

@@ -27,7 +27,7 @@ export default function DietaryProfile() {
   };
 
   return (
-    <div className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+    <div className="tc tc-symptoms rounded-2xl border  shadow-sm p-5 mb-5">
       <h3 className="text-sm font-semibold mb-1 flex items-center gap-2">
         <Apple className="w-4 h-4 text-coral" />
         Foods I suspect

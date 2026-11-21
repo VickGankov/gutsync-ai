@@ -54,15 +54,17 @@ function ProgressBar({ value, target, color }: { value: number; target: number; 
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <motion.section variants={item} className="bg-card border border-border/60 rounded-2xl p-4 mb-4">{children}</motion.section>;
+function Card({ children, tone = "warm" }: { children: React.ReactNode; tone?: string }) {
+  return <motion.section variants={item} className={`tc tc-${tone} border rounded-2xl p-4 mb-4`}>{children}</motion.section>;
 }
 
 function CardTitle({ icon: Icon, title, right, color }: { icon: React.ElementType; title: string; right?: React.ReactNode; color?: string }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-primary" style={color ? { color } : undefined} />
+        <span className="tc-chip" style={color ? ({ "--c": color } as React.CSSProperties) : undefined}>
+          <Icon className="w-4 h-4 text-primary" style={color ? { color } : undefined} />
+        </span>
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
       {right}
@@ -247,7 +249,7 @@ export default function Progress() {
 
       {tab === "nutrition" && (<>
       {/* Quick add: the only place to log water or protein by hand */}
-      <Card>
+      <Card tone="protein">
         <CardTitle icon={Beef} color={TONE.protein.ink} title="Protein today" right={
           <span className="text-sm font-semibold">{today?.proteinG ?? 0}<span className="text-muted-foreground font-normal"> / {proteinTarget} g</span></span>
         } />
@@ -299,7 +301,7 @@ export default function Progress() {
       </Card>
 
       {/* Fiber (rough estimate from logged meals) */}
-      <Card>
+      <Card tone="fiber">
         <div id="fiber" />
         <CardTitle icon={Wheat} color={TONE.fiber.ink} title="Fiber (estimate)" right={
           <span className="text-sm font-semibold">~{data?.fiber.todayG ?? 0}<span className="text-muted-foreground font-normal"> g today</span></span>
@@ -329,7 +331,7 @@ export default function Progress() {
       </Card>
 
       {/* Protein history */}
-      <Card>
+      <Card tone="protein">
         <CardTitle icon={Beef} color={TONE.protein.ink} title="Protein — last 14 days" right={
           <span className="text-xs text-muted-foreground">{proteinDaysHit}/14 days on target</span>
         } />
@@ -378,7 +380,7 @@ export default function Progress() {
 
       {/* Lifts */}
       {tab === "body" && bodyView === "strength" && (
-      <Card>
+      <Card tone="strength">
         <CardTitle icon={Dumbbell} color={TONE.strength.ink} title="Strength" />
         <div className="space-y-2">
           <input className={inputCls} list="known-exercises" placeholder="Exercise (e.g. Bench press)"

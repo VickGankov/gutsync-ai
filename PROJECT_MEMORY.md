@@ -201,3 +201,7 @@ This file is the durable context for future Cursor chats in this workspace.
 - Competitor scan (Shotsy, Peptide Tracker, Regimen, PeptiPal, MyTherapy, MedTracker): common pattern is one-tap log, tap any past dose to edit/delete, one status per medication, detail behind a tap. A MedTracker review shows no way to edit the time gets the app deleted, so edit-with-time is table stakes.
 - `dose.update` (server/routers.ts, `updateDose` in db.ts, owner-checked) + `client/src/components/protocol/DoseEditor.tsx`: tap a History row to edit compound, amount, date/time, site, note, or delete. Streaks/next-due/site rotation are derived from the log so they update.
 - Compound cards are now: name + one status chip (Due today / Overdue / Done today / Next Mon), dose and next site, one Log button, and a collapsed "Details" (day count, last dose, streak chips, schedule, About).
+
+## Color: tinted washes (Nov 21)
+- Owner picked "A · Tinted washes" for the whole app. `.tc` + `.tc-<tone>` classes in `client/src/index.css` give a card a soft wash and border of its own color (interpolated in oklab, not oklch: oklch hue interpolation turned violet into pink on cream). `.tc-chip` is the tinted icon square in card titles. Tones: protocol teal, protein violet, water blue, fiber amber, strength pink, meals lime, symptoms coral, body slate, labs indigo, warm (neutral default), volt.
+- New card? Use `tc tc-<tone> border rounded-2xl` instead of `bg-card border border-border/..`. Progress `Card` takes a `tone` prop. Modals/sheets stay plain `bg-card`.

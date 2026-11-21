@@ -56,9 +56,9 @@ export default function SupplementChecklist() {
   const remove = trpc.supplement.remove.useMutation({ onSuccess: () => utils.supplement.list.invalidate() });
 
   return (
-    <section id="supplements" className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+    <section id="supplements" className="tc tc-fiber border rounded-2xl p-4 mb-4">
       <div className="flex items-center gap-2 mb-1">
-        <Pill className="w-4 h-4 text-primary" />
+        <span className="tc-chip"><Pill className="w-4 h-4" style={{ color: "oklch(0.6 0.14 80)" }} /></span>
         <h2 className="text-sm font-semibold">Supplements</h2>
         {items.length > 0 && <span className="text-xs text-muted-foreground ml-auto">{takenIds.size} / {items.length} today</span>}
       </div>

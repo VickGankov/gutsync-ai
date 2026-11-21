@@ -249,7 +249,7 @@ export default function Home() {
               <p className="text-muted-foreground text-sm mt-1">Discover your personal food triggers</p>
             </div>
           </motion.div>
-          <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
+          <motion.div variants={item} className="tc tc-warm rounded-2xl p-6 border  shadow-sm text-center">
             <Leaf className="w-10 h-10 text-primary mx-auto mb-3" />
             <h2 className="text-lg font-display mb-2">Sign in to start tracking</h2>
             <p className="text-sm text-muted-foreground mb-5">
@@ -282,7 +282,7 @@ export default function Home() {
           <p className="text-sm text-muted-foreground">{greeting}{user?.name ? `, ${user.name.split(" ")[0]}` : ""}</p>
           <h1 className="text-2xl tracking-tight mt-0.5">Your Gut Today</h1>
         </motion.div>
-        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm">
+        <motion.div variants={item} className="tc tc-warm rounded-2xl p-6 border  shadow-sm">
           <p className="text-sm text-muted-foreground">Loading your latest meals, symptoms, and insights...</p>
         </motion.div>
       </motion.div>
@@ -292,7 +292,7 @@ export default function Home() {
   if (dashboard.error) {
     return (
       <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-6 pb-4 max-w-lg mx-auto">
-        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm">
+        <motion.div variants={item} className="tc tc-warm rounded-2xl p-6 border  shadow-sm">
           <h2 className="text-lg font-display mb-2">We couldn't load your dashboard</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Please check your connection and try again.
@@ -380,7 +380,7 @@ export default function Home() {
         </motion.div>
 
         {/* Gut Score: symptoms in the last 7 days only. Empty until something is logged. */}
-        <motion.div variants={item} className="bg-card rounded-2xl p-5 border border-border/50 shadow-sm mb-4">
+        <motion.div variants={item} className="tc tc-meals rounded-2xl p-5 border  shadow-sm mb-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Gut Score · last 7 days</p>
@@ -469,7 +469,7 @@ export default function Home() {
         {recentMeals.length === 0 && recentSymptoms.length === 0 && (
           <motion.div
             variants={item}
-            className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center mb-4"
+            className="tc tc-warm rounded-2xl p-6 border  shadow-sm text-center mb-4"
           >
             <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="font-display text-lg mb-1">Start tracking</h3>

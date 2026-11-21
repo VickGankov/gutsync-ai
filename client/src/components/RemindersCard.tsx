@@ -120,7 +120,7 @@ export default function RemindersCard() {
   const disabled = !!note || busy || q.isLoading;
 
   return (
-    <div className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+    <div className="tc tc-warm rounded-2xl border  shadow-sm p-5 mb-5">
       <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
         <Bell className="w-4 h-4 text-sand-dark" />
         Reminders

@@ -131,7 +131,7 @@ function TriggerCard({ t }: { t: TriggerData }) {
   };
 
   return (
-    <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+    <motion.div variants={item} className="tc tc-symptoms rounded-2xl border  shadow-sm overflow-hidden">
       <div className="p-4">
         <StatusChip c={t.confirmation} />
         <div className="flex items-start gap-3">
@@ -297,7 +297,7 @@ export default function Insights() {
       {/* Reintroduction challenge entry */}
       <motion.div variants={item} className="mb-6">
         <Link href="/reintro">
-          <div className="bg-card rounded-2xl p-4 border border-border/50 shadow-sm flex items-center gap-3">
+          <div className="tc tc-labs rounded-2xl p-4 border  shadow-sm flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <FlaskConical className="w-5 h-5 text-primary" />
             </div>
@@ -330,7 +330,7 @@ export default function Insights() {
                 {triggers.map(t => <TriggerCard key={t.key} t={t} />)}
               </div>
             ) : (
-              <div className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
+              <div className="tc tc-warm rounded-2xl p-6 border  shadow-sm text-center">
                 <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
                 <h3 className="font-display text-lg mb-1">No clear triggers yet</h3>
                 <p className="text-sm text-muted-foreground">
@@ -368,7 +368,7 @@ export default function Insights() {
 
           {/* Foods you flagged */}
           {flagged.length > 0 && (
-            <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+            <motion.div variants={item} className="tc tc-meals rounded-2xl border  shadow-sm p-5 mb-5">
               <div className="flex items-center gap-2 mb-1">
                 <Eye className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold">Foods you flagged</h3>
@@ -402,7 +402,7 @@ export default function Insights() {
 
           {/* Symptom Frequency Chart */}
           {symptomChartData.length > 0 && (
-            <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+            <motion.div variants={item} className="tc tc-symptoms rounded-2xl border  shadow-sm p-5 mb-5">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold">Symptom Frequency</h3>
@@ -430,7 +430,7 @@ export default function Insights() {
 
           {/* Sensitivity Distribution */}
           {meals.length > 0 && (
-            <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+            <motion.div variants={item} className="tc tc-symptoms rounded-2xl border  shadow-sm p-5 mb-5">
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="w-4 h-4 text-coral" />
                 <h3 className="text-sm font-semibold">Sensitivity Distribution</h3>

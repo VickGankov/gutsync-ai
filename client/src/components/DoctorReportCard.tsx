@@ -9,7 +9,7 @@ export default function DoctorReportCard() {
   const [days, setDays] = useState<number>(30);
   const href = `/api/report.pdf?days=${days}&tz=${new Date().getTimezoneOffset()}`;
   return (
-    <div className="bg-card border border-border/50 rounded-2xl p-5 mb-5">
+    <div className="tc tc-labs border  rounded-2xl p-5 mb-5">
       <div className="flex items-center gap-3 mb-3">
         <FileText className="w-5 h-5 text-primary shrink-0" />
         <div className="flex-1">

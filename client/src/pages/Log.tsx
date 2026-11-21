@@ -260,7 +260,7 @@ export default function Log() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-5"
           >
-            <div className="bg-card rounded-2xl border border-border/50 shadow-sm p-5">
+            <div className="tc tc-warm rounded-2xl border  shadow-sm p-5">
               {/* Mode Selector */}
               <div className="flex gap-2 mb-4">
                 <button
@@ -368,7 +368,7 @@ export default function Log() {
 
       {/* Empty state */}
       {!symptomsQuery.isLoading && !mealsQuery.isLoading && days.length === 0 && (
-        <motion.div variants={item} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm text-center">
+        <motion.div variants={item} className="tc tc-warm rounded-2xl p-6 border  shadow-sm text-center">
           <Leaf className="w-8 h-8 text-primary mx-auto mb-3" />
           <h3 className="font-display text-lg mb-1">{tab === "food" ? "No meals logged yet" : "No symptoms logged yet"}</h3>
           <p className="text-sm text-muted-foreground">

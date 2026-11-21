@@ -36,7 +36,7 @@ const inputCls =
   "bg-background border border-border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <motion.section variants={item} className={`bg-card border border-border/60 rounded-2xl p-4 mb-4 ${className}`}>{children}</motion.section>;
+  return <motion.section variants={item} className={`tc tc-warm border rounded-2xl p-4 mb-4 ${className}`}>{children}</motion.section>;
 }
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {

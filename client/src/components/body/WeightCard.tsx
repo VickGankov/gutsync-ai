@@ -113,9 +113,9 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
   const Arrow = !rate ? Minus : rate.lbPerWeek < -0.1 ? TrendingDown : rate.lbPerWeek > 0.1 ? TrendingUp : Minus;
 
   return (
-    <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+    <section className="tc tc-body border rounded-2xl p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
-        <Scale className="w-4 h-4" style={{ color: INK }} />
+        <span className="tc-chip"><Scale className="w-4 h-4" style={{ color: INK }} /></span>
         <h2 className="text-sm font-semibold">Weight</h2>
       </div>
 

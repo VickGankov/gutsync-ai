@@ -47,7 +47,7 @@ export default function FounderCard() {
 
   return (
     <form
-      className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5"
+      className="tc tc-volt rounded-2xl border  shadow-sm p-5 mb-5"
       onSubmit={e => { e.preventDefault(); if (code.trim()) redeem.mutate({ code }); }}
     >
       <p className="text-sm font-semibold mb-1">Have an invite code?</p>

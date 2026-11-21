@@ -69,9 +69,9 @@ export default function BodyInsights({ days, lifts, proteinTargetG, tzOffsetMinu
 
   return (
     <>
-      <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+      <section className="tc tc-strength border rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <Dumbbell className="w-4 h-4" style={{ color: TONE.strength.ink }} />
+          <span className="tc-chip"><Dumbbell className="w-4 h-4" style={{ color: TONE.strength.ink }} /></span>
           <h2 className="text-sm font-semibold">Fat or muscle?</h2>
         </div>
         <p className="text-sm font-medium rounded-lg px-3 py-2 mt-2" style={{ background: tint(tone, 14) }}>{check.headline}</p>
@@ -85,7 +85,7 @@ export default function BodyInsights({ days, lifts, proteinTargetG, tzOffsetMinu
       </section>
 
       {windows.length > 0 && (
-        <section className="bg-card border border-border/60 rounded-2xl px-4 py-1 mb-4">
+        <section className="tc tc-body border rounded-2xl px-4 py-1 mb-4">
           <Disclosure title="Around protocol changes" hint={`${windows.length} change${windows.length === 1 ? "" : "s"}`}>
             <p className="text-[11px] text-muted-foreground">Weight pace in the 2 weeks before and after each change.</p>
             <div className="mt-3 space-y-3">

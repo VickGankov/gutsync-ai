@@ -151,9 +151,9 @@ export default function LabsPanel() {
   const bandLo = Math.max(latest?.refLow ?? dMin, dMin), bandHi = Math.min(latest?.refHigh ?? dMax, dMax);
 
   return (
-    <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+    <section className="tc tc-labs border rounded-2xl p-4 mb-4">
       <div className="flex items-center gap-2 mb-1">
-        <FlaskConical className="w-4 h-4 text-primary" />
+        <span className="tc-chip"><FlaskConical className="w-4 h-4" style={{ color: "oklch(0.55 0.13 265)" }} /></span>
         <h2 className="text-sm font-semibold">Blood work</h2>
       </div>
       <p className="text-[11px] text-muted-foreground mb-3">Timing only, not medical advice. Ranges are the ones on your own report.</p>

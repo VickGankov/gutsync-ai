@@ -43,7 +43,7 @@ export default function BillingCard() {
   if (d.isPremium) {
     return (
       <>
-      <div className="bg-card border border-border/50 rounded-2xl p-5 mb-5 flex items-center gap-3">
+      <div className="tc tc-volt border  rounded-2xl p-5 mb-5 flex items-center gap-3">
         <Sparkles className="w-5 h-5 text-primary shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-semibold">Premium</p>
@@ -61,7 +61,7 @@ export default function BillingCard() {
   }
   return (
     <>
-      <div className="bg-card border border-border/50 rounded-2xl p-5 mb-5 flex items-center gap-3">
+      <div className="tc tc-volt border  rounded-2xl p-5 mb-5 flex items-center gap-3">
         <Sparkles className="w-5 h-5 text-primary shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-semibold">Go Premium</p>

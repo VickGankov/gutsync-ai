@@ -28,7 +28,7 @@ export default function AboutYou() {
   const dobOk = dob && checkBirthDate(dob) === "ok";
 
   return (
-    <div className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+    <div className="tc tc-warm rounded-2xl border  shadow-sm p-5 mb-5">
       <p className="text-sm font-semibold mb-3">About you</p>
       <div className="flex items-center justify-between gap-3">
         <div>

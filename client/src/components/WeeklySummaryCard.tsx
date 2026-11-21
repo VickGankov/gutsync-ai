@@ -53,7 +53,7 @@ export default function WeeklySummaryCard() {
   ].filter(Boolean).join(" · ") || "Nothing logged this week";
 
   return (
-    <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+    <section className="tc tc-meals border rounded-2xl p-4 mb-4">
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center gap-2 text-left">
         <CalendarDays className="w-4 h-4 text-primary shrink-0" />
         <h2 className="text-sm font-semibold shrink-0">This week</h2>

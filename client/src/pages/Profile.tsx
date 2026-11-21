@@ -122,7 +122,7 @@ export default function Profile() {
       </motion.div>
 
       {/* User Card */}
-      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+      <motion.div variants={item} className="tc tc-warm rounded-2xl border  shadow-sm p-5 mb-5">
         {isAuthenticated && user ? (
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => fileRef.current?.click()} disabled={setAvatar.isPending}
@@ -167,7 +167,7 @@ export default function Profile() {
       </motion.div>
 
       {/* Add to home screen */}
-      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+      <motion.div variants={item} className="tc tc-warm rounded-2xl border  shadow-sm p-5 mb-5">
         <SettingsRow icon={Smartphone} label="Add to Home Screen" description={install.installed ? "Triggerplate is installed on this device" : "Open Triggerplate like an app, full-screen"} action={
           install.installed ? <span className="text-xs font-semibold text-muted-foreground">Installed</span> : <button onClick={install.start} className="text-xs font-semibold text-primary">Add</button>
         } />
@@ -175,7 +175,7 @@ export default function Profile() {
       </motion.div>
 
       {/* Privacy & Data */}
-      <motion.div variants={item} className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 mb-5">
+      <motion.div variants={item} className="tc tc-body rounded-2xl border  shadow-sm p-5 mb-5">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
           <Shield className="w-4 h-4 text-primary" />
           Privacy & Data

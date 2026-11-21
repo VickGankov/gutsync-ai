@@ -45,7 +45,7 @@ export default function Billing() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (<>
         {/* Plan */}
-        <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+        <section className="tc tc-volt border rounded-2xl p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-semibold">Your plan</h2>
@@ -82,7 +82,7 @@ export default function Billing() {
         </section>
 
         {/* Scan counter */}
-        <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+        <section className="tc tc-volt border rounded-2xl p-4 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <ScanLine className="w-4 h-4" style={{ color: TONE.meals.ink }} />
             <h2 className="text-sm font-semibold">Scans today</h2>
@@ -138,7 +138,7 @@ export default function Billing() {
         </section>
 
         {/* Plans */}
-        <section className="bg-card border border-border/60 rounded-2xl p-4 mb-4">
+        <section className="tc tc-volt border rounded-2xl p-4 mb-4">
           <h2 className="text-sm font-semibold mb-2">What each plan includes</h2>
           <table className="w-full text-xs">
             <thead><tr className="text-muted-foreground text-left"><th className="font-medium py-1" /><th className="font-medium py-1">Free</th><th className="font-medium py-1">Premium</th></tr></thead>
