@@ -110,7 +110,7 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   },
   {
     key: "ss31", owner: true, name: "SS-31 (elamipretide)", aliases: ["elamipretide"],
-    benefits: ["Members describe a non-stimulant kind of energy and clarity", "Members say workouts feel easier"],
+    benefits: ["Directly repairs cardiolipin in the inner mitochondrial membrane, fixing structural leaks to resolve the root cause of cellular oxidative stress and setting the stage for NAD+ utilization.", "Members describe a non-stimulant kind of energy and clarity", "Members say workouts feel easier"],
     sideEffects: ["Exhaustion at higher doses (2.5–5 mg), which eased when people lowered the dose"],
     members: ["Many vendors have stopped carrying it"],
     track: ["energy_boost", "fatigue", "injection_site_reaction"],
