@@ -1,0 +1,44 @@
+import { describe, expect, it } from "vitest";
+import { COMPOUND_INFO, infoFor, joinBlend, splitBlend, trackFor } from "../shared/compoundInfo";
+import { COMPOUND_PRESETS, NEGATIVE_SYMPTOMS } from "../shared/dose";
+import { POSITIVE_SYMPTOM_TYPES } from "../shared/today";
+
+describe("blends", () => {
+  it("splits on / + & and 'with'", () => {
+    expect(splitBlend("CJC-1295 / Ipamorelin")).toEqual(["CJC-1295", "Ipamorelin"]);
+    expect(splitBlend("CJC-1295+Ipamorelin")).toEqual(["CJC-1295", "Ipamorelin"]);
+    expect(splitBlend("BPC-157 & TB-500")).toEqual(["BPC-157", "TB-500"]);
+    expect(splitBlend("Retatrutide")).toEqual(["Retatrutide"]);
+  });
+  it("round-trips through joinBlend", () => {
+    expect(splitBlend(joinBlend(["A", "B"]))).toEqual(["A", "B"]);
+  });
+  it("finds notes for every part and reports unknown parts instead of guessing", () => {
+    const r = infoFor("CJC-1295 (no DAC) / Ipamorelin / Mystery");
+    expect(r.known.map(i => i.name)).toEqual(["CJC-1295", "Ipamorelin"]);
+    expect(r.unknown).toEqual(["Mystery"]);
+  });
+  it("merges tracked effects without repeats", () => {
+    const t = trackFor(infoFor("CJC-1295 / Ipamorelin").known);
+    expect(new Set(t).size).toBe(t.length);
+  });
+});
+
+describe("compound notes", () => {
+  it("covers every quick-pick compound", () => {
+    for (const c of COMPOUND_PRESETS) expect(infoFor(c).known.length, c).toBe(1);
+  });
+  it("only tracks real symptom types, each with a source and review date", () => {
+    const known = new Set([...NEGATIVE_SYMPTOMS, ...POSITIVE_SYMPTOM_TYPES, "low_appetite", "better_digestion"]);
+    for (const i of COMPOUND_INFO) {
+      expect(i.source.length, i.name).toBeGreaterThan(5);
+      expect(i.reviewed, i.name).toMatch(/^\d{4}-\d{2}$/);
+      for (const t of i.track) expect(known.has(t), `${i.name}: ${t}`).toBe(true);
+    }
+  });
+  it("gives no dosing text", () => {
+    const text = JSON.stringify(COMPOUND_INFO).toLowerCase();
+    expect(text).not.toMatch(/\d+(\.\d+)?\s?(mcg|µg|ug)\b/);
+    expect(text).not.toMatch(/\bunits?\b/);
+  });
+});

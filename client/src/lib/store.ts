@@ -92,6 +92,12 @@ export function getSymptomEmoji(type: string): string {
     injection_site_reaction: '💉',
     dizziness: '💫',
     racing_heart: '💓',
+    flushing: '🥵',
+    water_retention: '💧',
+    joint_pain: '🦴',
+    less_food_noise: '🔇',
+    fewer_cravings: '🍃',
+    better_recovery: '💪',
   };
   return map[type] || '❓';
 }
@@ -118,6 +124,12 @@ export function getSymptomLabel(type: string): string {
     injection_site_reaction: 'Injection Site Reaction',
     dizziness: 'Dizziness',
     racing_heart: 'Racing Heart',
+    flushing: 'Flushing',
+    water_retention: 'Water Retention',
+    joint_pain: 'Joint Pain',
+    less_food_noise: 'Less Food Noise',
+    fewer_cravings: 'Fewer Cravings',
+    better_recovery: 'Better Recovery',
   };
   return map[type] || type;
 }

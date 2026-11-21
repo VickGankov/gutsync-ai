@@ -124,6 +124,7 @@ export function dayAfterDose(doses: DoseRow[], at: number, maxDays = 7): { dose:
 export const NEGATIVE_SYMPTOMS = new Set([
   "bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation",
   "acid_reflux", "vomiting", "low_appetite", "injection_site_reaction", "dizziness", "racing_heart",
+  "flushing", "water_retention", "joint_pain",
 ]);
 
 /** Counts by day after the preceding dose (0 = first 24 h). Negative symptoms only. */

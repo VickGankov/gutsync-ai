@@ -3,7 +3,7 @@
 
 import { TONE } from "@/lib/tones";
 import { useMemo, useState } from "react";
-import { Syringe, Trash2, Plus, Loader2, Settings2 } from "lucide-react";
+import { Syringe, Trash2, Plus, Loader2, Settings2, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
@@ -19,6 +19,8 @@ import ScheduleEditor from "@/components/protocol/ScheduleEditor";
 import ReconCalculator from "@/components/protocol/ReconCalculator";
 import ProtocolPrivacy from "@/components/protocol/ProtocolPrivacy";
 import Disclosure from "@/components/Disclosure";
+import CompoundAbout from "@/components/protocol/CompoundAbout";
+import { joinBlend, splitBlend } from "@shared/compoundInfo";
 
 const inputCls =
   "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -46,6 +48,8 @@ export default function ProtocolCard() {
   const [open, setOpen] = useState(false);
   const [compound, setCompound] = useState<string | null>(null);
   const [other, setOther] = useState("");
+  const [blendMode, setBlendMode] = useState(false);
+  const [confirmKey, setConfirmKey] = useState<string | null>(null);
   const [mg, setMg] = useState<string | null>(null);
   const [unit, setUnit] = useState<"mg" | "mcg">("mg");
   const [site, setSite] = useState<Site | "none" | null>(null);
@@ -56,7 +60,14 @@ export default function ProtocolCard() {
 
   // Defaults come from the last dose: same compound and amount, next site in the rotation.
   const compoundValue = compound ?? latest?.compound ?? "Retatrutide";
-  const isPreset = (COMPOUND_PRESETS as readonly string[]).includes(compoundValue);
+  const blendParts = splitBlend(compoundValue);
+  const isBlend = blendMode || blendParts.length > 1;
+  const isPreset = !isBlend && (COMPOUND_PRESETS as readonly string[]).includes(compoundValue);
+  const togglePart = (c: string) => {
+    const cur = blendParts.filter(p => p !== "Other");
+    const next = cur.includes(c) ? cur.filter(p => p !== c) : [...cur, c];
+    setCompound(next.length ? joinBlend(next) : c);
+  };
   const mgValue = mg ?? (latest ? String(unit === "mg" ? latest.doseMcg / 1000 : latest.doseMcg) : "");
   const usage = useMemo(() => siteUsage(doses, symptoms), [doses, symptoms]);
   const suggested = suggestSite(usage);
@@ -68,8 +79,15 @@ export default function ProtocolCard() {
   const logDose = trpc.dose.log.useMutation({
     onSuccess: () => {
       refresh();
-      setOpen(false); setMg(null); setSite(null); setNotes(""); setWhen("");
+      setOpen(false); setMg(null); setSite(null); setNotes(""); setWhen(""); setBlendMode(false);
       toast.success("Dose logged");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const quickLog = trpc.dose.log.useMutation({
+    onSuccess: ({ id }, v) => {
+      refresh(); setConfirmKey(null);
+      toast.success(`${v.compound} logged`, { duration: 8000, action: { label: "Undo", onClick: () => deleteDose.mutate({ id }) } });
     },
     onError: (e) => toast.error(e.message),
   });
@@ -90,12 +108,19 @@ export default function ProtocolCard() {
   const effects = useMemo(() => sideEffectsByDay(focusDoses, symptoms, 7), [focusDoses, symptoms]);
 
   const submit = () => {
-    const name = (isPreset ? compoundValue : other || compoundValue).trim();
+    const name = (isBlend ? joinBlend(blendParts) : isPreset ? compoundValue : other || compoundValue).trim();
     const amount = Number(mgValue);
     if (!name) return toast.error("Enter the compound name");
     if (!Number.isFinite(amount) || amount <= 0) return toast.error(`Enter the dose in ${unit}`);
     const at = when ? new Date(when).getTime() : undefined;
     logDose.mutate({ compound: name, doseMcg: unit === "mg" ? mgToMcg(amount) : Math.round(amount), ...(siteValue ? { site: siteValue } : {}), ...(notes.trim() ? { notes: notes.trim() } : {}), ...(at ? { loggedAt: at } : {}) });
+  };
+
+  const recentDose = (key: string) => doses.find(d => compoundKey(d.compound) === key && Date.now() - d.loggedAt < 12 * 3_600_000);
+  const oneTap = (st: (typeof statuses)[number], confirmed = false) => {
+    if (!confirmed && recentDose(st.key)) { setConfirmKey(st.key); return; }
+    const l = st.latest!;
+    quickLog.mutate({ compound: l.compound, doseMcg: l.doseMcg, ...(l.site && suggested ? { site: suggested } : {}) });
   };
 
   const fmtDay = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: "long" });
@@ -155,6 +180,26 @@ export default function ProtocolCard() {
                   {ss.expected28 > 0 && <span className="rounded-full bg-background px-2 py-0.5">{ss.taken28} of {ss.expected28} taken (28 days)</span>}
                 </div>
               )}
+              {(() => {
+                const due = ss ? ss.state === "due" || ss.state === "overdue" : st.state === "due" || st.state === "overdue";
+                const recent = recentDose(st.key);
+                const hrs = recent ? Math.max(1, Math.round((Date.now() - recent.loggedAt) / 3_600_000)) : 0;
+                const busy = quickLog.isPending;
+                return confirmKey === st.key && recent ? (
+                  <div className="mt-2 rounded-xl bg-background px-3 py-2">
+                    <p className="text-xs">A dose was logged {hrs} hour{hrs === 1 ? "" : "s"} ago. Log another?</p>
+                    <div className="mt-1.5 flex gap-2">
+                      <Button size="sm" className="h-8 rounded-xl" disabled={busy} onClick={() => oneTap(st, true)}>Log again</Button>
+                      <Button size="sm" variant="outline" className="h-8 rounded-xl" onClick={() => setConfirmKey(null)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button size="sm" variant={due ? "default" : "outline"} className="mt-2 h-9 w-full rounded-xl gap-1.5" disabled={busy} onClick={() => oneTap(st)}>
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    Log {fmtMg(st.latest!.doseMcg)}{st.latest!.site && suggested ? ` · ${SITE_LABEL[suggested]}` : ""}
+                  </Button>
+                );
+              })()}
               <div className="mt-1.5 text-[11px] text-muted-foreground">
                 {editKey === st.key ? (
                   <ScheduleEditor current={sched} saving={saveSchedule.isPending} onCancel={() => setEditKey(null)}
@@ -165,6 +210,7 @@ export default function ProtocolCard() {
                   </button>
                 )}
               </div>
+              <CompoundAbout name={st.latest!.compound} />
             </div>
             );
           })}
@@ -180,11 +226,17 @@ export default function ProtocolCard() {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">Compound</p>
             <div className="flex flex-wrap gap-1.5">
               {COMPOUND_PRESETS.map(c => (
-                <button key={c} type="button" className={chip(compoundValue === c)} onClick={() => setCompound(c)}>{c}</button>
+                <button key={c} type="button" className={chip(isBlend ? blendParts.includes(c) : compoundValue === c)}
+                  onClick={() => (isBlend ? togglePart(c) : setCompound(c))}>{c}</button>
               ))}
-              <button type="button" className={chip(!isPreset)} onClick={() => setCompound(other || "Other")}>Other</button>
+              <button type="button" className={chip(isBlend)} onClick={() => {
+                if (isBlend) { setBlendMode(false); setCompound(blendParts[0] ?? null); }
+                else { setBlendMode(true); setCompound(isPreset ? compoundValue : "Other"); }
+              }}>Blend</button>
+              <button type="button" className={chip(!isPreset && !isBlend)} onClick={() => { setBlendMode(false); setCompound(other || "Other"); }}>Other</button>
             </div>
-            {!isPreset && (
+            {isBlend && <p className="text-[11px] text-muted-foreground mt-1.5">Tap each part. Logged as {blendParts.length ? joinBlend(blendParts) : "…"}. Enter the total dose per injection.</p>}
+            {!isPreset && !isBlend && (
               <input className={`${inputCls} mt-2`} placeholder="Name" value={other || (compoundValue === "Other" ? "" : compoundValue)}
                 onChange={e => { setOther(e.target.value); setCompound(e.target.value || "Other"); }} />
             )}

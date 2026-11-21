@@ -7,6 +7,9 @@ export const POSITIVE_SYMPTOM_TYPES = new Set([
   "better_sleep",
   "clearer_skin",
   "reduced_brain_fog",
+  "less_food_noise",
+  "fewer_cravings",
+  "better_recovery",
 ]);
 
 export type TodayNudge =

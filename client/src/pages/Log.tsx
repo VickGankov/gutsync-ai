@@ -18,7 +18,7 @@ import MealTile from "@/components/MealTile";
 import type { FoodItem } from "@/lib/store";
 import { getSymptomEmoji, getSymptomLabel, formatTimeAgo } from "@/lib/store";
 
-type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog" | "injection_site_reaction" | "dizziness" | "racing_heart";
+type SymptomType = "bloating" | "abdominal_pain" | "gas" | "nausea" | "fatigue" | "headache" | "diarrhea" | "constipation" | "acid_reflux" | "vomiting" | "low_appetite" | "energy_boost" | "better_digestion" | "improved_mood" | "better_sleep" | "clearer_skin" | "reduced_brain_fog" | "injection_site_reaction" | "dizziness" | "racing_heart" | "flushing" | "water_retention" | "joint_pain" | "less_food_noise" | "fewer_cravings" | "better_recovery";
 
 const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] = [
   { type: 'bloating', emoji: '🫧', label: 'Bloating' },
@@ -35,6 +35,9 @@ const NEGATIVE_SYMPTOMS: { type: SymptomType; emoji: string; label: string }[] =
   { type: 'injection_site_reaction', emoji: '💉', label: 'Injection Site' },
   { type: 'dizziness', emoji: '💫', label: 'Dizziness' },
   { type: 'racing_heart', emoji: '💓', label: 'Racing Heart' },
+  { type: 'flushing', emoji: '🥵', label: 'Flushing' },
+  { type: 'water_retention', emoji: '💧', label: 'Water Retention' },
+  { type: 'joint_pain', emoji: '🦴', label: 'Joint Pain' },
 ];
 
 const POSITIVE_OUTCOMES: { type: SymptomType; emoji: string; label: string }[] = [
@@ -44,6 +47,9 @@ const POSITIVE_OUTCOMES: { type: SymptomType; emoji: string; label: string }[] =
   { type: 'better_sleep', emoji: '😴', label: 'Better Sleep' },
   { type: 'clearer_skin', emoji: '🌟', label: 'Clearer Skin' },
   { type: 'reduced_brain_fog', emoji: '🧠', label: 'Reduced Brain Fog' },
+  { type: 'less_food_noise', emoji: '🔇', label: 'Less Food Noise' },
+  { type: 'fewer_cravings', emoji: '🍃', label: 'Fewer Cravings' },
+  { type: 'better_recovery', emoji: '💪', label: 'Better Recovery' },
 ];
 
 const container = {

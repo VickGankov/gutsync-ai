@@ -500,7 +500,7 @@ export const appRouter = router({
 
     log: protectedProcedure
       .input(z.object({
-        type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "acid_reflux", "vomiting", "low_appetite", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog", "injection_site_reaction", "dizziness", "racing_heart"]),
+        type: z.enum(["bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation", "acid_reflux", "vomiting", "low_appetite", "energy_boost", "better_digestion", "improved_mood", "better_sleep", "clearer_skin", "reduced_brain_fog", "injection_site_reaction", "dizziness", "racing_heart", "flushing", "water_retention", "joint_pain", "less_food_noise", "fewer_cravings", "better_recovery"]),
         severity: z.number().min(1).max(5),
         source: z.enum(["manual"]).optional(),
         notes: z.string().optional(),
