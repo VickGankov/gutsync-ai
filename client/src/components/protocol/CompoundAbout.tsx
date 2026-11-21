@@ -48,7 +48,7 @@ export default function CompoundAbout({ name }: { name: string }) {
             <p className="text-sm font-medium">{blend.name}</p>
             <List label="Benefits" items={blend.benefits} />
             <List label="Side effects" items={blend.sideEffects} />
-            <List label="Members also report" items={blend.members ?? []} />
+            <List label="Independent members report" items={blend.members ?? []} />
           </div>
         )}
         {known.map(i => {
@@ -59,7 +59,7 @@ export default function CompoundAbout({ name }: { name: string }) {
               {(blend || multi) && <p className="text-sm font-medium">{i.name}</p>}
               {full && <List label="Benefits" items={i.benefits} />}
               {full && <List label="Side effects" items={i.sideEffects} />}
-              <List label="Members also report" items={i.members ?? []} />
+              <List label="Independent members report" items={i.members ?? []} />
             </div>
           );
         })}

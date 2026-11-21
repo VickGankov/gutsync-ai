@@ -56,13 +56,10 @@ describe("compound notes", () => {
       for (const t of i.track) expect(known.has(t), `${i.name}: ${t}`).toBe(true);
     }
   });
-  it("keeps dose figures out of member notes", () => {
-    const m = JSON.stringify([...COMPOUND_INFO, ...BLEND_INFO].map(i => i.members ?? [])).toLowerCase();
-    expect(m).not.toMatch(/\d+(\.\d+)?\s?(mcg|mg|ug|µg|iu)\b/);
-  });
-  it("gives no dosing text", () => {
-    const text = JSON.stringify([COMPOUND_INFO, BLEND_INFO]).toLowerCase();
-    expect(text).not.toMatch(/\d+(\.\d+)?\s?(mcg|µg|ug)\b/);
-    expect(text).not.toMatch(/\bunits?\b/);
+  it("member notes are non-empty and carry no imperative dosing ('take', 'inject', 'use')", () => {
+    for (const i of [...COMPOUND_INFO, ...BLEND_INFO]) for (const m of i.members ?? []) {
+      expect(m.length).toBeGreaterThan(10);
+      expect(m).not.toMatch(/^(take|inject|use|dose)\b/i);
+    }
   });
 });

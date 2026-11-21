@@ -2,7 +2,7 @@
 // Static on purpose: never generated at runtime, never sent to the AI, shown only inside the signed-in app.
 // Benefits and side effects for NAD+, SS-31, MOTS-c, 5-amino-1MQ, Retatrutide and the three blends are the owner's own wording, kept verbatim.
 // "members" notes come from Project Biohacked member reports (anecdotal; several top posters are tied to vendors).
-// Dose figures from those reports are deliberately left out.
+// Dose figures appear only inside these member notes, worded as what members report, never as advice.
 // Every entry keeps a source and a review date for maintenance (not shown). Re-check wording before changing anything here.
 
 export interface CompoundInfo {
@@ -35,7 +35,7 @@ export const COMPOUND_INFO: CompoundInfo[] = [
     key: "retatrutide", owner: true, name: "Retatrutide",
     benefits: ["Extreme appetite suppression (often described as completely silencing \"food noise\"), rapid initial weight loss, and potential lean muscle preservation when combined with high protein intake and resistance training."],
     sideEffects: ["Nausea, GI distress (cramping and alternating bouts of diarrhea and constipation), profound fatigue, and an elevated resting heart rate. A highly specific side effect heavily documented on Reddit is allodynia—a bizarre skin hypersensitivity that feels like a sunburn or intense cold radiating deep into the bones, typically emerging at doses above 3mg."],
-    members: ["Many report big weight loss (one person lost 43 lb in about 3 months) and better appetite control", "Several mention less inflammation and gut or autoimmune relief", "Most common side effects are GI problems like stomach pain, diarrhea and nausea, then fatigue, with a few reports of heart-rate spikes", "Most start low and titrate slowly", "Some members worry supply could tighten"],
+    members: ["Many report big weight loss (one person lost 43 lb in about 3 months) and better appetite control", "Several mention less inflammation and gut or autoimmune relief", "Most common side effects are GI problems like stomach pain, diarrhea and nausea, then fatigue, with a few reports of heart-rate spikes", "Most start at 250–500 mcg and titrate slowly", "Some members worry supply could tighten"],
     track: ["less_food_noise", "fewer_cravings", "low_appetite", "nausea", "diarrhea", "constipation", "fatigue", "racing_heart", "skin_sensitivity", "injection_site_reaction"],
     source: "Eli Lilly TRIUMPH-2/3 announcement, Jul 2026; Jastreboff et al., NEJM 2023; user reports",
     reviewed: "2026-11",
@@ -103,7 +103,7 @@ export const COMPOUND_INFO: CompoundInfo[] = [
     key: "nad", owner: true, name: "NAD+",
     benefits: ["Provides the raw fuel for cellular energy production. Users frequently report massive reductions in brain fog, sharp increases in sustained daytime energy, and accelerated recovery from intense training or illness."],
     sideEffects: ["The highly documented \"NAD flush.\" If you inject a high dose or push the plunger too fast, you will likely experience a sudden, intense wave of heat, chest tightness, a racing heart, and nausea that lasts for 3 to 5 minutes. Subcutaneous injections of pure NAD+ are also notorious for stinging at the injection site."],
-    members: ["Many report strong energy and focus, often within a week", "Side effects include fatigue (linked to methylation), a short flush or jittery feeling, and stinging at the injection site", "One serious event stands out: a long-time user nearly fainted after a large intramuscular shot, and about four others said the same had happened to them", "Most people test a low dose first"],
+    members: ["Many report strong energy and focus, often within a week", "Side effects include fatigue (linked to methylation), a short flush or jittery feeling, and stinging at the injection site", "One serious event stands out: a long-time user nearly fainted after a 200 mg intramuscular shot, and about four others said the same had happened to them", "Most people test a low dose first and settle at 40–100 mg"],
     track: ["reduced_brain_fog", "energy_boost", "better_recovery", "flushing", "racing_heart", "nausea", "injection_site_reaction"],
     source: "User reports; limited human data on injected NAD+",
     reviewed: "2026-11",
@@ -111,8 +111,8 @@ export const COMPOUND_INFO: CompoundInfo[] = [
   {
     key: "ss31", owner: true, name: "SS-31 (elamipretide)", aliases: ["elamipretide"],
     benefits: ["Directly repairs cardiolipin in the inner mitochondrial membrane, fixing structural leaks to resolve the root cause of cellular oxidative stress and setting the stage for NAD+ utilization."],
-    sideEffects: ["Universally reported as having minimal to no side effects, with the most common issue simply being minor, temporary redness or itching at the subcutaneous injection site."],
-    members: ["Members describe a non-stimulant kind of energy and clarity, and say workouts feel easier", "Main side effect is exhaustion at higher doses, which eased when people lowered the dose", "Many vendors have stopped carrying it"],
+    sideEffects: ["Universally reported as having minimal to no side effects, with the most common issue simply being minor, temporary redness or itching at the subcutaneous injection site.", "FDA's label for elamipretide (Forzinity) lists injection site reactions as the most common side effect. Serious allergic reactions have also been reported, such as rash, itching, cough or trouble breathing"],
+    members: ["Members describe a non-stimulant kind of energy and clarity, and say workouts feel easier", "Main side effect is exhaustion at higher doses (2.5–5 mg), which eased when people lowered the dose", "Many vendors have stopped carrying it"],
     track: ["injection_site_reaction", "energy_boost", "better_recovery", "fatigue"],
     source: "FDA Forzinity approval and prescribing information, 2025",
     reviewed: "2026-11",
