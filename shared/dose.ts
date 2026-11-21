@@ -15,7 +15,7 @@ export const SITE_LABEL: Record<Site, string> = {
 
 /** Quick-pick names (labels only; any other name can be typed). */
 export const COMPOUND_PRESETS = [
-  "Retatrutide", "BPC-157", "TB-500", "Ipamorelin", "CJC-1295", "GHK-Cu", "MOTS-c", "Tesamorelin",
+  "Retatrutide", "BPC-157", "TB-500", "Ipamorelin", "CJC-1295", "GHK-Cu", "MOTS-c", "Tesamorelin", "NAD+", "SS-31", "5-amino-1MQ",
 ] as const;
 
 export interface DoseRow { id: number; compound: string; doseMcg: number; site: string | null; loggedAt: number }
@@ -124,7 +124,7 @@ export function dayAfterDose(doses: DoseRow[], at: number, maxDays = 7): { dose:
 export const NEGATIVE_SYMPTOMS = new Set([
   "bloating", "abdominal_pain", "gas", "nausea", "fatigue", "headache", "diarrhea", "constipation",
   "acid_reflux", "vomiting", "low_appetite", "injection_site_reaction", "dizziness", "racing_heart",
-  "flushing", "water_retention", "joint_pain",
+  "flushing", "water_retention", "joint_pain", "skin_sensitivity", "poor_sleep", "jitteriness",
 ]);
 
 /** Counts by day after the preceding dose (0 = first 24 h). Negative symptoms only. */

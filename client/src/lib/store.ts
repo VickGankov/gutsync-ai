@@ -98,6 +98,9 @@ export function getSymptomEmoji(type: string): string {
     less_food_noise: '🔇',
     fewer_cravings: '🍃',
     better_recovery: '💪',
+    skin_sensitivity: '🌡️',
+    poor_sleep: '🥱',
+    jitteriness: '🫨',
   };
   return map[type] || '❓';
 }
@@ -130,6 +133,9 @@ export function getSymptomLabel(type: string): string {
     less_food_noise: 'Less Food Noise',
     fewer_cravings: 'Fewer Cravings',
     better_recovery: 'Better Recovery',
+    skin_sensitivity: 'Skin Sensitivity',
+    poor_sleep: 'Poor Sleep',
+    jitteriness: 'Jitteriness',
   };
   return map[type] || type;
 }

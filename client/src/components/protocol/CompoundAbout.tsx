@@ -22,7 +22,7 @@ function List({ label, items }: { label: string; items: string[] }) {
 }
 
 export default function CompoundAbout({ name }: { name: string }) {
-  const { parts, known, unknown } = infoFor(name);
+  const { parts, known, unknown, blend } = infoFor(name);
   const utils = trpc.useUtils();
   const [picked, setPicked] = useState<string | null>(null);
   const log = trpc.symptoms.log.useMutation({
@@ -33,24 +33,37 @@ export default function CompoundAbout({ name }: { name: string }) {
     },
     onError: e => toast.error(e.message),
   });
-  const track = trackFor(known);
-  const blend = parts.length > 1;
+  const track = trackFor(known, blend);
+  const multi = known.length > 1;
+  const isBlend = parts.length > 1;
 
   return (
-    <Disclosure title={`About ${blend ? "this blend" : name}`} hint={blend ? `${parts.length} parts` : undefined} className="mt-2 border-t border-border/50">
+    <Disclosure title={`About ${isBlend ? "this blend" : name}`} hint={isBlend ? `${parts.length} parts` : undefined} className="mt-2 border-t border-border/50">
       <div className="space-y-3">
+        <p className="text-[11px] text-muted-foreground leading-snug">Mostly what users report, plus ideas from early studies. Not proven, and not medical advice.</p>
+        {blend && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{blend.name}</p>
+            <List label="Reported benefits" items={blend.benefits} />
+            <List label="Reported side effects" items={blend.sideEffects} />
+            <List label="Still debated" items={blend.debated ?? []} />
+            <p className="text-[10px] text-muted-foreground">Source: {blend.source} · reviewed {blend.reviewed}</p>
+          </div>
+        )}
         {known.map(i => (
           <div key={i.key} className="space-y-2">
-            {blend && <p className="text-sm font-medium">{i.name}</p>}
+            {(blend || multi) && <p className="text-sm font-medium">{i.name}</p>}
             <p className="text-xs leading-snug">
               <span className="font-medium">{EVIDENCE_LABEL[i.evidence]}.</span> {i.status}
             </p>
-            <List label="Studied for" items={i.studied} />
-            <List label="Commonly reported" items={i.reported} />
-            <List label="Talk to a doctor if" items={i.seekCare} />
+            {!blend && <List label="Reported benefits" items={i.benefits} />}
+            {!blend && <List label="Reported side effects" items={i.sideEffects} />}
+            {!blend && <List label="Still debated" items={i.debated ?? []} />}
+            {!blend && <List label="Talk to a doctor if" items={i.seekCare} />}
             <p className="text-[10px] text-muted-foreground">Source: {i.source} · reviewed {i.reviewed}</p>
           </div>
         ))}
+        {blend && <List label="Talk to a doctor if" items={Array.from(new Set(known.flatMap(i => i.seekCare)))} />}
         {unknown.length > 0 && (
           <p className="text-xs text-muted-foreground">No notes yet for {unknown.join(", ")}.</p>
         )}

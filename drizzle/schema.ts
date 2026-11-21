@@ -86,7 +86,8 @@ export const symptoms = mysqlTable("symptoms", {
     // Medication side effects (appended last: TiDB only allows adding enum values at the end)
     "injection_site_reaction", "dizziness", "racing_heart",
     // Protocol effects people track (appended again: TiDB only allows adding enum values at the end)
-    "flushing", "water_retention", "joint_pain", "less_food_noise", "fewer_cravings", "better_recovery"
+    "flushing", "water_retention", "joint_pain", "less_food_noise", "fewer_cravings", "better_recovery",
+    "skin_sensitivity", "poor_sleep", "jitteriness"
   ]).notNull(),
   severity: int("severity").notNull(), // 1-5
   source: mysqlEnum("source", ["manual"]).default("manual").notNull(),

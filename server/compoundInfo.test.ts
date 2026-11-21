@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMPOUND_INFO, infoFor, joinBlend, splitBlend, trackFor } from "../shared/compoundInfo";
+import { BLEND_INFO, COMPOUND_INFO, infoFor, joinBlend, splitBlend, trackFor } from "../shared/compoundInfo";
 import { COMPOUND_PRESETS, NEGATIVE_SYMPTOMS } from "../shared/dose";
 import { POSITIVE_SYMPTOM_TYPES } from "../shared/today";
 
@@ -24,12 +24,32 @@ describe("blends", () => {
   });
 });
 
+describe("NAD+, aliases and matched blends", () => {
+  it("keeps the plus in NAD+", () => {
+    expect(splitBlend("NAD+")).toEqual(["NAD+"]);
+    expect(splitBlend("NAD+ / MOTS-c / 5-amino-1MQ")).toEqual(["NAD+", "MOTS-c", "5-amino-1MQ"]);
+    expect(splitBlend("CJC-1295+Ipamorelin")).toEqual(["CJC-1295", "Ipamorelin"]);
+  });
+  it("treats SS-31 and elamipretide as one compound", () => {
+    expect(infoFor("SS-31 / Elamipretide").known.map(i => i.key)).toEqual(["ss31"]);
+  });
+  it("attaches a blend note only when every part is known and the set matches", () => {
+    expect(infoFor("CJC-1295 / Ipamorelin").blend?.name).toMatch(/CJC/);
+    expect(infoFor("Ipamorelin / CJC-1295").blend).toBeDefined();
+    expect(infoFor("BPC-157 & TB-500").blend).toBeDefined();
+    expect(infoFor("NAD+ / MOTS-c / 5-amino-1MQ").blend).toBeDefined();
+    expect(infoFor("CJC-1295 / Ipamorelin / Mystery").blend).toBeUndefined();
+    expect(infoFor("BPC-157 / Ipamorelin").blend).toBeUndefined();
+  });
+});
+
 describe("compound notes", () => {
   it("covers every quick-pick compound", () => {
     for (const c of COMPOUND_PRESETS) expect(infoFor(c).known.length, c).toBe(1);
   });
   it("only tracks real symptom types, each with a source and review date", () => {
     const known = new Set([...NEGATIVE_SYMPTOMS, ...POSITIVE_SYMPTOM_TYPES, "low_appetite", "better_digestion"]);
+    for (const b of BLEND_INFO) for (const t of b.track) expect(known.has(t), `${b.name}: ${t}`).toBe(true);
     for (const i of COMPOUND_INFO) {
       expect(i.source.length, i.name).toBeGreaterThan(5);
       expect(i.reviewed, i.name).toMatch(/^\d{4}-\d{2}$/);
@@ -37,8 +57,9 @@ describe("compound notes", () => {
     }
   });
   it("gives no dosing text", () => {
-    const text = JSON.stringify(COMPOUND_INFO).toLowerCase();
+    const text = JSON.stringify([COMPOUND_INFO, BLEND_INFO]).toLowerCase();
     expect(text).not.toMatch(/\d+(\.\d+)?\s?(mcg|µg|ug)\b/);
     expect(text).not.toMatch(/\bunits?\b/);
+    expect(text).not.toMatch(/\d+(\.\d+)?\s?mg\b/);
   });
 });
