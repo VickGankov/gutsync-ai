@@ -3,7 +3,7 @@
 
 import { TONE } from "@/lib/tones";
 import { useMemo, useState } from "react";
-import { Syringe, Plus, Loader2, Settings2, Zap, Pencil } from "lucide-react";
+import { Syringe, Plus, Loader2, Settings2, Zap, Pencil, Check } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
@@ -52,6 +52,7 @@ export default function ProtocolCard() {
   const [blendMode, setBlendMode] = useState(false);
   const [confirmKey, setConfirmKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
+  const [cardEditId, setCardEditId] = useState<number | null>(null);
   const [mg, setMg] = useState<string | null>(null);
   const [unit, setUnit] = useState<"mg" | "mcg">("mg");
   const [site, setSite] = useState<Site | "none" | null>(null);
@@ -179,10 +180,15 @@ export default function ProtocolCard() {
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${chipTone}`}>{chipText}</span>
               </div>
               {(() => {
+                const l = st.latest!;
                 const recent = recentDose(st.key);
                 const hrs = recent ? Math.max(1, Math.round((Date.now() - recent.loggedAt) / 3_600_000)) : 0;
                 const busy = quickLog.isPending;
-                return confirmKey === st.key && recent ? (
+                const today = new Date(l.loggedAt).toDateString() === new Date().toDateString();
+                const clock = new Date(l.loggedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+                const full = cardEditId === l.id ? doses.find(d => d.id === l.id) : undefined;
+                if (full) return <div className="mt-3"><DoseEditor dose={full} onClose={() => setCardEditId(null)} /></div>;
+                if (confirmKey === st.key && recent) return (
                   <div className="mt-3 rounded-xl bg-background px-3 py-2">
                     <p className="text-xs">A dose was logged {hrs} hour{hrs === 1 ? "" : "s"} ago. Log another?</p>
                     <div className="mt-1.5 flex gap-2">
@@ -190,10 +196,19 @@ export default function ProtocolCard() {
                       <Button size="sm" variant="outline" className="h-8 rounded-xl" onClick={() => setConfirmKey(null)}>Cancel</Button>
                     </div>
                   </div>
-                ) : (
+                );
+                // Logged today: a calm confirmation instead of a button, with Edit and a deliberate "log another".
+                if (today) return (
+                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-background px-3 py-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, oklch(0.7 0.15 150) 25%, transparent)", color: "oklch(0.45 0.12 150)" }}><Check className="h-3.5 w-3.5" /></span>
+                    <span className="min-w-0 flex-1 text-sm"><span className="font-medium">Logged {clock}</span><span className="text-muted-foreground"> · {fmtMg(l.doseMcg)}{l.site ? ` · ${SITE_LABEL[l.site as Site] ?? l.site}` : ""}</span></span>
+                    <button type="button" onClick={() => setCardEditId(l.id)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium hover:bg-muted"><Pencil className="h-3 w-3" />Edit</button>
+                  </div>
+                );
+                return (
                   <Button size="sm" variant={due ? "default" : "outline"} className="mt-3 h-10 w-full rounded-xl gap-1.5" disabled={busy} onClick={() => oneTap(st)}>
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                    Log {fmtMg(st.latest!.doseMcg)}
+                    {due ? `Log ${fmtMg(l.doseMcg)}` : `Log early · ${fmtMg(l.doseMcg)}`}
                   </Button>
                 );
               })()}
@@ -201,6 +216,7 @@ export default function ProtocolCard() {
                 <p className="text-xs text-muted-foreground">
                   Last dose {new Date(st.latest!.loggedAt).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                   {st.latest!.site && ` · ${SITE_LABEL[st.latest!.site as Site] ?? st.latest!.site}`}
+                  {" · "}<button type="button" className="underline underline-offset-2" onClick={() => setCardEditId(st.latest!.id)}>Edit</button>
                 </p>
                 <p className={`text-xs mt-0.5 ${overdue ? "text-coral font-medium" : "text-foreground"}`}>{ss ? planText(ss) : dueText(st)}</p>
                 {ss && (
@@ -209,6 +225,9 @@ export default function ProtocolCard() {
                     {ss.expected28 > 0 && <span className="rounded-full bg-background px-2 py-0.5">{ss.taken28} of {ss.expected28} taken (28 days)</span>}
                   </div>
                 )}
+                <button type="button" className="mt-2 text-xs font-medium underline underline-offset-2" onClick={() => oneTap(st, true)} disabled={quickLog.isPending}>
+                  Log another {fmtMg(st.latest!.doseMcg)} now
+                </button>
                 <div className="mt-2 text-[11px] text-muted-foreground">
                   {editKey === st.key ? (
                     <ScheduleEditor current={sched} saving={saveSchedule.isPending} onCancel={() => setEditKey(null)}
