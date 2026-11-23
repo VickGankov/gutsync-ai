@@ -101,7 +101,7 @@
   border-color: color-mix(in oklab, var(--t) 34%, var(--border));
 }
 /* One lime for every tone, so the app reads as one family. The class names stay so a tone can diverge again later. */
-:root { --tone-lime: oklch(0.84 0.17 122); }
+:root { --tone-lime: oklch(0.84 0.17 122); --action: oklch(0.4 0.095 130); } /* deep olive: the one color for "you can tap this" */
 .tc-protocol, .tc-protein, .tc-water, .tc-fiber, .tc-strength, .tc-meals, .tc-symptoms, .tc-body, .tc-labs, .tc-warm, .tc-volt { --t: var(--tone-lime); }
 /* Icon chip that sits in a card title */
 .tc-chip {

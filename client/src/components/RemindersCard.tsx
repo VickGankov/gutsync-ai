@@ -169,7 +169,7 @@ export default function RemindersCard() {
       </div>
 
       {(meal || check) && thisDevice && !note && (
-        <button type="button" onClick={sendTest} disabled={test.isPending} className="mt-3 text-xs font-semibold text-primary disabled:opacity-60">
+        <button type="button" onClick={sendTest} disabled={test.isPending} className="mt-3 text-xs font-semibold text-primary disabled:opacity-60 underline decoration-primary/30 underline-offset-4">
           {test.isPending ? "Sending..." : "Send a test notification"}
         </button>
       )}

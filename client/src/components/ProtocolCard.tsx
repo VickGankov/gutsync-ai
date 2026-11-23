@@ -202,7 +202,7 @@ export default function ProtocolCard() {
                   <div className="mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5" style={{ background: "color-mix(in oklab, var(--tone-lime) 20%, var(--card))", borderColor: "color-mix(in oklab, var(--tone-lime) 50%, var(--border))" }}>
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "color-mix(in oklab, var(--tone-lime) 55%, transparent)", color: "oklch(0.36 0.09 125)" }}><Check className="h-3.5 w-3.5" /></span>
                     <span className="min-w-0 flex-1 text-sm"><span className="font-medium">Logged {clock}</span><span className="text-muted-foreground"> · {fmtMg(l.doseMcg)}{l.site ? ` · ${SITE_LABEL[l.site as Site] ?? l.site}` : ""}</span></span>
-                    <button type="button" onClick={() => setCardEditId(l.id)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium hover:bg-muted"><Pencil className="h-3 w-3" />Edit</button>
+                    <button type="button" onClick={() => setCardEditId(l.id)} className="inline-flex items-center gap-1 rounded-full border border-[color-mix(in_oklab,var(--action)_35%,var(--border))] bg-card px-2.5 py-1 text-xs font-semibold text-[var(--action)] shadow-sm"><Pencil className="h-3 w-3" />Edit</button>
                   </div>
                 );
                 return (

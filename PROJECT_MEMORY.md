@@ -210,3 +210,4 @@ This file is the durable context for future Cursor chats in this workspace.
 
 ## Color coordination (Nov 23)
 - Everything now sits in the lime family: sage tokens (`--color-sage*`) and the "good" verdict green moved from hue 155 to 125; TONE inks in `client/src/lib/tones.ts` retuned (protein deeper green-lime, water muted teal, fiber gold, strength slate, protocol olive). Coral stays only for alerts/overdue. Goal box and weight dots now lime/olive.
+- Interactive pattern (Nov 23): charcoal filled = primary action; outlined olive pill/button (`--action`, deep olive oklch(0.4 0.095 130)) = secondary (Button outline/secondary, Edit); olive underlined text = link/ghost; olive-ringed circle chevron = expand (Disclosure, calculator tile). Info chips stay flat with no border.

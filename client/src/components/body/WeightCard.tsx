@@ -222,7 +222,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
                   {eta?.state === "unknown" && "A date shows once your pace is clear."}
                 </p>
               </div>
-              <button className="text-[11px] font-semibold text-primary shrink-0" onClick={() => { setGoalInput(String(goal)); setEditGoal(true); }}>Edit</button>
+              <button className="text-[11px] font-semibold text-primary shrink-0 underline decoration-primary/30 underline-offset-4" onClick={() => { setGoalInput(String(goal)); setEditGoal(true); }}>Edit</button>
             </div>
           ) : editGoal || !goal ? (
             <div>

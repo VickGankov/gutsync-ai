@@ -55,7 +55,7 @@ export default function ReconCalculator() {
           <span className="block text-sm font-semibold">Reconstitution calculator</span>
           <span className="block text-xs text-muted-foreground">Turn a vial mix into syringe units</span>
         </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[color-mix(in_oklab,var(--action)_35%,var(--border))] bg-card shadow-sm"><ChevronDown className={`h-3.5 w-3.5 text-[var(--action)] transition-transform ${open ? "rotate-180" : ""}`} /></span>
       </button>
       {open && (
         <div className="mt-2 rounded-xl border border-border/60 bg-card p-3 space-y-3">

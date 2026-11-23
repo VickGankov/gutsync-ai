@@ -330,7 +330,7 @@ export default function Reintro() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold">Your tolerance map</h2>
           {completed.length > 0 && (
-            <button onClick={shareSummary} className="text-xs text-primary flex items-center gap-1">
+            <button onClick={shareSummary} className="text-xs text-primary flex items-center gap-1 underline decoration-primary/30 underline-offset-4">
               <Share2 className="w-3.5 h-3.5" /> Share
             </button>
           )}

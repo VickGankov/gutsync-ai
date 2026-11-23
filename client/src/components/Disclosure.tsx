@@ -19,7 +19,7 @@ export default function Disclosure({ title, hint, defaultOpen = false, className
         className="flex w-full items-center gap-2 py-2 text-left text-xs font-semibold">
         <span>{title}</span>
         {hint != null && <span className="font-normal text-muted-foreground">{hint}</span>}
-        <ChevronDown className={`ml-auto h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className="ml-auto grid h-6 w-6 place-items-center rounded-full border border-[color-mix(in_oklab,var(--action)_35%,var(--border))] bg-card shadow-sm"><ChevronDown className={`h-3.5 w-3.5 text-[var(--action)] transition-transform ${open ? "rotate-180" : ""}`} /></span>
       </button>
       {open && <div className="pb-1">{children}</div>}
     </div>

@@ -169,7 +169,7 @@ export default function Profile() {
       {/* Add to home screen */}
       <motion.div variants={item} className="tc tc-warm rounded-2xl border  shadow-sm p-5 mb-5">
         <SettingsRow icon={Smartphone} label="Add to Home Screen" description={install.installed ? "Triggerplate is installed on this device" : "Open Triggerplate like an app, full-screen"} action={
-          install.installed ? <span className="text-xs font-semibold text-muted-foreground">Installed</span> : <button onClick={install.start} className="text-xs font-semibold text-primary">Add</button>
+          install.installed ? <span className="text-xs font-semibold text-muted-foreground">Installed</span> : <button onClick={install.start} className="text-xs font-semibold text-[var(--action)] underline decoration-[var(--action)]/30 underline-offset-4">Add</button>
         } />
         <InstallSheet open={install.sheetOpen} onClose={install.closeSheet} platform={install.platform} />
       </motion.div>
@@ -195,7 +195,7 @@ export default function Profile() {
           } />
           <SettingsRow icon={Shield} label="Data Protection" description="Protected account, meal, and symptom data" iconColor="text-primary" />
           <SettingsRow icon={Download} label="Export My Data" description="Download everything you've logged (JSON file)" iconColor="text-primary" action={
-            <button onClick={handleExport} disabled={exporting} className="text-xs font-semibold text-primary disabled:opacity-60">
+            <button onClick={handleExport} disabled={exporting} className="text-xs font-semibold text-primary disabled:opacity-60 underline decoration-primary/30 underline-offset-4">
               {exporting ? "Preparing..." : "Download"}
             </button>
           } />

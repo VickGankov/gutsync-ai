@@ -175,7 +175,7 @@ function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 </div>
                 {!subStatus.data?.isPremium && !subStatus.data?.isFounder && !subStatus.data?.isTester && (
                   <Link href="/profile">
-                    <button type="button" onClick={onClose} className="ml-auto text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                    <button type="button" onClick={onClose} className="ml-auto text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full underline decoration-primary/30 underline-offset-4">
                       Upgrade
                     </button>
                   </Link>
