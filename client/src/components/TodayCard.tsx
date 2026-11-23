@@ -91,7 +91,7 @@ export default function TodayCard({ meals, symptoms, reintroCheckInPending }: Pr
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-3xl p-5 mb-4 bg-primary text-white shadow-lg shadow-black/10"
+      className="relative overflow-hidden rounded-3xl p-5 mb-4 bg-[oklch(0.25_0.015_265)] text-white shadow-lg shadow-black/10 dark:bg-[oklch(0.27_0.008_265)] dark:border dark:border-border"
     >
       <Activity aria-hidden className="absolute -right-4 -top-4 w-28 h-28 text-white/5 rotate-12" />
       <p className="text-[11px] uppercase tracking-wider font-medium text-white/60">
