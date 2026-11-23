@@ -168,7 +168,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={shown} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="oklch(0.9 0.01 80)" strokeDasharray="2 4" vertical={false} />
+                <CartesianGrid stroke="oklch(0.9 0.016 118)" strokeDasharray="2 4" vertical={false} />
                 <XAxis type="number" dataKey="x" domain={[xMin, xMax]} ticks={ticks} tickFormatter={n => md(dateOf(n))} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[yMin, yMax]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={32} allowDecimals={false} />
                 <Tooltip
@@ -180,7 +180,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
                     fill={TONE.meals.ink} fillOpacity={0.22} stroke="none" />
                 ))}
                 {goal && goal >= yMin && goal <= yMax && <ReferenceLine y={goal} stroke={TONE.fiber.ink} strokeDasharray="5 4" label={{ value: "Goal", fontSize: 10, fill: TONE.fiber.ink, position: "insideTopRight" }} />}
-                <Line dataKey="lb" stroke="none" dot={{ r: 2.5, fill: "oklch(0.72 0.04 80)", stroke: "none" }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line dataKey="lb" stroke="none" dot={{ r: 2.5, fill: "oklch(0.62 0.05 125)", stroke: "none" }} activeDot={{ r: 4 }} isAnimationActive={false} />
                 <Line dataKey="trend" stroke={INK} strokeWidth={2.5} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -206,7 +206,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
 
       {/* Goal */}
       {latest && (
-        <div className="mt-4 rounded-xl px-3 py-2.5" style={{ background: tint(TONE.fiber.ink, 12) }}>
+        <div className="mt-4 rounded-xl px-3 py-2.5" style={{ background: tint(TONE.meals.ink, 20) }}>
           {goal && !editGoal ? (
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

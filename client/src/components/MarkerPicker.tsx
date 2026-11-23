@@ -9,7 +9,7 @@ import type { RangeStatus } from "@shared/labs";
 export interface MarkerOption { marker: string; status: RangeStatus | null; value: string; unit: string }
 
 const KEY = "tp_marker_group";
-const STATUS_DOT: Record<string, string> = { above: "oklch(0.7 0.15 25)", below: "oklch(0.7 0.15 25)", in: "oklch(0.62 0.12 155)" };
+const STATUS_DOT: Record<string, string> = { above: "oklch(0.7 0.15 25)", below: "oklch(0.7 0.15 25)", in: "oklch(0.58 0.14 125)" };
 const readMode = (): GroupMode => { try { return localStorage.getItem(KEY) === "alpha" ? "alpha" : "category"; } catch { return "category"; } };
 
 function Dot({ status }: { status: RangeStatus | null }) {

@@ -13,7 +13,7 @@ import { addDays, aroundChanges, retentionCheck, type ChangeWindow, type Signal,
 const md = (date: string) => { const [, m, d] = date.split("-"); return `${Number(m)}/${Number(d)}`; };
 
 const DOT: Record<SignalState, string> = {
-  good: "oklch(0.62 0.12 155)",
+  good: "oklch(0.58 0.14 125)",
   neutral: "oklch(0.7 0.02 80)",
   watch: TONE.symptoms.ink,
   unknown: "transparent",
@@ -65,7 +65,7 @@ export default function BodyInsights({ days, lifts, proteinTargetG, tzOffsetMinu
   }, [doseQuery.data, tzOffsetMinutes, weighIns, days, today]);
 
   if (weighIns.length === 0 || !check) return null;
-  const tone = check.verdict === "watch" ? TONE.symptoms.ink : check.verdict === "good" ? "oklch(0.62 0.12 155)" : "oklch(0.7 0.02 80)";
+  const tone = check.verdict === "watch" ? TONE.symptoms.ink : check.verdict === "good" ? "oklch(0.58 0.14 125)" : "oklch(0.7 0.02 80)";
 
   return (
     <>

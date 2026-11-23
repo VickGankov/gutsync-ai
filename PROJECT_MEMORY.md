@@ -207,3 +207,6 @@ This file is the durable context for future Cursor chats in this workspace.
 - New card? Use `tc tc-<tone> border rounded-2xl` instead of `bg-card border border-border/..`. Progress `Card` takes a `tone` prop. Modals/sheets stay plain `bg-card`.
 - Nov 21: inside a tinted card, inner tiles use `bg-card border border-border/60 shadow-sm` (not bg-muted, which blends into the wash). The reconstitution calculator is a full-width feature tile (charcoal icon square, title, one-line description) instead of a small text link.
 - Nov 23: owner chose one lime for everything. All `.tc-*` tones now alias `--tone-lime` (oklch 0.84 0.17 122); wash 12%, border 34%; page background, card, muted and border tokens carry a faint lime tint (hue 118); chip icons are olive. Semantic colors (overdue coral, charts) are unchanged.
+
+## Color coordination (Nov 23)
+- Everything now sits in the lime family: sage tokens (`--color-sage*`) and the "good" verdict green moved from hue 155 to 125; TONE inks in `client/src/lib/tones.ts` retuned (protein deeper green-lime, water muted teal, fiber gold, strength slate, protocol olive). Coral stays only for alerts/overdue. Goal box and weight dots now lime/olive.

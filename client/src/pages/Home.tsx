@@ -406,7 +406,7 @@ export default function Home() {
                 animate={{ width: `${score}%` }}
                 transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
                 className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, oklch(0.7 0.12 25), oklch(0.65 0.08 80), oklch(0.55 0.1 155))" }}
+                style={{ background: "linear-gradient(90deg, oklch(0.7 0.12 25), oklch(0.65 0.08 80), oklch(0.52 0.12 125))" }}
               />
             </div>
           ) : (

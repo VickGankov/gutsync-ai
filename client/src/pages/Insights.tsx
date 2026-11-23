@@ -17,7 +17,7 @@ import { ofMeals, pct, MIN_EXPOSURES, MIN_DAYS, MAX_SHARE, sampleLabel } from "@
 import type { Confirmation } from "@shared/triggerConfirm";
 import { declaredStats } from "@shared/sensitivities";
 
-const barColors = ['oklch(0.7 0.12 25)', 'oklch(0.55 0.1 155)', 'oklch(0.75 0.04 80)', 'oklch(0.65 0.08 80)'];
+const barColors = ['oklch(0.7 0.12 25)', 'oklch(0.52 0.12 125)', 'oklch(0.75 0.04 80)', 'oklch(0.65 0.08 80)'];
 
 const container = {
   hidden: { opacity: 0 },
@@ -275,7 +275,7 @@ export default function Insights() {
       });
     });
     const data = [
-      { name: 'Low', value: counts.low, fill: 'oklch(0.55 0.1 155)' },
+      { name: 'Low', value: counts.low, fill: 'oklch(0.52 0.12 125)' },
       { name: 'Moderate', value: counts.moderate, fill: 'oklch(0.75 0.04 80)' },
       { name: 'High', value: counts.high, fill: 'oklch(0.7 0.12 25)' },
     ];
