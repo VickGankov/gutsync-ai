@@ -57,9 +57,9 @@
 
 :root {
   --radius: 1rem;
-  --background: oklch(0.975 0.005 80);
+  --background: oklch(0.975 0.011 118);
   --foreground: oklch(0.25 0.01 60);
-  --card: oklch(0.99 0.003 80);
+  --card: oklch(0.992 0.006 118);
   --card-foreground: oklch(0.25 0.01 60);
   --popover: oklch(0.99 0.003 80);
   --popover-foreground: oklch(0.25 0.01 60);
@@ -67,7 +67,7 @@
   --primary-foreground: oklch(0.98 0.005 90);
   --secondary: oklch(0.94 0.008 80);
   --secondary-foreground: oklch(0.35 0.01 60);
-  --muted: oklch(0.94 0.008 80);
+  --muted: oklch(0.944 0.014 118);
   --muted-foreground: oklch(0.5 0.015 60);
   --accent: oklch(0.94 0.008 80);
   --accent-foreground: oklch(0.25 0.01 60);
@@ -75,7 +75,7 @@
   --volt-foreground: oklch(0.22 0.02 265);
   --destructive: oklch(0.6 0.2 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.9 0.01 80);
+  --border: oklch(0.9 0.016 118);
   --input: oklch(0.92 0.008 80);
   --ring: oklch(0.45 0.03 265);
   --chart-1: oklch(0.3 0.02 265);
@@ -96,27 +96,20 @@
 /* Tone cards: a soft wash of the card's own color, so each kind of data has a look of its own.
    Set the tone with a class: tc tc-protocol, tc tc-protein, ... (see client/src/lib/tones.ts). */
 .tc {
-  --t: oklch(0.66 0.07 70);
-  background: linear-gradient(160deg, color-mix(in oklab, var(--t) 14%, var(--card)) 0%, var(--card) 78%);
-  border-color: color-mix(in oklab, var(--t) 28%, var(--border));
+  --t: var(--tone-lime);
+  background: linear-gradient(160deg, color-mix(in oklab, var(--t) 12%, var(--card)) 0%, var(--card) 80%);
+  border-color: color-mix(in oklab, var(--t) 34%, var(--border));
 }
-.tc-protocol { --t: oklch(0.64 0.11 190); }
-.tc-protein  { --t: oklch(0.6 0.16 295); }
-.tc-water    { --t: oklch(0.64 0.12 230); }
-.tc-fiber    { --t: oklch(0.72 0.14 80); }
-.tc-strength { --t: oklch(0.62 0.17 350); }
-.tc-meals    { --t: oklch(0.78 0.18 120); }
-.tc-symptoms { --t: oklch(0.68 0.15 25); }
-.tc-body     { --t: oklch(0.6 0.06 255); }
-.tc-labs     { --t: oklch(0.6 0.12 265); }
-.tc-warm     { --t: oklch(0.7 0.08 65); }
-.tc-volt     { --t: oklch(0.82 0.17 120); }
+/* One lime for every tone, so the app reads as one family. The class names stay so a tone can diverge again later. */
+:root { --tone-lime: oklch(0.84 0.17 122); }
+.tc-protocol, .tc-protein, .tc-water, .tc-fiber, .tc-strength, .tc-meals, .tc-symptoms, .tc-body, .tc-labs, .tc-warm, .tc-volt { --t: var(--tone-lime); }
 /* Icon chip that sits in a card title */
 .tc-chip {
   display: inline-flex; align-items: center; justify-content: center;
   width: 1.75rem; height: 1.75rem; border-radius: 0.625rem;
-  background: color-mix(in oklab, var(--c, var(--t)) 22%, transparent);
+  background: color-mix(in oklab, var(--tone-lime) 38%, transparent);
 }
+.tc-chip svg { color: oklch(0.36 0.09 125) !important; }
 
 @layer base {
   * {
