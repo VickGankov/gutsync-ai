@@ -93,6 +93,19 @@ describe("computeTriggers", () => {
     expect(garlic?.hitsNearDose).toBe(1);
   });
 
+  it("names the compound of the dose a hit followed", () => {
+    const meals = [
+      meal(200, ["Pasta"], ["garlic"]), meal(180, ["Soup"], ["garlic"]), meal(160, ["Bread"], ["garlic"]),
+      meal(140, ["Curry"], ["garlic"]), meal(120, ["Stew"], ["garlic"]),
+      meal(40, ["Rice"]), meal(30, ["Chicken"]), meal(20, ["Salad"]),
+    ];
+    const symptoms = [sym(198), sym(178), sym(158)];
+    const doses = [{ at: NOW - 199 * H, name: "Ipamorelin" }, { at: NOW - 179 * H, name: "Ipamorelin" }, { at: NOW - 159 * H, name: "BPC-157" }];
+    const garlic = computeTriggers(meals, symptoms, NOW, undefined, doses).find(t => t.names.includes("garlic"));
+    expect(garlic?.hitsNearDose).toBe(3);
+    expect(garlic?.nearDoseNames).toEqual(["Ipamorelin", "BPC-157"]);
+  });
+
   it("does not call a food a trigger when it is eaten on too few different days", () => {
     // five garlic meals all on the same day, each followed by bloating
     const base = NOW - 300 * H;

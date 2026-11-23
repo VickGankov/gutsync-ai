@@ -29,7 +29,7 @@ export async function loadTriggers(userId: number, now = Date.now()) {
     doses.map(d => ({ id: d.id, compound: d.compound, doseMcg: d.doseMcg, site: d.site, loggedAt: d.loggedAt })),
     schedules.map(s => ({ compound: s.compoundKey, intervalDays: s.intervalDays, kind: s.kind, weekdays: s.weekdays, cycleOn: s.cycleOn, cycleOff: s.cycleOff, cycleStart: s.cycleStart })),
   );
-  const spacedDoseTimes = doses.filter(d => isSpaced(intervals.get(compoundKey(d.compound)))).map(d => d.loggedAt);
+  const spacedDoseTimes = doses.filter(d => isSpaced(intervals.get(compoundKey(d.compound)))).map(d => ({ at: d.loggedAt, name: d.compound }));
   const recentSymptoms = symptoms.filter(s => s.loggedAt >= now - LOOKBACK_DAYS * DAY_MS);
   const triggers = computeTriggers(
     meals.map(m => ({ id: m.id, loggedAt: m.loggedAt, foods: m.foods as MealFood[] })),

@@ -44,6 +44,8 @@ export interface TriggerStat {
   lastHitAt: number;
   /** Hits whose symptom came within 3 days after a logged dose, so the dose may be the cause. */
   hitsNearDose: number;
+  /** Compounds of the doses those hits followed, most often first. Shown in the app only, never sent to the AI. */
+  nearDoseNames?: string[];
   /** Number of different days the food was eaten on. */
   days: number;
   /** 95% range for how often a symptom follows this food, given only this many meals (Wilson interval, 0–1). */
@@ -92,7 +94,7 @@ export function computeTriggers(
   symptoms: TriggerSymptom[],
   now: number = Date.now(),
   windowMs: number = FOLLOW_UP_WINDOW_MS,
-  doseTimes: number[] = [],
+  doseTimes: Array<number | { at: number; name: string }> = [],
 ): TriggerStat[] {
   const eligible = meals.filter(m => m.loggedAt <= now - windowMs);
   if (eligible.length === 0) return [];
@@ -139,6 +141,7 @@ export function computeTriggers(
     keyMeals.forEach((mealIds, key) => {
       const exposures = mealIds.size;
       let hits = 0, sevSum = 0, lastHitAt = 0, hitsNearDose = 0;
+      const nearNames = new Map<string, number>();
       const dayKeys = new Set<number>();
       mealIds.forEach(id => {
         const dk = dayOf.get(id);
@@ -146,7 +149,13 @@ export function computeTriggers(
         const h = hitMeals.get(id);
         if (h) {
           hits++; sevSum += h.severity; lastHitAt = Math.max(lastHitAt, h.at);
-          if (doseTimes.some(d => h.at >= d && h.at - d <= DOSE_NEAR_MS)) hitsNearDose++;
+          const near = doseTimes.filter(d => { const at = typeof d === "number" ? d : d.at; return h.at >= at && h.at - at <= DOSE_NEAR_MS; });
+          if (near.length > 0) {
+            hitsNearDose++;
+            // Name the compound(s) of the closest dose before the symptom.
+            const named = near.filter((d): d is { at: number; name: string } => typeof d !== "number");
+            if (named.length > 0) { const c = named.reduce((a, b) => (b.at > a.at ? b : a)); nearNames.set(c.name, (nearNames.get(c.name) ?? 0) + 1); }
+          }
         }
       });
       if (hits === 0) return;
@@ -172,7 +181,8 @@ export function computeTriggers(
 
       candidates.push({
         names: [key], symptom, exposures, hits, otherMeals, otherHits, rate, otherRate,
-        avgSeverity: Math.round((sevSum / hits) * 10) / 10, lastHitAt, hitsNearDose, status,
+        avgSeverity: Math.round((sevSum / hits) * 10) / 10, lastHitAt, hitsNearDose,
+        nearDoseNames: Array.from(nearNames.entries()).sort((a, b) => b[1] - a[1]).map(e => e[0]), status,
         days, rateLow: ci.low, rateHigh: ci.high,
         mealIds, lift, fromHidden,
       });

@@ -27,6 +27,15 @@ const reply = (obj: unknown) => ({ choices: [{ message: { content: JSON.stringif
 
 beforeEach(() => { store.clear(); invoke.mockReset(); });
 
+describe("explainTrigger privacy", () => {
+  it("never sends compound names to the AI", async () => {
+    invoke.mockResolvedValue(reply(good));
+    await explainTrigger({ ...stat, hitsNearDose: 2, nearDoseNames: ["Ipamorelin", "BPC-157"] });
+    const sent = JSON.stringify(invoke.mock.calls[0][0]);
+    expect(sent).not.toMatch(/Ipamorelin|BPC-157/);
+  });
+});
+
 describe("explainTrigger", () => {
   it("sends the computed counts, not raw logs, and returns the parsed fields", async () => {
     invoke.mockResolvedValue(reply(good));
