@@ -48,7 +48,7 @@ export default function ReconCalculator() {
     <div className="mb-3">
       <button type="button" aria-expanded={open} onClick={() => setOpen(v => !v)}
         className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 text-left shadow-sm transition-colors hover:bg-muted/40">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--primary)", color: "var(--volt)" }}>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "oklch(0.2 0.02 125)", color: "oklch(0.91 0.2 120)" }}>
           <Calculator className="h-4.5 w-4.5" />
         </span>
         <span className="min-w-0 flex-1">

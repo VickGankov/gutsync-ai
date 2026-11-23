@@ -98,7 +98,7 @@ export default function BottomNav() {
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50">
         <div className="mx-auto max-w-lg">
-          <div className="relative mx-3 mb-4 rounded-2xl bg-white/80 backdrop-blur-xl border border-border/50 shadow-lg shadow-black/5 px-2 py-2">
+          <div className="relative mx-3 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg shadow-black/5 px-2 py-2">
             <div className="flex items-center justify-between">
               {/* Left nav items */}
               <div className="flex items-center gap-0.5 flex-1 justify-evenly">
@@ -130,10 +130,10 @@ export default function BottomNav() {
                   onPointerUp={handlePressEnd}
                   onPointerLeave={handlePressCancel}
                   whileTap={{ scale: 0.9 }}
-                  className={`-mt-10 w-14 h-14 rounded-full shadow-lg flex items-center justify-center ring-4 ring-white/80 transition-colors select-none touch-none ${
+                  className={`-mt-10 w-14 h-14 rounded-full shadow-lg flex items-center justify-center ring-4 ring-card/80 transition-colors select-none touch-none ${
                     showUploadHint
                       ? "bg-coral text-white shadow-coral/30"
-                      : "bg-primary text-volt shadow-primary/30"
+                      : "bg-[oklch(0.2_0.02_125)] text-[oklch(0.91_0.2_120)] shadow-primary/30"
                   }`}
                 >
                   <AnimatePresence mode="wait">

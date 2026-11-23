@@ -111,7 +111,7 @@ export default function EmailAuth() {
   };
 
   const form = (
-    <div ref={formRef} className="w-full bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+    <div ref={formRef} className="w-full bg-card rounded-2xl shadow-lg p-6 sm:p-8">
       <h2 className="text-xl font-semibold text-center mb-1">
         {mode === 'login' ? 'Welcome back' : 'Create your account'}
       </h2>
@@ -121,7 +121,7 @@ export default function EmailAuth() {
 
       {providers.data?.google && (
         <>
-          <a href={googleHref} className="flex items-center justify-center gap-2.5 w-full rounded-md border border-border bg-white py-2.5 text-sm font-medium text-foreground hover:bg-muted/40">
+          <a href={googleHref} className="flex items-center justify-center gap-2.5 w-full rounded-md border border-border bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40">
             <GoogleG /> Continue with Google
           </a>
           <div className="flex items-center gap-3 my-5">
@@ -227,7 +227,7 @@ export default function EmailAuth() {
       <div className="-mx-4 px-4 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 items-start [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {FEATURES.map(f => (
           <figure key={f.img} className="flex flex-col shrink-0 w-[68%] snap-center">
-            <div className="rounded-2xl border border-border/60 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
               <img src={f.img} alt={f.title} loading="lazy" className="w-full h-auto block" />
             </div>
             <figcaption className="mt-3 px-1">

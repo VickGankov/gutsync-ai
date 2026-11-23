@@ -168,7 +168,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={shown} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="oklch(0.9 0.016 118)" strokeDasharray="2 4" vertical={false} />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
                 <XAxis type="number" dataKey="x" domain={[xMin, xMax]} ticks={ticks} tickFormatter={n => md(dateOf(n))} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[yMin, yMax]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={32} allowDecimals={false} />
                 <Tooltip

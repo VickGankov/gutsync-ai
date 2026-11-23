@@ -371,7 +371,7 @@ export default function ProtocolCard() {
               <XAxis dataKey="label" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v: number) => [`${v} mg`, "Dose"]} />
-              <Bar dataKey="mg" fill="oklch(0.3 0.02 265)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="mg" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

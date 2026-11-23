@@ -43,19 +43,21 @@
   --font-display: 'DM Serif Display', serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --color-sage: oklch(0.52 0.12 125);
-  --color-sage-light: oklch(0.91 0.09 122);
-  --color-sage-dark: oklch(0.36 0.09 125);
+  --color-sage: var(--sage);
+  --color-sage-light: var(--sage-light);
+  --color-sage-dark: var(--sage-dark);
   --color-volt: var(--volt);
   --color-volt-foreground: var(--volt-foreground);
   --color-coral: oklch(0.7 0.12 25);
   --color-coral-light: oklch(0.88 0.06 25);
-  --color-sand: oklch(0.88 0.03 80);
+  --color-sand: var(--sand);
   --color-sand-dark: oklch(0.75 0.04 80);
-  --color-warm-white: oklch(0.975 0.005 80);
+  --color-warm-white: var(--warm-white);
 }
 
 :root {
+  --sage: oklch(0.52 0.12 125); --sage-light: oklch(0.91 0.09 122); --sage-dark: oklch(0.36 0.09 125);
+  --sand: oklch(0.88 0.03 80); --warm-white: oklch(0.975 0.005 80);
   --radius: 1rem;
   --background: oklch(0.975 0.011 118);
   --foreground: oklch(0.25 0.01 60);
@@ -101,7 +103,8 @@
   border-color: color-mix(in oklab, var(--t) 34%, var(--border));
 }
 /* One lime for every tone, so the app reads as one family. The class names stay so a tone can diverge again later. */
-:root { --tone-lime: oklch(0.84 0.17 122); --action: oklch(0.4 0.095 130); } /* deep olive: the one color for "you can tap this" */
+:root { --ink-meals: oklch(0.78 0.18 120); --ink-protein: oklch(0.55 0.14 132); --ink-water: oklch(0.6 0.09 205); --ink-fiber: oklch(0.7 0.13 85); --ink-strength: oklch(0.45 0.035 250); --ink-protocol: oklch(0.42 0.07 130);
+  --tone-lime: oklch(0.84 0.17 122); --action: oklch(0.4 0.095 130); } /* deep olive: the one color for "you can tap this" */
 .tc-protocol, .tc-protein, .tc-water, .tc-fiber, .tc-strength, .tc-meals, .tc-symptoms, .tc-body, .tc-labs, .tc-warm, .tc-volt { --t: var(--tone-lime); }
 /* Icon chip that sits in a card title */
 .tc-chip {
@@ -110,6 +113,50 @@
   background: color-mix(in oklab, var(--tone-lime) 38%, transparent);
 }
 .tc-chip svg { color: oklch(0.36 0.09 125) !important; }
+
+/* Dark theme: the same lime family on a deep olive-charcoal. Primary flips to volt so the main action still pops. */
+.dark {
+  --background: oklch(0.185 0.012 120);
+  --foreground: oklch(0.95 0.01 110);
+  --card: oklch(0.23 0.014 120);
+  --card-foreground: oklch(0.95 0.01 110);
+  --popover: oklch(0.25 0.014 120);
+  --popover-foreground: oklch(0.95 0.01 110);
+  --primary: oklch(0.9 0.18 120);
+  --primary-foreground: oklch(0.2 0.02 125);
+  --secondary: oklch(0.29 0.014 120);
+  --secondary-foreground: oklch(0.92 0.01 110);
+  --muted: oklch(0.27 0.014 120);
+  --muted-foreground: oklch(0.72 0.015 110);
+  --accent: oklch(0.3 0.016 120);
+  --accent-foreground: oklch(0.95 0.01 110);
+  --volt: oklch(0.9 0.18 120);
+  --volt-foreground: oklch(0.2 0.02 125);
+  --destructive: oklch(0.7 0.17 25);
+  --border: oklch(0.34 0.02 120);
+  --input: oklch(0.3 0.016 120);
+  --ring: oklch(0.8 0.12 122);
+  --chart-1: oklch(0.9 0.18 120);
+  --chart-2: oklch(0.76 0.15 25);
+  --chart-3: oklch(0.8 0.12 85);
+  --chart-4: oklch(0.78 0.09 205);
+  --chart-5: oklch(0.8 0.04 80);
+  --sidebar: oklch(0.21 0.013 120);
+  --sidebar-foreground: oklch(0.95 0.01 110);
+  --sidebar-primary: oklch(0.9 0.18 120);
+  --sidebar-primary-foreground: oklch(0.2 0.02 125);
+  --sidebar-accent: oklch(0.3 0.016 120);
+  --sidebar-accent-foreground: oklch(0.95 0.01 110);
+  --sidebar-border: oklch(0.34 0.02 120);
+  --sidebar-ring: oklch(0.8 0.12 122);
+  --action: oklch(0.86 0.14 122);
+  --ink-meals: oklch(0.9 0.19 120); --ink-protein: oklch(0.8 0.17 130); --ink-water: oklch(0.8 0.09 205); --ink-fiber: oklch(0.84 0.14 85); --ink-strength: oklch(0.8 0.04 250); --ink-protocol: oklch(0.82 0.1 128);
+  --sage: oklch(0.75 0.14 125); --sage-light: oklch(0.32 0.06 125); --sage-dark: oklch(0.86 0.14 122);
+  --sand: oklch(0.3 0.02 90); --warm-white: oklch(0.23 0.014 120);
+}
+.dark .tc { background: linear-gradient(160deg, color-mix(in oklab, var(--t) 11%, var(--card)) 0%, var(--card) 80%); border-color: color-mix(in oklab, var(--t) 26%, var(--border)); }
+.dark .tc-chip { background: color-mix(in oklab, var(--tone-lime) 24%, transparent); }
+.dark .tc-chip svg { color: var(--tone-lime) !important; }
 
 @layer base {
   * {

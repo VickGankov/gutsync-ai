@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import RemindersCard from "@/components/RemindersCard";
+import AppearanceCard from "@/components/AppearanceCard";
 import DietaryProfile from "@/components/DietaryProfile";
 import FounderCard from "@/components/FounderCard";
 import BillingCard from "@/components/BillingCard";
@@ -163,6 +164,7 @@ export default function Profile() {
 
       {/* Reminders */}
       <motion.div variants={item}>
+        <AppearanceCard />
         <RemindersCard />
       </motion.div>
 

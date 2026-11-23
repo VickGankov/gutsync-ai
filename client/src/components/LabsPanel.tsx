@@ -16,7 +16,7 @@ import LabImportSheet, { type Draft } from "@/components/LabImportSheet";
 import { changeSincePrevious, daysBetween, pointsInLatestUnit, positionOf, rangeStatus, rangeText, type Run } from "@shared/labs";
 import { dateKeyOf } from "@shared/weekly";
 
-const PRIMARY = "oklch(0.3 0.02 265)";
+const PRIMARY = "var(--chart-1)";
 const MS_DAY = 86_400_000;
 const keyToMs = (k: string) => Date.parse(`${k}T00:00:00Z`);
 const msToKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);

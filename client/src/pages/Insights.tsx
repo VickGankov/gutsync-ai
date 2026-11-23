@@ -446,7 +446,7 @@ export default function Insights() {
                       outerRadius={55}
                       dataKey="value"
                       strokeWidth={2}
-                      stroke="oklch(0.99 0.003 80)"
+                      stroke="var(--card)"
                     >
                       {fodmapData.map((entry, i) => (
                         <Cell key={i} fill={entry.fill} />
