@@ -214,3 +214,4 @@ This file is the durable context for future Cursor chats in this workspace.
 
 ## Dark theme (Nov 23)
 - `.dark` token block in `client/src/index.css` (deep olive-charcoal; primary/volt flip to lime with dark text; `--action` light lime). ThemeContext now has preference light/dark/system (localStorage `theme`, default system), early inline script in `client/index.html` prevents flash, Appearance card in Profile. Sage/sand/warm-white and TONE inks are CSS vars (`--ink-*`) with dark values; chart strokes use `var(--chart-1)`/`var(--border)`. Hardcoded `bg-white` replaced with `bg-card`. Gotcha: anything using `bg-primary` + a volt icon needs explicit colors (primary is lime in dark).
+- Dark: coral/sand/amber/red shades are CSS vars with dark overrides in .dark (fixes sensitivity badges, alert boxes, warning notes).
