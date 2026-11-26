@@ -97,6 +97,13 @@ export default function BottomNav() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50">
+        {/* Quiet brand mark in the gap under the bar, so screenshots carry the name. Not tappable. */}
+        <div aria-hidden="true" className="pointer-events-none absolute bottom-[1px] left-0 right-0 flex justify-center select-none">
+         <div className="flex items-center gap-1 rounded-full bg-background/70 px-2 py-[1px] backdrop-blur-sm opacity-80">
+          <img src="/favicon.svg" alt="" className="h-2.5 w-2.5 rounded-[3px]" />
+          <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Triggerplate</span>
+         </div>
+        </div>
         <div className="mx-auto max-w-lg">
           <div className="relative mx-3 mb-4 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg shadow-black/5 px-2 py-2">
             <div className="flex items-center justify-between">
