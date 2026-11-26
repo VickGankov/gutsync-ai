@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { useLocation } from 'wouter';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const RETURNING_KEY = 'gutsync_returning';
 
@@ -62,6 +63,7 @@ function isReturning(): boolean {
 }
 
 export default function EmailAuth() {
+  const dark = useTheme().theme === 'dark';
   const returning = useState(() => isReturning())[0];
   const [mode, setMode] = useState<'login' | 'signup'>(returning ? 'login' : 'signup');
   const [email, setEmail] = useState('');
@@ -228,7 +230,7 @@ export default function EmailAuth() {
         {FEATURES.map(f => (
           <figure key={f.img} className="flex flex-col shrink-0 w-[68%] snap-center">
             <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
-              <img src={f.img} alt={f.title} loading="lazy" className="w-full h-auto block" />
+              <img src={dark ? f.img.replace(".webp", "-dark.webp") : f.img} alt={f.title} loading="lazy" className="w-full h-auto block" />
             </div>
             <figcaption className="mt-3 px-1">
               <p className="font-semibold text-sm">{f.title}</p>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Camera, Activity, Sparkles, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Hero is the app icon; the other steps show real screenshots served from /landing (no third-party image hosts).
 const HERO_IMG: string | null = null;
@@ -48,6 +49,7 @@ const steps = [
 ];
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
+  const dark = useTheme().theme === "dark";
   const [currentStep, setCurrentStep] = useState(0);
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
@@ -75,7 +77,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           >
             {step.image ? (
               <img
-                src={step.image}
+                src={dark && step.image.endsWith(".webp") ? step.image.replace(".webp", "-dark.webp") : step.image}
                 alt={step.title}
                 className="max-h-[78vh] w-auto max-w-[440px] rounded-3xl border border-border/40 bg-card shadow-2xl object-contain"
               />
@@ -100,7 +102,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               {/* Phone: picture on top */}
               <div className="lg:hidden relative h-[45vh] max-h-[400px] overflow-hidden bg-gradient-to-b from-primary/15 to-background">
                 {step.image ? (
-                  <img src={step.image} alt={step.title} className="w-full h-full object-cover object-top" />
+                  <img src={dark && step.image.endsWith(".webp") ? step.image.replace(".webp", "-dark.webp") : step.image} alt={step.title} className="w-full h-full object-cover object-top" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <img src="/icon-512.png" alt="Triggerplate" className="w-28 h-28 rounded-3xl shadow-lg" />
