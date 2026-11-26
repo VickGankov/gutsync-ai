@@ -177,7 +177,7 @@ export default function WeightCard({ days, recentWeights, targets, tzOffsetMinut
                 />
                 {bands.map((w, i) => (
                   <ReferenceArea key={i} x1={Math.max(xMin, dayNum(w.start))} x2={Math.min(xMax, Math.max(dayNum(w.end), dayNum(w.start) + 0.5))}
-                    fill={TONE.meals.ink} fillOpacity={0.22} stroke="none" />
+                    fill={`color-mix(in oklab, ${TONE.meals.ink} 14%, transparent)`} fillOpacity={1} stroke="none" />
                 ))}
                 {goal && goal >= yMin && goal <= yMax && <ReferenceLine y={goal} stroke={TONE.fiber.ink} strokeDasharray="5 4" label={{ value: "Goal", fontSize: 10, fill: TONE.fiber.ink, position: "insideTopRight" }} />}
                 <Line dataKey="lb" stroke="none" dot={{ r: 2.5, fill: "oklch(0.62 0.05 125)", stroke: "none" }} activeDot={{ r: 4 }} isAnimationActive={false} />

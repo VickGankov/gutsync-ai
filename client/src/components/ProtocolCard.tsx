@@ -169,7 +169,7 @@ export default function ProtocolCard() {
             const chipText = ss
               ? ss.state === "due" ? "Due today" : ss.state === "done" ? "Done today" : ss.state === "overdue" ? "Overdue" : `Next ${nextDay}`
               : st.state === "due" ? "Due today" : st.state === "overdue" ? "Overdue" : `In ${st.daysUntil} day${st.daysUntil === 1 ? "" : "s"}`;
-            const chipTone = overdue ? "bg-coral/15 text-coral" : due ? "bg-primary text-primary-foreground" : ss?.state === "done" ? "bg-background text-muted-foreground" : "bg-background text-foreground";
+            const chipTone = overdue ? "bg-coral/15 text-coral" : due ? "bg-primary text-primary-foreground" : ss?.state === "done" ? "bg-muted text-muted-foreground" : "bg-muted text-foreground";
             return (
             <div key={st.key} className="rounded-2xl border border-border/70 bg-card px-4 pt-3.5 pb-1.5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
